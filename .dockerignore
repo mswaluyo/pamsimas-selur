@@ -1,0 +1,58 @@
+# Version Control
+.git
+.gitignore
+.gitattributes
+
+# IDE & Editor
+.vscode
+.idea
+*.swp
+*.swo
+*~
+
+# Documentation
+*.md
+LICENSE
+CHANGELOG*
+INSTALL*
+TROUBLESHOOTING*
+WHATSAPP*
+WA_*
+
+# Development
+.env.backup
+.env.production
+.phpunit.result.cache
+Homestead.json
+Homestead.yaml
+auth.json
+
+# Docker
+Dockerfile
+docker-compose*.yml
+.dockerignore
+
+# Deploy scripts (tidak perlu di dalam image)
+deploy/deploy.ps1
+deploy/deploy-server.sh
+deploy/README.md
+
+# Backup folder (hanya untuk referensi)
+backup_pamsimas/
+
+# Node modules (frontend sudah di-build di public/build)
+node_modules/
+npm-debug.log
+yarn-error.log
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.egg-info/
+dist/
+build/
+
+# OS Files
+.DS_Store
+Thumbs.db

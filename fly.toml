@@ -1,0 +1,92 @@
+# ============================================================
+# Fly.io Configuration for PAMSIMAS
+# ============================================================
+# Deploy:  fly deploy
+# Logs:    fly logs
+# SSH:     fly ssh console
+# ============================================================
+
+app = "pamsimas-selur"
+primary_region = "sin"  # Singapore (terdekat ke Indonesia)
+# Alternatif region: "jakarta" (jika tersedia), "syd" (Sydney)
+
+kill_signal = "SIGTERM"
+kill_timeout = 120  # Beri waktu cukup untuk OCR process
+
+[build]
+  dockerfile = "Dockerfile"
+
+[env]
+  APP_ENV = "production"
+  APP_DEBUG = "false"
+  APP_URL = "https://pamsimas-selur.fly.dev"
+  
+  # Database default: SQLite (untuk Fly.io volume)
+  DB_CONNECTION = "sqlite"
+  
+  # Session & Cache
+  SESSION_DRIVER = "database"
+  QUEUE_CONNECTION = "database"
+  CACHE_DRIVER = "database"
+  
+  # Logging
+  LOG_CHANNEL = "stderr"
+  LOG_LEVEL = "info"
+  
+  # Filesystem
+  FILESYSTEM_DISK = "local"
+
+  # Python OCR
+  EASYOCR_MODULE_PATH = "/var/www/html/storage/app/.easyocr/model"
+  EASYOCR_USER_NETWORK_DIRECTORY = "/var/www/html/storage/app/.easyocr/user_network"
+  PYTHON_PATH = "/opt/venv/bin/python3"
+
+  # Security
+  RUN_MIGRATIONS = "true"
+
+[[vm]]
+  cpu_kind = "shared"
+  cpus = 1
+  memory_mb = 1028  # 1GB RAM (minimal untuk EasyOCR)
+
+# Persistent volume untuk database SQLite dan foto meteran
+[mounts]
+  source = "pamsimas_data"
+  destination = "/var/www/html/storage/app"
+
+# HTTP Service - Web Server (Nginx)
+[[services]]
+  protocol = "tcp"
+  internal_port = 8080
+  processes = ["app"]
+
+  [[services.ports]]
+    port = 80
+    handlers = ["http"]
+    force_https = true
+
+  [[services.ports]]
+    port = 443
+    handlers = ["tls", "http"]
+    
+  # Health check
+  [[services.tcp_checks]]
+    interval = 30000
+    timeout = 5000
+    grace_period = 60000
+
+  # Auto-scaling
+  [[services.http_checks]]
+    interval = 30000
+    timeout = 5000
+    grace_period = 60000
+    method = "get"
+    path = "/health"
+    protocol = "http"
+
+# Catatan: WhatsApp Gateway (Node.js) TIDAK di-include di sini.
+# Gateway harus di-deploy terpisah ke server/VPS yang menjalankan Node.js
+# atau gunakan fly machine terpisah.
+# 
+# Untuk webhook WA: pastikan WA_WEBHOOK_URL mengarah ke URL Fly.io ini
+# Contoh: WA_WEBHOOK_URL=https://pamsimas-selur.fly.dev/api/api_wa
