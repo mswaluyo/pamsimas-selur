@@ -30,3 +30,8 @@ wa-gateway/node_modules/
 Homestead.json
 Homestead.yaml
 Thumbs.db
+
+Thumbs.db
+
+# ZIP files (too large for GitHub)
+*.zip

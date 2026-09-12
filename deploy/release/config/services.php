@@ -43,4 +43,17 @@ return [
     'wa_gateway_number' => env('WA_GATEWAY_NUMBER'),
     'gemini_api_key' => env('GEMINI_API_KEY'),
 
+    'gemini_api_key' => env('GEMINI_API_KEY'),
+
+    // Storage path untuk foto meteran
+    'meter_storage_path' => env('METER_STORAGE_PATH', storage_path('app/meter_photos')),
+
+    // Python OCR configuration
+    'python_path' => env('PYTHON_PATH', '/usr/local/bin/python_ocr'),
+    'python_script_crop' => env('PYTHON_SCRIPT_CROP', 'public/smart_crop.py'),
+    'python_script_ocr' => env('PYTHON_SCRIPT_OCR', 'public/run_ocr.py'),
+    'easyocr_module_path' => env('EASYOCR_MODULE_PATH', storage_path('app/.easyocr/model')),
+    'easyocr_user_network_directory' => env('EASYOCR_USER_NETWORK_DIRECTORY', storage_path('app/.easyocr/user_network')),
+
+];
 ];

@@ -25,6 +25,137 @@ class MeterController extends Controller
             @mkdir($env, 0775, true);
         }
         return $env;
+    private function storagePath(): string
+    {
+        // Prioritas 1: Path dari config (bisa di-set via .env METER_STORAGE_PATH)
+        $env = config('services.meter_storage_path');
+        
+        // Prioritas 2: Cek symlink ke SSD
+        if (empty($env) || !is_dir($env)) {
+            $ssdPath = base_path('meter_photos');
+            if (is_dir($ssdPath)) {
+                $env = $ssdPath;
+            }
+        }
+        
+        // Prioritas 3: Default storage lokal
+        if (empty($env) || !is_dir($env)) {
+            $env = storage_path('app/meter_photos');
+        }
+        
+        // Buat direktori jika belum ada
+        if (!is_dir($env)) {
+            @mkdir($env, 0775, true);
+        }
+        
+        return $env;
+    }
+
+    /**
+     * Dapatkan path ke Python OCR executable
+     * Mendukung Windows dan Linux secara otomatis
+     */
+    private function pythonPath(): string
+    {
+        // Prioritas 1: Path dari config (.env PYTHON_PATH)
+        $python = config('services.python_path');
+        if (!empty($python) && file_exists($python)) {
+            return $python;
+        }
+        
+        // Prioritas 2: Deteksi OS dan path default
+        if (strtoupper(substr(PHP_OS, 0, 3)) === 'WIN') {
+            // Windows: cek venv lokal
+            $venvPython = base_path('venv\Scripts\python.exe');
+            if (file_exists($venvPython)) {
+                return $venvPython;
+            }
+        } else {
+            // Linux/Armbian: cek berbagai lokasi
+            $linuxPaths = [
+                '/usr/local/bin/python_ocr',   // Custom symlink (aaPanel)
+                base_path('venv/bin/python3'),  // Local venv
+                '/usr/bin/python3',             // System Python
+            ];
+            foreach ($linuxPaths as $path) {
+                if (file_exists($path)) {
+                    return $path;
+                }
+            }
+        }
+        
+        // Fallback: python3 di PATH
+        return 'python3';
+    }
+
+    /**
+     * Jalankan Python OCR script (smart_crop.py)
+     */
+    private function runPythonCrop(string $inputPath, string $outputPath): bool
+    {
+        $python = $this->pythonPath();
+        $script = base_path(config('services.python_script_crop', 'public/smart_crop.py'));
+        
+        // Escape path untuk keamanan
+        $cmd = sprintf(
+            '%s %s %s %s 2>&1',
+            escapeshellarg($python),
+            escapeshellarg($script),
+            escapeshellarg($inputPath),
+            escapeshellarg($outputPath)
+        );
+        
+        exec($cmd, $output, $returnCode);
+        
+        if ($returnCode !== 0) {
+            Log::error('Python OCR Crop failed', [
+                'command' => $cmd,
+                'output' => implode("\n", $output),
+                'return_code' => $returnCode,
+            ]);
+            return false;
+        }
+        
+        return true;
+    }
+
+    /**
+     * Jalankan Python OCR script (run_ocr.py)
+     */
+    private function runPythonOcr(string $imagePath): string
+    {
+        $python = $this->pythonPath();
+        $script = base_path(config('services.python_script_ocr', 'public/run_ocr.py'));
+        
+        // Set environment untuk EasyOCR cache
+        $easyocrPath = config('services.easyocr_module_path', storage_path('app/.easyocr/model'));
+        $env = sprintf(
+            'EASYOCR_MODULE_PATH=%s EASYOCR_USER_NETWORK_DIRECTORY=%s',
+            escapeshellarg($easyocrPath),
+            escapeshellarg(config('services.easyocr_user_network_directory', storage_path('app/.easyocr/user_network')))
+        );
+        
+        $cmd = sprintf(
+            '%s %s %s %s 2>&1',
+            $env,
+            escapeshellarg($python),
+            escapeshellarg($script),
+            escapeshellarg($imagePath)
+        );
+        
+        exec($cmd, $output, $returnCode);
+        
+        if ($returnCode !== 0) {
+            Log::error('Python OCR Read failed', [
+                'command' => $cmd,
+                'output' => implode("\n", $output),
+                'return_code' => $returnCode,
+            ]);
+            return '';
+        }
+        
+        return trim(implode('', $output));
+    }
     }
 
     public function index()
