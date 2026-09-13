@@ -103,6 +103,25 @@ class MeterController extends Controller
             escapeshellarg($script),
             escapeshellarg($inputPath),
             escapeshellarg($outputPath)
+        // Set PYTHONPATH agar bisa import package dari venv
+        $pythonLibPath = config('services.python_lib_path', '/usr/local/venv/lib/python3.11/site-packages');
+        $easyocrPath = config('services.easyocr_module_path', storage_path('app/.easyocr/model'));
+        
+        $env = sprintf(
+            'PYTHONPATH=%s EASYOCR_MODULE_PATH=%s EASYOCR_USER_NETWORK_DIRECTORY=%s',
+            escapeshellarg($pythonLibPath),
+            escapeshellarg($easyocrPath),
+            escapeshellarg(config('services.easyocr_user_network_directory', storage_path('app/.easyocr/user_network')))
+        );
+        
+        $cmd = sprintf(
+            '%s %s %s %s %s 2>&1',
+            $env,
+            escapeshellarg($python),
+            escapeshellarg($script),
+            escapeshellarg($inputPath),
+            escapeshellarg($outputPath)
+        );
         );
         
         exec($cmd, $output, $returnCode);
@@ -133,6 +152,15 @@ class MeterController extends Controller
             'EASYOCR_MODULE_PATH=%s EASYOCR_USER_NETWORK_DIRECTORY=%s',
             escapeshellarg($easyocrPath),
             escapeshellarg(config('services.easyocr_user_network_directory', storage_path('app/.easyocr/user_network')))
+        // Set PYTHONPATH agar bisa import package dari venv
+        $pythonLibPath = config('services.python_lib_path', '/usr/local/venv/lib/python3.11/site-packages');
+        $easyocrPath = config('services.easyocr_module_path', storage_path('app/.easyocr/model'));
+        $env = sprintf(
+            'PYTHONPATH=%s EASYOCR_MODULE_PATH=%s EASYOCR_USER_NETWORK_DIRECTORY=%s',
+            escapeshellarg($pythonLibPath),
+            escapeshellarg($easyocrPath),
+            escapeshellarg(config('services.easyocr_user_network_directory', storage_path('app/.easyocr/user_network')))
+        );
         );
         
         $cmd = sprintf(

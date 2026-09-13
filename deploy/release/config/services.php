@@ -54,6 +54,9 @@ return [
     'python_script_ocr' => env('PYTHON_SCRIPT_OCR', 'public/run_ocr.py'),
     'easyocr_module_path' => env('EASYOCR_MODULE_PATH', storage_path('app/.easyocr/model')),
     'easyocr_user_network_directory' => env('EASYOCR_USER_NETWORK_DIRECTORY', storage_path('app/.easyocr/user_network')),
+    'python_lib_path' => env('PYTHONPATH', '/usr/local/venv/lib/python3.11/site-packages'),
+    'easyocr_module_path' => env('EASYOCR_MODULE_PATH', storage_path('app/.easyocr/model')),
+    'easyocr_user_network_directory' => env('EASYOCR_USER_NETWORK_DIRECTORY', storage_path('app/.easyocr/user_network')),
 
 ];
 ];
