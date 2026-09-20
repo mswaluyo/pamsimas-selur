@@ -20,10 +20,6 @@
 /storage/pail
 /vendor
 
-# Koyeb deployment examples
-.env.example.koyeb
-DEPLOY_KOYEB.md
-
 # Backup
 backup_pamsimas/
 wa-gateway/node_modules/
@@ -31,7 +27,11 @@ Homestead.json
 Homestead.yaml
 Thumbs.db
 
-Thumbs.db
-
 # ZIP files (too large for GitHub)
 *.zip
+
+# Local / server-side diagnostic helpers (not part of the app)
+/check-db.php
+/diag-*.php
+/*-tmp.php
+/scripts/_*.txt
