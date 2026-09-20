@@ -3,13 +3,24 @@
 # PAMSIMAS - Setup Server (Ubuntu + aaPanel)
 # Jalankan sebagai root:  bash scripts/setup-server.sh
 # Idempotent: boleh dijalankan berulang kali.
+#
+# Opsi (env):
+#   PAMSIMAS_DB_NAME  nama database            (default: pamsimas_db)
+#   PAMSIMAS_DB_USER  user DB                  (default: pamsimas_user;
+#                                              isi 'root' untuk memakai user root yang ada)
+#   PAMSIMAS_DB_PASS  sandi DB                 (default: SandiKuat2026!)
+#
+# Contoh memakai user root MySQL yang sudah ada + sandi yang sudah dipakai .env:
+#   PAMSIMAS_DB_USER=root PAMSIMAS_DB_PASS='w4luy017' bash /home/admin/setup-server.sh
 # ==========================================================================
 set -euo pipefail
 
 APP_DIR="/www/wwwroot/pamsimas.selur.my.id"
 WEB_USER="www"
-DB_NAME="pamsimas_db"
-DB_USER="pamsimas_user"
+DB_NAME="${PAMSIMAS_DB_NAME:-pamsimas_db}"
+# Default: user khusus aplikasi. Isi PAMSIMAS_DB_USER=root untuk memakai user
+# root MySQL yang sudah ada (sandi root tidak akan diubah oleh script ini).
+DB_USER="${PAMSIMAS_DB_USER:-pamsimas_user}"
 DB_PASS="${PAMSIMAS_DB_PASS:-SandiKuat2026!}"
 ROOT_PW_FILE="/www/server/panel/data/default_mysql_pwd"
 
@@ -61,14 +72,37 @@ if ! mysqladmin -u root -p"$MYSQL_ROOT_PW" status >/dev/null 2>&1; then
 fi
 echo "    OK: MySQL aktif"
 
-mysql -u root -p"$MYSQL_ROOT_PW" <<SQL
+if [[ "$DB_USER" == "root" ]]; then
+    # Mode "pakai user root yang sudah ada": sandi root TIDAK diubah.
+    # Kalau PAMSIMAS_DB_PASS tidak diisi, .env memakai sandi root aaPanel asli.
+    DB_PASS="${PAMSIMAS_DB_PASS:-$MYSQL_ROOT_PW}"
+
+    mysql -u root -p"$MYSQL_ROOT_PW" <<SQL
+CREATE DATABASE IF NOT EXISTS \`${DB_NAME}\` CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+GRANT ALL PRIVILEGES ON \`${DB_NAME}\`.* TO 'root'@'localhost';
+FLUSH PRIVILEGES;
+SQL
+
+    # Pastikan sandi yang akan ditulis ke .env benar-benar diterima MySQL
+    if ! mysql -u root -p"$DB_PASS" -e "SELECT 1;" >/dev/null 2>&1; then
+        die "Sandi root yang akan dipakai .env (DB_PASSWORD=${DB_PASS}) ditolak MySQL.
+   -> Samakan sandi root ke nilai itu:
+        mysql -u root -p'$MYSQL_ROOT_PW' -e \"ALTER USER 'root'@'localhost' IDENTIFIED BY '${DB_PASS}'; FLUSH PRIVILEGES;\"
+        printf '%s' '${DB_PASS}' > $ROOT_PW_FILE && chmod 600 $ROOT_PW_FILE
+        (baris ke-2 wajib supaya aaPanel tetap bisa mengelola database)
+   -> Atau jalankan ulang TANPA PAMSIMAS_DB_PASS agar memakai sandi root aaPanel asli."
+    fi
+    echo "    OK: database ${DB_NAME} siap (memakai user root yang sudah ada)"
+else
+    mysql -u root -p"$MYSQL_ROOT_PW" <<SQL
 CREATE DATABASE IF NOT EXISTS \`${DB_NAME}\` CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 CREATE USER IF NOT EXISTS '${DB_USER}'@'localhost' IDENTIFIED BY '${DB_PASS}';
 ALTER USER '${DB_USER}'@'localhost' IDENTIFIED BY '${DB_PASS}';
 GRANT ALL PRIVILEGES ON \`${DB_NAME}\`.* TO '${DB_USER}'@'localhost';
 FLUSH PRIVILEGES;
 SQL
-echo "    OK: database ${DB_NAME} + user ${DB_USER} siap"
+    echo "    OK: database ${DB_NAME} + user ${DB_USER} siap"
+fi
 
 # --------------------------------------------------------------------------
 # 4. File .env

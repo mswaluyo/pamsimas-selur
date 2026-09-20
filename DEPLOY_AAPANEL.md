@@ -79,6 +79,23 @@ FLUSH PRIVILEGES;
 SQL
 ```
 
+> **Alternatif tanpa user baru — pakai `root` yang sudah ada.**
+> `.env.production` sudah memuat `DB_USERNAME=root` + `DB_PASSWORD=w4luy017`, jadi kalau
+> sandi root MySQL memang `w4luy017`, tidak ada yang perlu diubah sama sekali:
+>
+> ```bash
+> PAMSIMAS_DB_USER=root PAMSIMAS_DB_PASS='w4luy017' bash /home/admin/setup-server.sh
+> ```
+>
+> Kalau ditolak MySQL, samakan sandinya **dan** update file panel — kalau tidak,
+> aaPanel kehilangan akses kelola database:
+>
+> ```bash
+> mysql -u root -p"$(cat /www/server/panel/data/default_mysql_pwd)" \
+>   -e "ALTER USER 'root'@'localhost' IDENTIFIED BY 'w4luy017'; FLUSH PRIVILEGES;"
+> printf '%s' 'w4luy017' > /www/server/panel/data/default_mysql_pwd && chmod 600 /www/server/panel/data/default_mysql_pwd
+> ```
+
 Update `.env`:
 
 ```bash
@@ -240,7 +257,12 @@ WA_GATEWAY_NUMBER=6285157275866
 ```bash
 sudo -i
 /etc/init.d/mysqld start                 # MySQL wajib jalan lebih dulu
-bash /home/admin/setup-server.sh         # jalankan bootstrap (idempotent)
+
+# (a) pakai user DB khusus aplikasi:
+bash /home/admin/setup-server.sh
+
+# (b) ATAU pakai user root MySQL yang sudah ada, sandi root tidak diubah:
+PAMSIMAS_DB_USER=root PAMSIMAS_DB_PASS='w4luy017' bash /home/admin/setup-server.sh
 ```
 
 Sandbox script itu: cek ekstensi PHP, versi Composer, MySQL, database+user,
