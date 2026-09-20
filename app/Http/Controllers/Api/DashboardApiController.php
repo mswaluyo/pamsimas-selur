@@ -9,6 +9,7 @@ use App\Models\IndicatorSetting;
 use App\Models\MeterReading;
 use App\Models\SensorLog;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 
 class DashboardApiController extends Controller
 {
@@ -74,11 +75,17 @@ class DashboardApiController extends Controller
             default => now()->subDay(),
         };
 
+        // --- DASHBOARD & UI DATA (kompatibel SQLite) ---
         $query = SensorLog::query()->where('record_time', '>=', $since);
         if ($deviceId > 0) $query->where('device_id', $deviceId);
 
+        $driver = DB::connection()->getDriverName();
+        $groupExpr = $driver === 'sqlite'
+            ? "strftime('%Y-%m-%d %H:%M', record_time)"
+            : "DATE_FORMAT(record_time, '%Y-%m-%d %H:%i')";
+
         $points = $query->orderBy('record_time')
-            ->selectRaw("DATE_FORMAT(record_time, '%Y-%m-%d %H:%i') as t, AVG(water_percentage) as pct")
+            ->selectRaw("{$groupExpr} as t, AVG(water_percentage) as pct")
             ->groupBy('t')->limit(720)->get();
 
         return response()->json([

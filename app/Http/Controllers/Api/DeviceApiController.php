@@ -72,17 +72,27 @@ class DeviceApiController extends Controller
     }
 
     /**
-     * GET /api/status?mac_address=XX — firmware menarik konfigurasi & perintah.
+     * GET /api/status?mac_address=XX (alias: ?mac=XX) — firmware menarik konfigurasi & perintah.
+     * Mendukung ESP lama yang hanya mengirim ?mac= tanpa header API key.
      */
     public function status(Request $request)
     {
-        $mac = strtoupper((string) $request->query('mac_address', ''));
+        $raw = $request->query('mac_address', $request->query('mac', ''));
+        $mac = strtoupper(trim((string) $raw));
+        if ($mac === '') {
+            return response()->json(['status' => 'error', 'message' => 'mac_address wajib diisi'], 422);
+        }
         $device = Device::where('mac_address', $mac)->first();
         if (!$device) {
-            return response()->json(['status' => 'error', 'message' => 'Perangkat belum terdaftar'], 404);
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Perangkat belum terdaftar — hubungi admin untuk registrasi',
+                'mac_address' => $mac,
+            ], 404);
         }
 
         $device->last_update = now();
+        if ($request->filled('rssi')) $device->rssi = (int) $request->query('rssi');
         $device->save();
 
         $response = [

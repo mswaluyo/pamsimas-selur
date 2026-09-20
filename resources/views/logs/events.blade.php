@@ -6,7 +6,7 @@
     <select name="type" onchange="this.form.submit()" class="rounded-lg border border-slate-300 px-3 py-2 text-sm">
         <option value="">Semua tipe</option>
         @foreach($types as $type)
-        <option value="{{ $type }}" @if(request('type') === $type)selected@endif>{{ $type }}</option>
+        <option value="{{ $type }}" @if(request('type') === $type) selected @endif>{{ $type }}</option>
         @endforeach
     </select>
 </form>

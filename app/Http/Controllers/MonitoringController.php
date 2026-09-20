@@ -29,6 +29,26 @@ class MonitoringController extends Controller
 
     public function database()
     {
+        $driver = DB::connection()->getDriverName();
+
+        // SQLite (dipakai di STB Armbian): tidak ada SHOW TABLE STATUS.
+        if ($driver === 'sqlite') {
+            $names = collect(DB::select("SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%' ORDER BY name"))
+                ->pluck('name');
+            $tables = $names->map(function ($name) {
+                try {
+                    $rows = (int) DB::table($name)->count();
+                } catch (\Throwable $e) {
+                    $rows = 0;
+                }
+                return ['name' => $name, 'rows' => $rows, 'size_mb' => 0, 'engine' => 'sqlite'];
+            });
+            $dbFile = config('database.connections.sqlite.database', database_path('database.sqlite'));
+            $dbSizeMb = is_string($dbFile) && is_file($dbFile) ? round(filesize($dbFile) / 1048576, 2) : 0;
+
+            return view('monitoring.database', ['tables' => $tables, 'dbSizeMb' => $dbSizeMb]);
+        }
+
         $tables = DB::select('SHOW TABLE STATUS');
         return view('monitoring.database', [
             'tables' => collect($tables)->map(fn ($t) => [

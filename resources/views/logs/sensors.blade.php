@@ -6,7 +6,7 @@
     <select name="device_id" onchange="this.form.submit()" class="rounded-lg border border-slate-300 px-3 py-2 text-sm">
         <option value="">Semua perangkat</option>
         @foreach($devices as $d)
-        <option value="{{ $d->id }}" @if(request('device_id') == $d->id)selected@endif>{{ $d->mac_address }}</option>
+        <option value="{{ $d->id }}" @if(request('device_id') == $d->id) selected @endif>{{ $d->mac_address }}</option>
         @endforeach
     </select>
 </form>

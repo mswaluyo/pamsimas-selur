@@ -11,7 +11,7 @@
         <input type="text" name="full_name" required value="{{ $user->full_name }}" class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm">
         <select name="role_id" required class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm">
             @foreach($roles as $r)
-            <option value="{{ $r->id }}" @if($user->role_id == $r->id)selected@endif>{{ $r->name }}</option>
+            <option value="{{ $r->id }}" @if($user->role_id == $r->id) selected @endif>{{ $r->name }}</option>
             @endforeach
         </select>
         <button class="rounded-lg bg-sky-600 px-5 py-2.5 font-semibold text-white hover:bg-sky-700">Simpan Perubahan</button>

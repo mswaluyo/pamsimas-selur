@@ -32,7 +32,7 @@
                 <label class="mb-1 block text-sm font-medium">Template Aktif</label>
                 <select name="active_template_id" class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm">
                     @foreach($templates as $t)
-                    <option value="{{ $t->name }}" @if($settings['active_template_id'] === $t->name)selected@endif>{{ $t->name }}</option>
+                    <option value="{{ $t->name }}" @if($settings['active_template_id'] === $t->name) selected @endif>{{ $t->name }}</option>
                     @endforeach
                 </select>
             </div>

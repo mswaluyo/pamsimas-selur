@@ -30,20 +30,20 @@ Route::middleware('auth.session')->group(function () {
     // Devices
     Route::get('/devices', [DeviceController::class, 'index'])->name('devices.index');
     Route::get('/devices/register', [DeviceController::class, 'create'])->name('devices.create');
-    Route::post('/devices/register', [DeviceController::class, 'store']);
+    Route::post('/devices/register', [DeviceController::class, 'store'])->name('devices.store');
     Route::get('/devices/show/{id}', [DeviceController::class, 'show'])->name('devices.show');
     Route::get('/devices/edit/{id}', [DeviceController::class, 'edit'])->name('devices.edit');
-    Route::post('/devices/update/{id}', [DeviceController::class, 'update']);
+    Route::post('/devices/update/{id}', [DeviceController::class, 'update'])->name('devices.update');
     Route::post('/devices/delete/{id}', [DeviceController::class, 'destroy'])->name('devices.destroy');
-    Route::post('/devices/apply/{id}', [DeviceController::class, 'applySettings']);
-    Route::post('/devices/sync/{id}', [DeviceController::class, 'syncWithMasterData']);
+    Route::post('/devices/apply/{id}', [DeviceController::class, 'applySettings'])->name('devices.apply');
+    Route::post('/devices/sync/{id}', [DeviceController::class, 'syncWithMasterData'])->name('devices.sync');
     Route::get('/devices/detected', [DeviceController::class, 'detected'])->name('devices.detected');
 
     // Monitoring
     Route::get('/monitoring', [MonitoringController::class, 'overview'])->name('monitoring.overview');
-    Route::get('/monitoring/system', [MonitoringController::class, 'system']);
-    Route::get('/monitoring/database', [MonitoringController::class, 'database']);
-    Route::get('/monitoring/performance', [MonitoringController::class, 'performance']);
+    Route::get('/monitoring/system', [MonitoringController::class, 'system'])->name('monitoring.system');
+    Route::get('/monitoring/database', [MonitoringController::class, 'database'])->name('monitoring.database');
+    Route::get('/monitoring/performance', [MonitoringController::class, 'performance'])->name('monitoring.performance');
 
     // Settings: Tangki / Pompa / Sensor / Tarif / Tampilan
     Route::get('/settings/tanks', [SettingController::class, 'tanks'])->name('settings.tanks');
@@ -68,22 +68,22 @@ Route::middleware('auth.session')->group(function () {
 
     // Templates (gauge)
     Route::get('/templates', [TemplateController::class, 'index'])->name('templates.index');
-    Route::post('/templates', [TemplateController::class, 'store']);
-    Route::post('/templates/{id}', [TemplateController::class, 'update']);
-    Route::post('/templates/{id}/delete', [TemplateController::class, 'destroy']);
-    Route::post('/templates/{id}/activate', [TemplateController::class, 'activate']);
+    Route::post('/templates', [TemplateController::class, 'store'])->name('templates.store');
+    Route::post('/templates/{id}', [TemplateController::class, 'update'])->name('templates.update');
+    Route::post('/templates/{id}/delete', [TemplateController::class, 'destroy'])->name('templates.destroy');
+    Route::post('/templates/{id}/activate', [TemplateController::class, 'activate'])->name('templates.activate');
 
     // Pelanggan
     Route::get('/customers', [CustomerController::class, 'index'])->name('customers.index');
     Route::get('/customers/create', [CustomerController::class, 'create'])->name('customers.create');
-    Route::post('/customers/store', [CustomerController::class, 'store']);
+    Route::post('/customers/store', [CustomerController::class, 'store'])->name('customers.store');
     Route::get('/customers/edit/{id}', [CustomerController::class, 'edit'])->name('customers.edit');
-    Route::post('/customers/update/{id}', [CustomerController::class, 'update']);
-    Route::post('/customers/delete/{id}', [CustomerController::class, 'destroy']);
-    Route::get('/customers/export', [CustomerController::class, 'export']);
-    Route::post('/customers/import', [CustomerController::class, 'import']);
-    Route::post('/customers/broadcast', [CustomerController::class, 'broadcastRequest']);
-    Route::get('/customers/broadcast-history', [CustomerController::class, 'broadcastHistory']);
+    Route::post('/customers/update/{id}', [CustomerController::class, 'update'])->name('customers.update');
+    Route::post('/customers/delete/{id}', [CustomerController::class, 'destroy'])->name('customers.delete');
+    Route::get('/customers/export', [CustomerController::class, 'export'])->name('customers.export');
+    Route::post('/customers/import', [CustomerController::class, 'import'])->name('customers.import');
+    Route::post('/customers/broadcast', [CustomerController::class, 'broadcastRequest'])->name('customers.broadcast');
+    Route::get('/customers/broadcast-history', [CustomerController::class, 'broadcastHistory'])->name('customers.broadcast-history');
 
     // Kasir: Meter
     Route::get('/meter', [MeterController::class, 'index'])->name('meter.index');
@@ -125,10 +125,10 @@ Route::middleware('auth.session')->group(function () {
 
     // Users (admin only)
     Route::get('/users', [UserController::class, 'index'])->name('users.index');
-    Route::get('/users/create', [UserController::class, 'create']);
-    Route::post('/users/store', [UserController::class, 'store']);
-    Route::get('/users/edit/{id}', [UserController::class, 'edit']);
-    Route::post('/users/update/{id}', [UserController::class, 'update']);
-    Route::post('/users/delete/{id}', [UserController::class, 'destroy']);
+    Route::get('/users/create', [UserController::class, 'create'])->name('users.create');
+    Route::post('/users/store', [UserController::class, 'store'])->name('users.store');
+    Route::get('/users/edit/{id}', [UserController::class, 'edit'])->name('users.edit');
+    Route::post('/users/update/{id}', [UserController::class, 'update'])->name('users.update');
+    Route::post('/users/delete/{id}', [UserController::class, 'destroy'])->name('users.delete');
 });
 

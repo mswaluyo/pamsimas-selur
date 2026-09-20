@@ -13,15 +13,15 @@
         <div>
             <label class="mb-1 block text-sm font-medium">Tipe Perangkat</label>
             <select name="device_type" class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm">
-                <option value="MONITOR" @if($isEdit && $device->device_type === 'MONITOR')selected@endif>MONITOR (sensor saja)</option>
-                <option value="ACTUATOR" @if($isEdit && $device->device_type === 'ACTUATOR')selected@endif>ACTUATOR (sensor + pompa)</option>
+                <option value="MONITOR" @if($isEdit && $device->device_type === 'MONITOR') selected @endif>MONITOR (sensor saja)</option>
+                <option value="ACTUATOR" @if($isEdit && $device->device_type === 'ACTUATOR') selected @endif>ACTUATOR (sensor + pompa)</option>
             </select>
         </div>
         <div>
             <label class="mb-1 block text-sm font-medium">Mode Kontrol</label>
             <select name="control_mode" class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm">
                 @foreach(['AUTO', 'MANUAL', 'TIMED'] as $m)
-                <option value="{{ $m }}" @if($isEdit && $device->control_mode === $m)selected@endif>{{ $m }}</option>
+                <option value="{{ $m }}" @if($isEdit && $device->control_mode === $m) selected @endif>{{ $m }}</option>
                 @endforeach
             </select>
         </div>
@@ -29,7 +29,7 @@
             <label class="mb-1 block text-sm font-medium">Tangki</label>
             <select name="tank_id" required class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm">
                 @foreach($tanks as $t)
-                <option value="{{ $t->id }}" @if($isEdit && $device->tank_id == $t->id)selected@endif>{{ $t->tank_name }} (tinggi {{ $t->height }} cm)</option>
+                <option value="{{ $t->id }}" @if($isEdit && $device->tank_id == $t->id) selected @endif>{{ $t->tank_name }} (tinggi {{ $t->height }} cm)</option>
                 @endforeach
             </select>
         </div>
@@ -37,7 +37,7 @@
             <label class="mb-1 block text-sm font-medium">Pompa</label>
             <select name="pump_id" required class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm">
                 @foreach($pumps as $p)
-                <option value="{{ $p->id }}" @if($isEdit && $device->pump_id == $p->id)selected@endif>{{ $p->pump_name }}</option>
+                <option value="{{ $p->id }}" @if($isEdit && $device->pump_id == $p->id) selected @endif>{{ $p->pump_name }}</option>
                 @endforeach
             </select>
         </div>
@@ -46,7 +46,7 @@
             <select name="sensor_id" class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm">
                 <option value="">— Tanpa sensor master —</option>
                 @foreach($sensors as $s)
-                <option value="{{ $s->id }}" @if($isEdit && $device->sensor_id == $s->id)selected@endif>{{ $s->sensor_name }} ({{ $s->sensor_type }})</option>
+                <option value="{{ $s->id }}" @if($isEdit && $device->sensor_id == $s->id) selected @endif>{{ $s->sensor_name }} ({{ $s->sensor_type }})</option>
                 @endforeach
             </select>
         </div>
