@@ -56,4 +56,49 @@
         </tbody>
     </table>
 </div>
+
+{{-- === PERANGKAT TERDETEKSI OTOMATIS === --}}
+<div class="mb-4 mt-8 flex items-center justify-between">
+    <h2 class="font-semibold">Perangkat Terdeteksi Otomatis</h2>
+    <span class="text-xs text-slate-500">ESP yang menyapa server tapi belum didaftarkan</span>
+</div>
+
+<div class="overflow-x-auto rounded-xl bg-white shadow">
+    <table class="w-full text-sm">
+        <thead>
+            <tr class="border-b text-left text-xs uppercase text-slate-500">
+                <th class="px-4 py-3">MAC Address</th>
+                <th class="px-4 py-3">Pertama Terlihat</th>
+                <th class="px-4 py-3">Terakhir Terlihat</th>
+                <th class="px-4 py-3">Jumlah Akses</th>
+                <th class="px-4 py-3">Aksi</th>
+            </tr>
+        </thead>
+        <tbody>
+            @forelse($detected as $d)
+            <tr class="border-b hover:bg-slate-50">
+                <td class="px-4 py-3 font-mono text-xs">{{ $d->mac_address }}</td>
+                <td class="px-4 py-3 text-xs">{{ $d->first_seen?->format('d-m-Y H:i') ?? '-' }}</td>
+                <td class="px-4 py-3 text-xs">{{ $d->last_seen?->format('d-m-Y H:i') ?? '-' }}</td>
+                <td class="px-4 py-3">{{ $d->hits }}</td>
+                <td class="px-4 py-3">
+                    <div class="flex gap-1">
+                        <a href="{{ route('devices.create', ['mac' => $d->mac_address]) }}"
+                           class="rounded bg-emerald-600 px-2 py-1 text-xs font-semibold text-white hover:bg-emerald-700">
+                            Daftarkan
+                        </a>
+                        <button type="button"
+                                onclick="navigator.clipboard.writeText('{{ $d->mac_address }}')"
+                                class="rounded bg-slate-100 px-2 py-1 text-xs hover:bg-slate-200">Salin MAC</button>
+                    </div>
+                </td>
+            </tr>
+            @empty
+            <tr><td colspan="5" class="px-4 py-8 text-center text-slate-400">
+                Tidak ada perangkat terdeteksi. Perangkat baru otomatis muncul di sini saat ESP menyapa server.
+            </td></tr>
+            @endforelse
+        </tbody>
+    </table>
+</div>
 @endsection

@@ -22,16 +22,18 @@ class DeviceController extends Controller
     {
         $this->check();
         $devices = Device::with(['tank', 'pump', 'sensor'])->get();
-        return view('devices.index', ['devices' => $devices]);
+        $detected = DetectedDevice::orderByDesc('last_seen')->get();
+        return view('devices.index', ['devices' => $devices, 'detected' => $detected]);
     }
 
-    public function create()
+    public function create(Request $request)
     {
         $this->check('create');
         return view('devices.register', [
             'tanks' => Tank::all(),
             'pumps' => Pump::all(),
             'sensors' => Sensor::all(),
+            'prefillMac' => strtoupper(trim((string) $request->query('mac', ''))),
         ]);
     }
 
@@ -52,6 +54,7 @@ class DeviceController extends Controller
 
         $data['mac_address'] = strtoupper($data['mac_address']);
         $device = Device::create($data + ['status' => 'OFF']);
+        $device = $this->fillFromMasterData($device);
         EventLog::create([
             'device_id' => $device->id,
             'event_type' => 'Device',
@@ -129,8 +132,20 @@ class DeviceController extends Controller
     {
         $this->check('update');
         $device = Device::with(['tank', 'pump', 'sensor'])->findOrFail($id);
+        $this->fillFromMasterData($device);
+        $device->config_update_command = true;
+        $device->save();
 
-        if ($device->tank && $device->empty_tank_distance != $device->tank->height) {
+        return back()->with('success', 'Perangkat disinkronkan dengan data master.');
+    }
+
+    /**
+     * Ambil parameter perangkat otomatis dari master data
+     * (tangki = tinggi; sensor = jarak penuh & trigger; pompa = durasi ON/OFF).
+     */
+    private function fillFromMasterData(Device $device): Device
+    {
+        if ($device->tank) {
             $device->empty_tank_distance = (int) $device->tank->height;
         }
         if ($device->sensor) {
@@ -141,10 +156,8 @@ class DeviceController extends Controller
             $device->on_duration = (int) ceil($device->pump->on_duration_seconds / 60);
             $device->off_duration = (int) ceil($device->pump->off_duration_seconds / 60);
         }
-        $device->config_update_command = true;
         $device->save();
-
-        return back()->with('success', 'Perangkat disinkronkan dengan data master.');
+        return $device;
     }
 
     public function detected()

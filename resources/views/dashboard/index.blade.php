@@ -22,7 +22,7 @@
 </div>
 <div class="mt-5 grid grid-cols-1 gap-5 xl:grid-cols-3">
     <!-- Gauge Live -->
-    <div class="rounded-xl bg-white p-5 shadow-sm" id="dashboard-live" data-thresholds='@json($indicator_settings)'>
+    <div class="rounded-xl bg-white p-5 shadow-sm" id="dashboard-live" data-thresholds='@json($indicator_settings)' data-template='@json($gaugeTemplate)'>
         <h2 class="mb-4 font-semibold">Level Tandon</h2>
         <div id="gauge-area" class="flex flex-col items-center">
             <svg viewBox="0 0 120 200" class="h-64 w-40">
@@ -72,6 +72,7 @@
 @endsection
 @push('scripts')
 <script>
+@verbatim
 const el = document.getElementById('dashboard-live');
 const thresholds = JSON.parse(el.dataset.thresholds || '{}');
 const thLow = parseFloat(thresholds.threshold_low ?? 30);
@@ -79,6 +80,54 @@ const thMid = parseFloat(thresholds.threshold_medium ?? 70);
 const cLow = thresholds.color_low || '#ef4444';
 const cMid = thresholds.color_medium || '#f59e0b';
 const cHigh = thresholds.color_high || '#10b981';
+
+// Template gauge aktif (dari menu Template Gauge)
+const gaugeTpl = (() => {
+    try { return JSON.parse(el.dataset.template || 'null'); } catch (e) { return null; }
+})();
+const gaugeArea = document.getElementById('gauge-area');
+let gaugeTemplated = false;
+
+if (gaugeTpl && gaugeTpl.html_code) {
+    gaugeTemplated = true;
+    if (gaugeTpl.css_code) {
+        const st = document.createElement('style');
+        st.id = 'gauge-template-css';
+        st.textContent = gaugeTpl.css_code;
+        document.head.appendChild(st);
+    }
+    if (gaugeTpl.js_code) {
+        try { (new Function(gaugeTpl.js_code))(); } catch (e) { console.error('Gauge JS error:', e); }
+    }
+    gaugeArea.innerHTML = gaugeTpl.html_code
+        .replace(/{{\s*TANK[ _-]*NAME\s*}}/gi, 'PAMSIMAS')
+        .replace(/{{\s*DEVICE[ _-]*ID\s*}}/gi, '0')
+        .replace(/{{\s*PUMP[ _-]*NAME\s*}}/gi, 'Pompa');
+    if (typeof window.initGauge === 'function') {
+        try { window.initGauge(gaugeArea); } catch (e) { console.error(e); }
+    }
+}
+
+// Fallback universal updateGauge (dipakai jika template tidak mendefinisikannya)
+if (typeof window.updateGauge !== 'function') {
+    window.updateGauge = function (cardElement, waterLevel, fillColor) {
+        cardElement.querySelectorAll('[data-update-style]').forEach(el => {
+            const styleProp = el.dataset.updateStyle;
+            if (styleProp === 'degrees') {
+                el.style.setProperty('--percentage', (waterLevel * 2.7) + 'deg');
+                el.style.setProperty('--fill-color', fillColor);
+            } else if (styleProp === 'percentage') {
+                if (el.classList.contains('tank-gauge-water')) el.style.height = waterLevel + '%';
+                else el.style.width = waterLevel + '%';
+                el.style.backgroundColor = fillColor;
+            }
+        });
+        const textElement = cardElement.querySelector('.value')
+            || cardElement.querySelector('.tank-gauge-text')
+            || cardElement.querySelector('.simple-bar-gauge-text');
+        if (textElement) textElement.textContent = Math.round(waterLevel);
+    };
+}
 
 function fmtTime(ts) {
     if (!ts) return '-';
@@ -104,12 +153,16 @@ async function refresh() {
         if (first) {
             const pct = first.water_percentage ?? 0;
             const color = pct > thMid ? cHigh : (pct > thLow ? cMid : cLow);
-            const water = document.getElementById('gauge-water');
-            const h = Math.max(0, Math.min(100, pct)) / 100 * 178;
-            water.setAttribute('y', 189 - h);
-            water.setAttribute('height', h + 1);
-            const pctEl = document.getElementById('gauge-pct');
-            pctEl.textContent = pct.toFixed(0) + '%';
+            if (gaugeTemplated) {
+                try { window.updateGauge(gaugeArea, Math.max(0, Math.min(100, pct)), color); } catch (e) { console.error(e); }
+            } else {
+                const water = document.getElementById('gauge-water');
+                const h = Math.max(0, Math.min(100, pct)) / 100 * 178;
+                water.setAttribute('y', 189 - h);
+                water.setAttribute('height', h + 1);
+                const pctEl = document.getElementById('gauge-pct');
+                pctEl.textContent = pct.toFixed(0) + '%';
+            }
             document.getElementById('gauge-tank').textContent =
                 `${first.tank_name || '-'} — ${first.is_online ? 'Online' : 'Offline'}`;
         }
@@ -132,5 +185,6 @@ function renderDevices(list) {
 
 refresh();
 setInterval(refresh, 5000);
+@endverbatim
 </script>
 @endpush

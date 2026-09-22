@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="csrf-token" content="{{ csrf_token() }}">
+    <link rel="icon" href="/favicon.ico" type="image/x-icon">
     <title>@yield('title', 'Dashboard') — PAMSIMAS SELUR</title>
     @vite(['resources/css/app.css', 'resources/js/app.js'])
 </head>
@@ -13,44 +14,64 @@
     <div id="sidebar-overlay" class="fixed inset-0 z-20 hidden bg-black/40 md:hidden"></div>
     <aside id="sidebar" class="fixed inset-y-0 left-0 z-30 w-64 -translate-x-full bg-slate-900 text-slate-100 transition-transform md:translate-x-0">
         <div class="flex h-16 items-center gap-2 border-b border-slate-800 px-5">
-            <span class="flex h-9 w-9 items-center justify-center rounded-lg bg-gradient-to-br from-sky-400 to-cyan-600 text-lg font-bold shadow-lg">💧</span>
+            <span class="flex h-9 w-9 items-center justify-center overflow-hidden rounded-lg bg-gradient-to-br from-sky-400 to-cyan-600 shadow-lg">
+                <img src="/img/logo.png" alt="Logo PAMSIMAS" class="h-full w-full object-cover">
+            </span>
             <div>
                 <p class="text-sm font-bold leading-tight">PAMSIMAS</p>
                 <p class="text-[11px] text-slate-400">Desa Selur</p>
             </div>
         </div>
         <nav class="space-y-1 overflow-y-auto p-3 text-sm" style="max-height: calc(100vh - 4rem)">
-            @php $r = session('user.role'); @endphp
-            <a href="{{ route('dashboard') }}" class="flex items-center gap-3 rounded-lg px-3 py-2 transition-colors {{ request()->routeIs('dashboard') ? 'bg-sky-600 font-semibold text-white shadow' : 'hover:bg-slate-800 hover:text-white' }}">📊 Dashboard</a>
+            @php
+                $r = session('user.role');
+                $navSection = function ($label) {
+                    return '<p class="pt-3 pb-1 pl-3 text-[10px] font-bold uppercase tracking-widest text-slate-500">' . $label . '</p>';
+                };
+                $navItem = function ($href, $active, $label, $badge = null) {
+                    $cls = $active ? 'bg-sky-600 font-semibold text-white shadow' : 'hover:bg-slate-800 hover:text-white';
+                    $badgeHtml = $badge ? '<span class="ml-auto rounded-full bg-amber-400 px-2 text-xs font-bold text-slate-900">' . $badge . '</span>' : '';
+                    return '<a href="' . $href . '" class="flex items-center gap-3 rounded-lg px-3 py-2 transition-colors ' . $cls . '">' . $label . $badgeHtml . '</a>';
+                };
+            @endphp
+
+            {!! $navSection('Utama') !!}
+            {!! $navItem(route('dashboard'), request()->routeIs('dashboard'), '📊 Dashboard') !!}
+
             @if(in_array($r, ['Administrator','Operator']))
-            <a href="{{ route('devices.index') }}" class="flex items-center gap-3 rounded-lg px-3 py-2 transition-colors {{ request()->routeIs('devices.*') ? 'bg-sky-600 font-semibold text-white shadow' : 'hover:bg-slate-800 hover:text-white' }}">📡 Perangkat</a>
-            <a href="{{ route('monitoring.overview') }}" class="flex items-center gap-3 rounded-lg px-3 py-2 transition-colors {{ request()->routeIs('monitoring.*') ? 'bg-sky-600 font-semibold text-white shadow' : 'hover:bg-slate-800 hover:text-white' }}">🖥️ Monitoring</a>
+            {!! $navSection('Manajemen IoT') !!}
+            {!! $navItem(route('devices.index'), request()->routeIs('devices.index', 'devices.show', 'devices.edit'), '📡 Perangkat') !!}
+            {!! $navItem(route('devices.detected'), request()->routeIs('devices.detected', 'devices.create'), '🔎 Perangkat Terdeteksi', ($detectedCount ?? 0) > 0 ? $detectedCount : null) !!}
+            {!! $navItem(route('monitoring.overview'), request()->routeIs('monitoring.*'), '🖥️ Monitoring') !!}
             @endif
+
             @if(in_array($r, ['Administrator','Operator','Kasir']))
-            <a href="{{ route('meter.index') }}" class="flex items-center gap-3 rounded-lg px-3 py-2 transition-colors {{ request()->routeIs('meter.*') ? 'bg-sky-600 font-semibold text-white shadow' : 'hover:bg-slate-800 hover:text-white' }}">🔍 Kasir Meter</a>
-            <a href="{{ route('payment.index') }}" class="flex items-center gap-3 rounded-lg px-3 py-2 transition-colors {{ request()->routeIs('payment.*') ? 'bg-sky-600 font-semibold text-white shadow' : 'hover:bg-slate-800 hover:text-white' }}">💰 Pembayaran</a>
-            <a href="{{ route('customers.index') }}" class="flex items-center gap-3 rounded-lg px-3 py-2 transition-colors {{ request()->routeIs('customers.*') ? 'bg-sky-600 font-semibold text-white shadow' : 'hover:bg-slate-800 hover:text-white' }}">👥 Pelanggan</a>
+            {!! $navSection('Layanan Warga') !!}
+            {!! $navItem(route('meter.index'), request()->routeIs('meter.*'), '🔍 Kasir Meter') !!}
+            {!! $navItem(route('payment.index'), request()->routeIs('payment.*'), '💰 Pembayaran') !!}
+            {!! $navItem(route('customers.index'), request()->routeIs('customers.*'), '👥 Pelanggan') !!}
             @endif
-@if(in_array($r, ['Administrator','Operator']))
-            <p class="pt-3 pl-3 text-[11px] font-semibold uppercase tracking-wider text-slate-500">Pengaturan</p>
-            <a href="{{ route('settings.tanks') }}" class="flex items-center gap-3 rounded-lg px-3 py-2 transition-colors {{ request()->routeIs('settings.tanks') ? 'bg-sky-600 font-semibold text-white shadow' : 'hover:bg-slate-800 hover:text-white' }}">🛢️ Tangki</a>
-            <a href="{{ route('settings.pumps') }}" class="flex items-center gap-3 rounded-lg px-3 py-2 transition-colors {{ request()->routeIs('settings.pumps') ? 'bg-sky-600 font-semibold text-white shadow' : 'hover:bg-slate-800 hover:text-white' }}">⚙️ Pompa</a>
-            <a href="{{ route('settings.sensors') }}" class="flex items-center gap-3 rounded-lg px-3 py-2 transition-colors {{ request()->routeIs('settings.sensors') ? 'bg-sky-600 font-semibold text-white shadow' : 'hover:bg-slate-800 hover:text-white' }}">📶 Sensor</a>
-            <a href="{{ route('settings.tariff') }}" class="flex items-center gap-3 rounded-lg px-3 py-2 transition-colors {{ request()->routeIs('settings.tariff') ? 'bg-sky-600 font-semibold text-white shadow' : 'hover:bg-slate-800 hover:text-white' }}">💵 Tarif</a>
-            <a href="{{ route('settings.display') }}" class="flex items-center gap-3 rounded-lg px-3 py-2 transition-colors {{ request()->routeIs('settings.display') ? 'bg-sky-600 font-semibold text-white shadow' : 'hover:bg-slate-800 hover:text-white' }}">🎨 Tampilan</a>
-            <a href="{{ route('templates.index') }}" class="flex items-center gap-3 rounded-lg px-3 py-2 transition-colors {{ request()->routeIs('templates.*') ? 'bg-sky-600 font-semibold text-white shadow' : 'hover:bg-slate-800 hover:text-white' }}">🧩 Template Gauge</a>
-            <p class="pt-3 pl-3 text-[11px] font-semibold uppercase tracking-wider text-slate-500">Riwayat</p>
-            <a href="{{ route('logs.pumps') }}" class="flex items-center gap-3 rounded-lg px-3 py-2 transition-colors {{ request()->routeIs('logs.pumps') ? 'bg-sky-600 font-semibold text-white shadow' : 'hover:bg-slate-800 hover:text-white' }}">📜 Log Pompa</a>
-            <a href="{{ route('logs.sensors') }}" class="flex items-center gap-3 rounded-lg px-3 py-2 transition-colors {{ request()->routeIs('logs.sensors') ? 'bg-sky-600 font-semibold text-white shadow' : 'hover:bg-slate-800 hover:text-white' }}">📈 Log Sensor</a>
-            <a href="{{ route('logs.events') }}" class="flex items-center gap-3 rounded-lg px-3 py-2 transition-colors {{ request()->routeIs('logs.events') ? 'bg-sky-600 font-semibold text-white shadow' : 'hover:bg-slate-800 hover:text-white' }}">🔔 Log Event</a>
-            <a href="{{ route('logs.admin') }}" class="flex items-center gap-3 rounded-lg px-3 py-2 transition-colors {{ request()->routeIs('logs.admin') ? 'bg-sky-600 font-semibold text-white shadow' : 'hover:bg-slate-800 hover:text-white' }}">🗂️ Log Admin</a>
+
+            @if(in_array($r, ['Administrator','Operator']))
+            {!! $navSection('Pengaturan') !!}
+            {!! $navItem(route('settings.tanks'), request()->routeIs('settings.tanks'), '🛢️ Tangki') !!}
+            {!! $navItem(route('settings.pumps'), request()->routeIs('settings.pumps'), '⚙️ Pompa') !!}
+            {!! $navItem(route('settings.sensors'), request()->routeIs('settings.sensors'), '📶 Sensor') !!}
+            {!! $navItem(route('settings.tariff'), request()->routeIs('settings.tariff'), '💵 Tarif') !!}
+            {!! $navItem(route('settings.display'), request()->routeIs('settings.display'), '🎨 Tampilan') !!}
+            {!! $navItem(route('templates.index'), request()->routeIs('templates.*'), '🧩 Template Gauge') !!}
+
+            {!! $navSection('Riwayat') !!}
+            {!! $navItem(route('logs.pumps'), request()->routeIs('logs.pumps'), '📜 Log Pompa') !!}
+            {!! $navItem(route('logs.sensors'), request()->routeIs('logs.sensors'), '📈 Log Sensor') !!}
+            {!! $navItem(route('logs.events'), request()->routeIs('logs.events'), '🔔 Log Event') !!}
+            {!! $navItem(route('logs.admin'), request()->routeIs('logs.admin'), '🗂️ Log Admin') !!}
             @endif
+
             @if($r === 'Administrator')
-            <p class="pt-3 pl-3 text-[11px] font-semibold uppercase tracking-wider text-slate-500">Sistem</p>
-            <a href="/users" class="flex items-center gap-3 rounded-lg px-3 py-2 transition-colors {{ request()->is('users*') ? 'bg-sky-600 font-semibold text-white shadow' : 'hover:bg-slate-800 hover:text-white' }}">👤 Pengguna</a>
+            {!! $navSection('Sistem') !!}
+            {!! $navItem('/users', request()->is('users*'), '👤 Pengguna') !!}
             @endif
-        </nav>
-    </aside>
         </nav>
     </aside>
 <!-- MAIN -->
@@ -65,7 +86,20 @@
             </div>
             <div class="relative">
                 <button id="user-menu-btn" class="flex items-center gap-3 rounded-lg p-1 pr-2 transition hover:bg-slate-100">
-                    <span class="flex h-9 w-9 items-center justify-center rounded-full bg-gradient-to-br from-sky-500 to-cyan-600 text-sm font-bold text-white">@php $fn = session('user.full_name'); $init = strtoupper(implode('', array_slice(preg_split('/\s+/u', (string)$fn), 0, 2))); echo $init ?: 'A'; @endphp</span>
+                    <span title="{{ session('user.full_name') ?: session('user.username') }}" class="flex h-9 w-9 items-center justify-center rounded-full bg-gradient-to-br from-sky-500 to-cyan-600 text-sm font-bold text-white ring-2 ring-sky-200">@php
+                        $fn    = trim((string) session('user.full_name'));
+                        $usr   = trim((string) session('user.username'));
+                        $base  = $fn !== '' ? $fn : $usr;
+                        $parts = preg_split('/\s+/u', $base, -1, PREG_SPLIT_NO_EMPTY);
+                        if (count($parts) >= 2) {
+                            $init = mb_substr($parts[0], 0, 1) . mb_substr($parts[1], 0, 1);
+                        } elseif (count($parts) === 1) {
+                            $init = mb_substr($parts[0], 0, 1);
+                        } else {
+                            $init = 'U';
+                        }
+                        echo mb_strtoupper($init);
+                    @endphp</span>
                     <div class="hidden text-right sm:block">
                         <p class="text-sm font-semibold leading-tight">{{ session('user.full_name') }}</p>
                         <p class="text-[11px] text-slate-500">{{ session('user.role') }}</p>

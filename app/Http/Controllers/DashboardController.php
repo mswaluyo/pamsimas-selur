@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Device;
+use App\Models\GaugeTemplate;
 use App\Models\IndicatorSetting;
 use App\Models\PumpLog;
 use App\Models\Tank;
@@ -40,6 +41,7 @@ class DashboardController extends Controller
             ],
             'devices' => $devices,
             'indicator_settings' => IndicatorSetting::getSettings(),
+            'gaugeTemplate' => GaugeTemplate::where('name', IndicatorSetting::getSettings()['active_template_id'] ?? '')->first(),
         ]);
     }
 
@@ -55,6 +57,7 @@ class DashboardController extends Controller
             $isOnline = $d->isOnline();
             if ($isOnline) $online++;
             $lastPumpLog = PumpLog::where('device_id', $d->id)->orderByDesc('timestamp')->first();
+            $lastReading = $d->sensorLogs()->orderByDesc('record_time')->first();
 
             return [
                 'id' => $d->id,
@@ -72,6 +75,8 @@ class DashboardController extends Controller
                 'last_update' => $d->last_update?->toDateTimeString(),
                 'last_update_ts' => $d->last_update?->timestamp ?? 0,
                 'pump_change_ts' => $lastPumpLog?->timestamp?->timestamp ?? 0,
+                'water_percentage' => $lastReading?->water_percentage ?? 0,
+                'water_level' => $lastReading?->water_level ?? 0,
             ];
         });
 

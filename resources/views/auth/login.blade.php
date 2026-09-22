@@ -3,13 +3,16 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="icon" href="/favicon.ico" type="image/x-icon">
     <title>Login — PAMSIMAS SELUR</title>
     @vite(['resources/css/app.css'])
 </head>
 <body class="flex min-h-screen items-center justify-center bg-gradient-to-br from-sky-900 via-slate-900 to-sky-950 p-4 font-sans">
     <div class="w-full max-w-md">
         <div class="mb-6 text-center">
-            <span class="mb-2 inline-flex h-16 w-16 items-center justify-center rounded-2xl bg-sky-500 text-3xl">💧</span>
+            <span class="mb-2 inline-flex h-16 w-16 items-center justify-center overflow-hidden rounded-2xl bg-sky-500 shadow">
+                <img src="/img/logo.png" alt="Logo PAMSIMAS" class="h-full w-full object-cover">
+            </span>
             <h1 class="text-2xl font-bold text-white">PAMSIMAS SELUR</h1>
             <p class="text-sm text-sky-300">Sistem Manajemen Air Desa</p>
         </div>

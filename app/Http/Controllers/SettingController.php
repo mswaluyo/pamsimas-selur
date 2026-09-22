@@ -8,6 +8,7 @@ use App\Models\Sensor;
 use App\Models\Tank;
 use App\Support\Permission;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 
 class SettingController extends Controller
 {
@@ -20,28 +21,73 @@ class SettingController extends Controller
     public function tanks()
     {
         $this->check();
-        return view('settings.tanks', ['tanks' => Tank::withCount('devices')->get()]);
+        $tanks = Tank::withCount('devices')->get();
+        foreach ($tanks as $t) {
+            if ($t->tank_shape === 'kotak' && $t->rectangular_dim_id) {
+                $dim = DB::table('tank_rectangular_dimensions')->find($t->rectangular_dim_id);
+                $t->rect_length = $dim->length ?? null;
+                $t->rect_width = $dim->width ?? null;
+            } elseif ($t->tank_shape === 'bulat' && $t->circular_dim_id) {
+                $dim = DB::table('tank_circular_dimensions')->find($t->circular_dim_id);
+                $t->circ_diameter = $dim->diameter ?? null;
+            }
+        }
+        return view('settings.tanks', ['tanks' => $tanks]);
+    }
+
+    /**
+     * Simpan/update dimensi tangki sesuai bentuk (P×L untuk kotak, ⌀ untuk bulat).
+     */
+    private function applyTankDimensions(Request $request, Tank $tank): void
+    {
+        if ($tank->tank_shape === 'kotak') {
+            $len = (float) $request->input('rectangular_length', 0);
+            $wid = (float) $request->input('rectangular_width', 0);
+            if ($len > 0 && $wid > 0) {
+                if ($tank->rectangular_dim_id) {
+                    DB::table('tank_rectangular_dimensions')->where('id', $tank->rectangular_dim_id)
+                        ->update(['length' => $len, 'width' => $wid]);
+                } else {
+                    $id = DB::table('tank_rectangular_dimensions')->insertGetId(['length' => $len, 'width' => $wid]);
+                    $tank->update(['rectangular_dim_id' => $id, 'circular_dim_id' => null]);
+                }
+            }
+        } elseif ($tank->tank_shape === 'bulat') {
+            $d = (float) $request->input('circular_diameter', 0);
+            if ($d > 0) {
+                if ($tank->circular_dim_id) {
+                    DB::table('tank_circular_dimensions')->where('id', $tank->circular_dim_id)
+                        ->update(['diameter' => $d]);
+                } else {
+                    $id = DB::table('tank_circular_dimensions')->insertGetId(['diameter' => $d]);
+                    $tank->update(['circular_dim_id' => $id, 'rectangular_dim_id' => null]);
+                }
+            }
+        }
     }
 
     public function storeTank(Request $request)
     {
         $this->check('create');
-        Tank::create($request->validate([
+        $tank = Tank::create($request->validate([
             'tank_name' => 'required|string|max:100',
             'tank_shape' => 'required|in:kotak,bulat',
             'height' => 'required|numeric|min:1',
         ]));
+        $this->applyTankDimensions($request, $tank);
         return back()->with('success', 'Tangki ditambahkan.');
     }
 
     public function updateTank(Request $request, int $id)
     {
         $this->check('update');
-        Tank::findOrFail($id)->update($request->validate([
+        $tank = Tank::findOrFail($id);
+        $tank->update($request->validate([
             'tank_name' => 'required|string|max:100',
             'tank_shape' => 'required|in:kotak,bulat',
             'height' => 'required|numeric|min:1',
         ]));
+        $this->applyTankDimensions($request, $tank);
         return back()->with('success', 'Tangki diperbarui.');
     }
 
