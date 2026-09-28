@@ -23,6 +23,7 @@ class Device extends Model
         'config_update_command' => 'boolean',
         'mode_update_command' => 'boolean',
         'last_update' => 'datetime',
+        'last_offline_sync' => 'datetime',
     ];
 
     public function tank()

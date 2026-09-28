@@ -7,6 +7,7 @@ use App\Models\Customer;
 use App\Models\Device;
 use App\Models\IndicatorSetting;
 use App\Models\MeterReading;
+use App\Models\PumpLog;
 use App\Models\SensorLog;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -27,6 +28,27 @@ class DashboardApiController extends Controller
 
             $lastPct = $d->sensorLogs()->orderByDesc('record_time')->value('water_percentage');
 
+            // Interlock satu bak: ACTUATOR tanpa data sendiri mengambil level air
+            // dari MONITOR pasangan pada tank_id yang sama (resolusi dari log).
+            if (($lastPct === null || (float) $lastPct == 0.0)
+                && $d->device_type !== 'MONITOR' && $d->tank_id) {
+                $monId = Device::where('tank_id', $d->tank_id)
+                    ->where('device_type', 'MONITOR')->value('id');
+                if ($monId) {
+                    $monPct = SensorLog::where('device_id', $monId)
+                        ->orderByDesc('record_time')->value('water_percentage');
+                    if ($monPct !== null) $lastPct = $monPct;
+                }
+            }
+
+            // Waktu transisi status pompa terakhir (badge timer nyala/mati; log hanya ditulis saat status berubah)
+            $pumpStatusSince = null;
+            $lastPumpLog = PumpLog::where('device_id', $d->id)->orderByDesc('timestamp')->first();
+            if ($lastPumpLog && $lastPumpLog->timestamp
+                && strtoupper((string) $lastPumpLog->pump_status) === strtoupper((string) $d->status)) {
+                $pumpStatusSince = $lastPumpLog->timestamp->timestamp;
+            }
+
             return [
                 'id' => $d->id,
                 'mac_address' => $d->mac_address,
@@ -35,6 +57,7 @@ class DashboardApiController extends Controller
                 'tank_height' => (float) ($d->tank?->height ?? 0),
                 'pump_name' => $d->pump?->pump_name,
                 'status' => $d->status,
+                'pump_status_since' => $pumpStatusSince,
                 'control_mode' => $d->control_mode,
                 'rssi' => $d->rssi,
                 'uptime' => (int) $d->uptime,
@@ -61,37 +84,104 @@ class DashboardApiController extends Controller
     }
 
     /**
-     * GET /api/device/history?device_id=1&range=24h — data grafik.
+     * GET /api/device/history?device_id=1&range=1h — riwayat untuk grafik detail perangkat.
+     * Format respons mengikuti sistem lama agar kompatibel dengan chart-control:
+     * {sensors:[{record_time,water_level,water_percentage}], pumps:[{record_time,status}],
+     *  initial_pump_status, trigger, window_start, window_end}.
+     * Menerima juga param legacy: id / range menit (60, 360, 1440) / 'live'.
      */
     public function history(Request $request)
     {
-        $deviceId = (int) $request->query('device_id', 0);
-        $range = $request->query('range', '24h');
-        $since = match ($range) {
-            '1h' => now()->subHour(),
-            '6h' => now()->subHours(6),
-            '7d' => now()->subDays(7),
-            '30d' => now()->subDays(30),
-            default => now()->subDay(),
+        $deviceId = (int) ($request->query('device_id', $request->query('id', 0)));
+        if ($deviceId <= 0) {
+            return response()->json(['status' => 'error', 'message' => 'device_id wajib diisi'], 400);
+        }
+        $device = Device::find($deviceId);
+        if (!$device) {
+            return response()->json(['status' => 'error', 'message' => 'Perangkat tidak ditemukan'], 404);
+        }
+
+        $range = (string) $request->query('range', '1h');
+        if ($range === '60') $range = '1h';
+        elseif ($range === '360') $range = '6h';
+        elseif ($range === '1440') $range = '24h';
+        $minutes = match ($range) {
+            'live' => 15, '1h' => 60, '6h' => 360, '24h' => 1440,
+            '7d' => 10080, '30d' => 43200, default => 60,
         };
+        $since = now()->subMinutes($minutes);
+        $now = now();
 
-        // --- DASHBOARD & UI DATA (kompatibel SQLite) ---
-        $query = SensorLog::query()->where('record_time', '>=', $since);
-        if ($deviceId > 0) $query->where('device_id', $deviceId);
+        // Interlock satu bak: ACTUATOR meminjam data sensor MONITOR pasangan
+        $sensorId = $deviceId;
+        if ($device->device_type !== 'MONITOR' && $device->tank_id) {
+            $monId = Device::where('tank_id', $device->tank_id)
+                ->where('device_type', 'MONITOR')->value('id');
+            if ($monId) $sensorId = (int) $monId;
+        }
 
-        $driver = DB::connection()->getDriverName();
-        $groupExpr = $driver === 'sqlite'
-            ? "strftime('%Y-%m-%d %H:%M', record_time)"
-            : "DATE_FORMAT(record_time, '%Y-%m-%d %H:%i')";
+        if ($range === 'live') {
+            // Mentah, 15 menit terakhir (maks 400 titik)
+            $raw = SensorLog::where('device_id', $sensorId)
+                ->where('record_time', '>=', $since)
+                ->orderBy('record_time')->limit(400)->get();
+            $sensors = $raw->map(fn ($l) => [
+                'record_time' => ($l->record_time instanceof \DateTimeInterface ? $l->record_time : \Carbon\Carbon::parse($l->record_time))->format('Y-m-d H:i:s'),
+                'water_level' => (float) $l->water_level,
+                'water_percentage' => (float) $l->water_percentage,
+            ])->values();
+        } else {
+            // Agregasi per menit (kompatibel SQLite & MySQL), maks 1440 titik
+            $driver = DB::connection()->getDriverName();
+            $groupExpr = $driver === 'sqlite'
+                ? "strftime('%Y-%m-%d %H:%M', record_time)"
+                : "DATE_FORMAT(record_time, '%Y-%m-%d %H:%i')";
+            $points = SensorLog::query()->where('device_id', $sensorId)
+                ->where('record_time', '>=', $since)
+                ->orderBy('record_time')
+                ->selectRaw("{$groupExpr} as t, AVG(water_percentage) as pct, AVG(water_level) as cm")
+                ->groupBy('t')->limit(1440)->get();
+            $sensors = $points->map(fn ($p) => [
+                'record_time' => $p->t . ':00',
+                'water_level' => (float) $p->cm,
+                'water_percentage' => (float) $p->pct,
+            ])->values();
+        }
 
-        $points = $query->orderBy('record_time')
-            ->selectRaw("{$groupExpr} as t, AVG(water_percentage) as pct")
-            ->groupBy('t')->limit(720)->get();
+        // Status pompa sebelum jendela (agar grafik shading tidak mulai dari asumsi OFF)
+        $prev = PumpLog::where('device_id', $deviceId)
+            ->where('timestamp', '<', $since)
+            ->orderByDesc('timestamp')->value('pump_status');
+        $pumps = PumpLog::where('device_id', $deviceId)
+            ->where('timestamp', '>=', $since)
+            ->orderBy('timestamp')->limit(1000)->get()
+            ->map(fn ($l) => [
+                'record_time' => ($l->timestamp instanceof \DateTimeInterface ? $l->timestamp : \Carbon\Carbon::parse($l->timestamp))->format('Y-m-d H:i:s'),
+                'status' => $l->pump_status,
+            ])->values();
+
+        // Device offline: status terakhir TIDAK berlaku — jangan lukis pita ON melewati putusnya
+        // koneksi. Tutup pita di waktu kontak terakhir; bila offline sejak sebelum jendela, anggap OFF.
+        if (! $device->isOnline() && $device->last_update) {
+            if ($device->last_update->lt($since)) {
+                $prev = 'OFF';
+            } else {
+                $pumps->push([
+                    'record_time' => $device->last_update->format('Y-m-d H:i:s'),
+                    'status' => 'OFF',
+                ]);
+            }
+        }
 
         return response()->json([
             'status' => 'success',
             'range' => $range,
-            'data' => $points->map(fn ($p) => ['t' => $p->t, 'pct' => round((float) $p->pct, 1)]),
+            'sensors' => $sensors,
+            'pumps' => $pumps,
+            'initial_pump_status' => $prev ?: 'OFF',
+            'trigger' => (int) ($device->trigger_percentage ?? 70),
+            'window_start' => $since->toDateTimeString(),
+            'window_end' => $now->toDateTimeString(),
         ]);
     }
 

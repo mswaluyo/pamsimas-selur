@@ -38,6 +38,10 @@ Route::middleware('auth.session')->group(function () {
     Route::post('/devices/apply/{id}', [DeviceController::class, 'applySettings'])->name('devices.apply');
     Route::post('/devices/sync/{id}', [DeviceController::class, 'syncWithMasterData'])->name('devices.sync');
     Route::get('/devices/detected', [DeviceController::class, 'detected'])->name('devices.detected');
+    Route::post('/devices/detected/{id}/delete', [DeviceController::class, 'destroyDetected'])->name('devices.detected.delete');
+
+    // Kontrol perangkat dari kartu dashboard (session web + CSRF)
+    Route::post('/api/device-command', [\App\Http\Controllers\Api\DeviceApiController::class, 'command'])->name('devices.command');
 
     // Monitoring
     Route::get('/monitoring', [MonitoringController::class, 'overview'])->name('monitoring.overview');

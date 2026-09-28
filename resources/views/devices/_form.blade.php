@@ -15,7 +15,7 @@
             <label class="mb-1 block text-sm font-medium">Tipe Perangkat</label>
             <select name="device_type" class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm">
                 <option value="MONITOR" @if($isEdit && $device->device_type === 'MONITOR') selected @endif>MONITOR (sensor saja)</option>
-                <option value="ACTUATOR" @if($isEdit && $device->device_type === 'ACTUATOR') selected @endif>ACTUATOR (sensor + pompa)</option>
+                <option value="ACTUATOR" @if($isEdit && $device->device_type === 'ACTUATOR') selected @endif>ACTUATOR (pompa saja, tanpa sensor)</option>
             </select>
         </div>
         <div>

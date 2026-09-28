@@ -5,8 +5,12 @@ namespace App\Http\Controllers;
 use App\Models\Device;
 use App\Models\EventLog;
 use App\Models\DetectedDevice;
+use App\Models\GaugeTemplate;
+use App\Models\IndicatorSetting;
 use App\Models\Pump;
+use App\Models\PumpLog;
 use App\Models\Sensor;
+use App\Models\SensorLog;
 use App\Models\Tank;
 use App\Support\Permission;
 use Illuminate\Http\Request;
@@ -69,11 +73,88 @@ class DeviceController extends Controller
     public function show(int $id)
     {
         $this->check();
+        $device = Device::with(['tank', 'pump', 'sensor'])->findOrFail($id);
+
+        // Level air terakhir (interlock satu bak: ACTUATOR memakai data MONITOR pasangan)
+        $sourceId = $device->id;
+        if ($device->device_type !== 'MONITOR' && $device->tank_id) {
+            $monId = Device::where('tank_id', $device->tank_id)
+                ->where('device_type', 'MONITOR')->value('id');
+            if ($monId) $sourceId = (int) $monId;
+        }
+        $lastLog = SensorLog::where('device_id', $sourceId)->orderByDesc('record_time')->first();
+
+        // Statistik pompa 24 jam (siklus nyala + durasi) — pola sistem lama
+        $since24 = now()->subDay();
+        $logs24 = PumpLog::where('device_id', $id)
+            ->where('timestamp', '>=', $since24)->orderBy('timestamp')->get();
+        $cycles = 0; $totalSec = 0; $onAt = null; $prev = null;
+        foreach ($logs24 as $l) {
+            if ($l->pump_status === 'ON') {
+                if ($prev !== 'ON') $cycles++;
+                if ($onAt === null) $onAt = $l->timestamp->timestamp;
+            } elseif ($onAt !== null) {
+                $totalSec += max(0, $l->timestamp->timestamp - $onAt);
+                $onAt = null;
+            }
+            $prev = $l->pump_status;
+        }
+        if ($onAt !== null) {
+            // Saat offline, blok ON terakhir ditutup di kontak terakhir (jam offline jangan dihitung nyala)
+            $endAt = ($device->isOnline() || ! $device->last_update)
+                ? now()->timestamp
+                : (int) $device->last_update->timestamp;
+            $totalSec += max(0, $endAt - $onAt);
+        }
+
+        // Waktu transisi status pompa terakhir (badge timer durasi nyala/mati, count-up)
+        $pumpStatusSince = null;
+        if (in_array($device->status, ['ON', 'OFF'], true)) {
+            $lastAt = PumpLog::where('device_id', $id)
+                ->where('pump_status', $device->status)->orderByDesc('timestamp')->value('timestamp');
+            if ($lastAt) {
+                $pumpStatusSince = ($lastAt instanceof \DateTimeInterface ? $lastAt : \Carbon\Carbon::parse($lastAt))->timestamp;
+            }
+        }
+
+        // Log koneksi: saat perangkat offline, catat "Koneksi terputus"
+        // dengan jangkar kontak terakhir (idempoten — lihat EventLog::logDisconnect)
+        // supaya langsung muncul di "Log Kejadian Terakhir" begitu halaman dibuka.
+        if (! $device->isOnline() && $device->last_update) {
+            EventLog::logDisconnect((int) $device->id, $device->last_update);
+        }
+
         return view('devices.show', [
-            'device' => Device::with(['tank', 'pump', 'sensor'])->findOrFail($id),
-            'sensorLogs' => Device::findOrFail($id)->sensorLogs()->orderByDesc('record_time')->limit(50)->get(),
-            'pumpLogs' => Device::findOrFail($id)->pumpLogs()->orderByDesc('timestamp')->limit(50)->get(),
+            'device' => $device,
+            'latestWaterPct' => (float) ($lastLog->water_percentage ?? 0),
+            'pumpStatusSince' => $pumpStatusSince,
+            'pumpStatus' => $device->status,
+            'pump24' => [
+                'cycles' => $cycles,
+                'cycle_count' => $cycles,
+                'seconds' => $totalSec,
+                'formatted' => sprintf('%02d:%02d', intdiv($totalSec, 3600), intdiv($totalSec % 3600, 60)),
+            ],
+            'sensorLogs' => SensorLog::where('device_id', $id)->orderByDesc('record_time')->limit(50)->get(),
+            'pumpLogs' => PumpLog::where('device_id', $id)->orderByDesc('timestamp')->limit(50)->get(),
+            'eventLogs' => EventLog::where('device_id', $id)->orderByDesc('event_time')->limit(20)->get(),
+            'gaugeTemplate' => $this->resolveGaugeTemplate(),
+            'indicator_settings' => IndicatorSetting::getSettings(),
         ]);
+    }
+
+    /**
+     * Template gauge aktif (fallback ke template inti) — pola resolveCoreTemplate()
+     * sistem lama agar halaman detail tetap menampilkan gauge walau id template
+     * di pengaturan tidak lagi cocok.
+     */
+    private function resolveGaugeTemplate(): ?GaugeTemplate
+    {
+        $activeId = IndicatorSetting::getSettings()['active_template_id'] ?? null;
+
+        return ($activeId ? GaugeTemplate::where('name', $activeId)->first() : null)
+            ?: GaugeTemplate::where('is_core', true)->orderBy('id')->first()
+            ?: GaugeTemplate::orderBy('id')->first();
     }
 
     public function edit(int $id)
@@ -164,5 +245,12 @@ class DeviceController extends Controller
     {
         $this->check();
         return view('devices.detected', ['detected' => DetectedDevice::orderByDesc('last_seen')->get()]);
+    }
+
+    public function destroyDetected(int $id)
+    {
+        $this->check('delete');
+        DetectedDevice::findOrFail($id)->delete();
+        return back()->with('success', 'Entri perangkat terdeteksi dihapus.');
     }
 }

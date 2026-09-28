@@ -7,6 +7,7 @@
     <link rel="icon" href="/favicon.ico" type="image/x-icon">
     <title>@yield('title', 'Dashboard') — PAMSIMAS SELUR</title>
     @vite(['resources/css/app.css', 'resources/js/app.js'])
+    @stack('styles')
 </head>
 <body class="bg-slate-100 font-sans text-slate-800 antialiased">
 <div class="flex min-h-screen">
