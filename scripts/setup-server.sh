@@ -10,8 +10,9 @@
 #                                              isi 'root' untuk memakai user root yang ada)
 #   PAMSIMAS_DB_PASS  sandi DB                 (default: SandiKuat2026!)
 #
-# Contoh memakai user root MySQL yang sudah ada + sandi yang sudah dipakai .env:
-#   PAMSIMAS_DB_USER=root PAMSIMAS_DB_PASS='w4luy017' bash /home/admin/setup-server.sh
+# Contoh memakai user root MySQL yang sudah ada + sandi yang sudah dipakai .env
+#   (ganti '<SANDI_ROOT_MYSQL>' dengan sandi asli — JANGAN disimpan di repo publik ini):
+#   PAMSIMAS_DB_USER=root PAMSIMAS_DB_PASS='<SANDI_ROOT_MYSQL>' bash /home/admin/setup-server.sh
 # ==========================================================================
 set -euo pipefail
 

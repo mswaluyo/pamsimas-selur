@@ -3,6 +3,11 @@
 Server produksi: Ubuntu 26.04 LTS · aaPanel · doc root `/www/wwwroot/pamsimas.selur.my.id/public`
 User web server aaPanel: `www` · PHP: 8.3 (`/www/server/php/83`)
 
+> ⚠️ **Repo ini PUBLIK.** Jangan menulis kredensial asli (sandi MySQL/root, API key, token)
+> di dokumen mana pun di dalam repo. Semua kredensial di runbook ini memakai placeholder
+> `<...>`; nilai sebenarnya diambil dari `.env` di server atau password manager.
+> Contoh di bawah memakai `<SANDI_ROOT_MYSQL>` = sandi `root` MySQL server.
+
 ---
 
 ## 1. Prasyarat Server
@@ -66,7 +71,7 @@ Script ini idempotent: memeriksa ekstensi PHP & versi Composer, memperbaiki perm
 
 ## 3. Fix Database (error `SQLSTATE[HY000] [1045] Access denied`)
 
-`.env.production` membawa kredensial server **lama** (`root` / `w4luy017`). Buat user baru:
+`.env.production` membawa kredensial server **lama** (`root` / `<SANDI_ROOT_MYSQL>`). Buat user baru:
 
 ```bash
 ROOTPW=$(cat /www/server/panel/data/default_mysql_pwd)
@@ -80,11 +85,11 @@ SQL
 ```
 
 > **Alternatif tanpa user baru — pakai `root` yang sudah ada.**
-> `.env.production` sudah memuat `DB_USERNAME=root` + `DB_PASSWORD=w4luy017`, jadi kalau
-> sandi root MySQL memang `w4luy017`, tidak ada yang perlu diubah sama sekali:
+> `.env.production` sudah memuat `DB_USERNAME=root` + `DB_PASSWORD=<SANDI_ROOT_MYSQL>`, jadi kalau
+> sandi root MySQL memang `<SANDI_ROOT_MYSQL>`, tidak ada yang perlu diubah sama sekali:
 >
 > ```bash
-> PAMSIMAS_DB_USER=root PAMSIMAS_DB_PASS='w4luy017' bash /home/admin/setup-server.sh
+> PAMSIMAS_DB_USER=root PAMSIMAS_DB_PASS='<SANDI_ROOT_MYSQL>' bash /home/admin/setup-server.sh
 > ```
 >
 > Kalau ditolak MySQL, samakan sandinya **dan** update file panel — kalau tidak,
@@ -92,8 +97,8 @@ SQL
 >
 > ```bash
 > mysql -u root -p"$(cat /www/server/panel/data/default_mysql_pwd)" \
->   -e "ALTER USER 'root'@'localhost' IDENTIFIED BY 'w4luy017'; FLUSH PRIVILEGES;"
-> printf '%s' 'w4luy017' > /www/server/panel/data/default_mysql_pwd && chmod 600 /www/server/panel/data/default_mysql_pwd
+>   -e "ALTER USER 'root'@'localhost' IDENTIFIED BY '<SANDI_ROOT_MYSQL>'; FLUSH PRIVILEGES;"
+> printf '%s' '<SANDI_ROOT_MYSQL>' > /www/server/panel/data/default_mysql_pwd && chmod 600 /www/server/panel/data/default_mysql_pwd
 > ```
 
 Update `.env`:
@@ -262,7 +267,7 @@ sudo -i
 bash /home/admin/setup-server.sh
 
 # (b) ATAU pakai user root MySQL yang sudah ada, sandi root tidak diubah:
-PAMSIMAS_DB_USER=root PAMSIMAS_DB_PASS='w4luy017' bash /home/admin/setup-server.sh
+PAMSIMAS_DB_USER=root PAMSIMAS_DB_PASS='<SANDI_ROOT_MYSQL>' bash /home/admin/setup-server.sh
 ```
 
 Sandbox script itu: cek ekstensi PHP, versi Composer, MySQL, database+user,
