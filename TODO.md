@@ -249,20 +249,43 @@ Repo `github.com/mswaluyo/pamsimas-selur` bersifat **PUBLIK** (`private: false`)
 - [x] `DEPLOY_AAPANEL.md` (7 tempat) & `scripts/setup-server.sh` (contoh perintah) memuat **sandi root
       MySQL/server asli** → diganti placeholder `<SANDI_ROOT_MYSQL>` + peringatan di bagian atas dokumen.
       Verifikasi: file mentah di GitHub kini memuat **0** kemunculan sandi tersebut.
-- [x] `git commit` terstruktur: working tree bersih, 6 commit dipush ke `origin/main`
-      (`8a2d79c` tariff, `8d57e02` security endpoint, `79824a8` telemetri, `0e40ab5` docs, `8d50294` firmware, `d15cab3` scrub).
+- [x] `git commit` terstruktur: working tree bersih, 7 commit dipush ke `origin/main`
+      (`8a2d79c` tariff, `8d57e02` security endpoint, `79824a8` telemetri, `0e40ab5` docs, `8d50294` firmware, `d15cab3` scrub, `0d9c674` catatan).
 
-### 6.2 ⚠️ BELUM ditangani (butuh keputusan/aksi lanjutan)
-- [ ] **Rotasi sandi server wajib** — scrub hanya menghapus teks, tetapi sandi root MySQL/SSH asli
-      masih tersimpan di **riwayat git** repo publik (`git log -p -- DEPLOY_AAPANEL.md`).
-      Langkah: ganti sandi root MariaDB + `root` SSH di server, update `.env` (gitignored) dan
-      `/www/server/panel/data/default_mysql_pwd`, lalu uji ulang login & website.
-- [ ] **`DEVICE_API_KEY` & `WA_GATEWAY_SECRET` asli** juga terpublikasi di
-      `.env.example:73,77`, `DEPLOY_AAPANEL.md:209`, `WHATSAPP.md:44`, dan default `config/services.php`.
-      Rotasi menyangkut **firmware ESP8266** (perlu flash ulang) + `wa-gateway/.env` → siapkan
-      jadwal khusus; sementara ini endpoint perangkat hanya menerima MAC terdaftar.
-- [ ] Pertimbangkan mengubah repo menjadi **private** (Settings → General → Danger Zone) — pengaman
-      tercepat selama kredensial lain (mis. sandi aplikasi `admin123` bawaan seeder) belum dirotasi.
-- [ ] Opsional: bersihkan riwayat git (`git filter-repo`/BFG) lalu force-push setelah rotasi sandi.
+### 6.2 ⚠️ Tindak lanjutnya
+Belum ditangani → dipindahkan ke **Bagian 7 (Backlog Akhir)** di ujung dokumen ini, agar dikerjakan
+pada satu gelombang setelah aplikasi bebas bug.
 
+---
 
+## 7. Backlog Akhir — Pekerjaan Pasca-Stabil 🔒
+
+> Dikerjakan **setelah aplikasi bebas bug** (Fase 1–4 di bagian 5 selesai & terverifikasi live).
+> Sifatnya "sekali kerja harus tuntas": menyentuh kredensial server, firmware perangkat, dan riwayat
+> git — jadi butuh jendela waktu khusus + uji ulang menyeluruh, bukan hotfix harian.
+
+### 7.1 Kredensial & keamanan (tindak lanjut temuan bagian 6)
+- [ ] **Rotasi sandi server** — sandi `root` MariaDB & `root` SSH asli sudah terpublikasi di riwayat
+      git repo publik. Urutan aman: (1) pastikan punya akses alternatif (sesi SSH/sudo & panel yang
+      masih aktif) sebelum mengganti; (2) ganti sandi root MariaDB + tulis ulang
+      `/www/server/panel/data/default_mysql_pwd`; (3) ganti sandi `root` SSH + perbarui askpass/klien;
+      (4) update `.env`/`.env.production` di server (keduanya gitignored); (5) uji login panel, login
+      aplikasi + dashboard, koneksi DB, cron/queue.
+- [ ] **Rotasi `DEVICE_API_KEY`** — ganti di `.env` server (dan default `config/services.php`), lalu
+      **flash ulang firmware ESP8266** (`api_key` di `Pamsimas_Hybrid.ino`) + sesuaikan `wa-gateway`
+      bila memakai nilai yang sama. Verifikasi: `/api/log`, `/api/status`, `/api/update` dari perangkat nyata.
+- [ ] **Rotasi `WA_GATEWAY_SECRET`** — samakan di `.env` Laravel, `.env` wa-gateway, dan dokumentasi
+      (placeholder saja). Verifikasi: webhook `/api/api_wa` menerima pesan uji.
+- [ ] **Ganti sandi akun aplikasi bawaan seeder** (`admin123` / `kasir123`) sebelum dipakai lebih luas.
+- [ ] **Ubah repo GitHub menjadi private** (Settings → General → Danger Zone) — pengaman tercepat.
+- [ ] **Bersihkan riwayat git** (`git filter-repo`/BFG) agar sandi hilang dari `git log`, lalu
+      force-push — dikerjakan setelah rotasi sandi (opsional bila repo sudah private).
+
+### 7.2 Sisa audit teknis (ringkasan Fase 2–4 di bagian 5)
+- [ ] **High**: lengkapi `config/services.php` + refactor `env()` → `config()`, konsolidasi rute webhook
+      WhatsApp (`/api_wa` vs `/api/webhook/wa`) & secret-nya, tambah index `sensor_logs`/`pump_logs`,
+      uji `php artisan config:cache` tanpa memutus pengiriman WhatsApp.
+- [ ] **Medium**: fail-safe status pompa saat perangkat offline, migrasi `tariff_histories` di
+      staging/production (sudah jalan di production lewat `migrate --path`).
+- [ ] **Low**: modularisasi JS timer/gauge ke Vite assets, rekam `user_id` operator pada setiap
+      perintah manual, uji end-to-end menyeluruh sebelum rilis berikutnya.
