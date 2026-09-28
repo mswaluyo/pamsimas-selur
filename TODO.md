@@ -289,3 +289,8 @@ pada satu gelombang setelah aplikasi bebas bug.
       staging/production (sudah jalan di production lewat `migrate --path`).
 - [ ] **Low**: modularisasi JS timer/gauge ke Vite assets, rekam `user_id` operator pada setiap
       perintah manual, uji end-to-end menyeluruh sebelum rilis berikutnya.
+- [ ] **Firmware (usulan, butuh ubah `.ino`)**: refresh fingerprint SSL saat handshake gagal / sebelum
+      rotasi sertifikat edge — kini pin SHA1 diambil **sekali per boot** (#49), sehingga bila Cloudflare
+      merotasi sertifikat perangkat perlu di-reboot. Alternatif jangka panjang: validasi berbasis CA +
+      hostname (`setTrustAnchors`) agar tidak bergantung pada pin. Kill-switch server sementara:
+      `FINGERPRINT_DISABLED=true` di `.env` + `config:clear`, lalu reboot perangkat.

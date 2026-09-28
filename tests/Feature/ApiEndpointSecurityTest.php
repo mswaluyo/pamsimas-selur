@@ -52,10 +52,17 @@ class ApiEndpointSecurityTest extends TestCase
         $this->assertNotEmpty($key, 'DEVICE_API_KEY belum dikonfigurasi.');
     }
 
-    /** Fingerprint (handshake firmware) & endpoint perangkat tetap dapat diakses. */
+    /** Fingerprint (handshake firmware) & endpoint perangkat tetap dapat diakses tanpa login. */
     public function test_firmware_endpoints_stay_reachable(): void
     {
-        $this->getJson('/api/fingerprint')->assertStatus(200);
+        // /api/fingerprint kini membalas plain text SHA1 bila probe SSL berhasil, dan non-200
+        // (503) bila host belum dikonfigurasi/probe gagal — firmware otomatis mode insecure.
+        // Yang penting: endpoint ini TIDAK boleh menuntut login (401) atau kena CSRF (419).
+        $fingerprint = $this->getJson('/api/fingerprint');
+        $this->assertNotSame(401, $fingerprint->getStatusCode(), '/api/fingerprint tidak boleh menuntut login');
+        $this->assertNotSame(419, $fingerprint->getStatusCode(), '/api/fingerprint tidak boleh kena CSRF');
+        $this->assertContains($fingerprint->getStatusCode(), [200, 503]);
+
         $this->getJson('/api/status')->assertStatus(422); // lolos middleware device.api, gagal validasi MAC
     }
 

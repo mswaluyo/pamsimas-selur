@@ -43,4 +43,11 @@ return [
     'wa_gateway_number' => env('WA_GATEWAY_NUMBER'),
     'gemini_api_key' => env('GEMINI_API_KEY'),
 
+    // Endpoint /api/fingerprint (pinning SSL firmware ESP8266):
+    // - fingerprint_host: hostname publik yang sertifikatnya dilaporkan; null = ambil dari APP_URL.
+    // - fingerprint_disabled: true = endpoint balas HTTP 503 supaya firmware memakai mode
+    //   insecure (tanpa pinning) — kill-switch darurat bila sertifikat edge berubah.
+    'fingerprint_host' => env('FINGERPRINT_HOST'),
+    'fingerprint_disabled' => env('FINGERPRINT_DISABLED', false),
+
 ];

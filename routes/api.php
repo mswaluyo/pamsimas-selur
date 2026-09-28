@@ -47,10 +47,11 @@ Route::middleware('device.api')->group(function () {
 // Route ini didaftarkan di routes/web.php agar tidak kena prefix /api.
 // (Lihat routes/web.php bagian "LEGACY IoT ALIASES".)
 
-// --- FINGERPRINT HARDWARE ---
-// Dipakai firmware (Network_SSL.ino) sebagai handshake awal → tetap publik,
-// hanya membeberkan info runtime server non-sensitif.
-Route::get('/fingerprint', [SystemApiController::class, 'fingerprint']);
+// --- FINGERPRINT SSL ---
+// Dipakai firmware (Network_SSL.ino) sebagai handshake awal untuk client.setFingerprint()
+// → tetap publik (firmware tidak punya sesi). Respons = SHA1 sertifikat (plain text).
+// Karena setiap permintaan melakukan koneksi TLS keluar, dibatasi 30 permintaan/menit per IP.
+Route::get('/fingerprint', [SystemApiController::class, 'fingerprint'])->middleware('throttle:30,1');
 
 // --- MAINTENANCE (MERUSAK DATA) → WAJIB X-API-KEY VALID ---
 // middleware 'device.key' TIDAK memberi jalur bebas untuk firmware lama.
