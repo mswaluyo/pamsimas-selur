@@ -237,3 +237,32 @@ Dokumen ini memuat rangkuman hasil audit komprehensif terhadap arsitektur kode (
   - [ ] Tambahkan perekaman user ID pada setiap perintah manual kontrol pompa.
   - [ ] Jalankan pengujian menyeluruh end-to-end sebelum deployment production.
 
+---
+
+## 6. Temuan Tambahan — Kebocoran Kredensial di Repo Publik (28 Sep 2026)
+
+Repo `github.com/mswaluyo/pamsimas-selur` bersifat **PUBLIK** (`private: false`).
+
+### 6.1 ✅ Sudah dikerjakan (scrub, Task #47)
+- [x] `.fw_code/` (source firmware) di-commit dengan `ssid`/`pass` **di-redact** menjadi placeholder
+      `GANTI_SSID_WIFI` / `GANTI_SANDI_WIFI` + `README.md` → sandi Wi-Fi **tidak pernah terpublikasi**.
+- [x] `DEPLOY_AAPANEL.md` (7 tempat) & `scripts/setup-server.sh` (contoh perintah) memuat **sandi root
+      MySQL/server asli** → diganti placeholder `<SANDI_ROOT_MYSQL>` + peringatan di bagian atas dokumen.
+      Verifikasi: file mentah di GitHub kini memuat **0** kemunculan sandi tersebut.
+- [x] `git commit` terstruktur: working tree bersih, 6 commit dipush ke `origin/main`
+      (`8a2d79c` tariff, `8d57e02` security endpoint, `79824a8` telemetri, `0e40ab5` docs, `8d50294` firmware, `d15cab3` scrub).
+
+### 6.2 ⚠️ BELUM ditangani (butuh keputusan/aksi lanjutan)
+- [ ] **Rotasi sandi server wajib** — scrub hanya menghapus teks, tetapi sandi root MySQL/SSH asli
+      masih tersimpan di **riwayat git** repo publik (`git log -p -- DEPLOY_AAPANEL.md`).
+      Langkah: ganti sandi root MariaDB + `root` SSH di server, update `.env` (gitignored) dan
+      `/www/server/panel/data/default_mysql_pwd`, lalu uji ulang login & website.
+- [ ] **`DEVICE_API_KEY` & `WA_GATEWAY_SECRET` asli** juga terpublikasi di
+      `.env.example:73,77`, `DEPLOY_AAPANEL.md:209`, `WHATSAPP.md:44`, dan default `config/services.php`.
+      Rotasi menyangkut **firmware ESP8266** (perlu flash ulang) + `wa-gateway/.env` → siapkan
+      jadwal khusus; sementara ini endpoint perangkat hanya menerima MAC terdaftar.
+- [ ] Pertimbangkan mengubah repo menjadi **private** (Settings → General → Danger Zone) — pengaman
+      tercepat selama kredensial lain (mis. sandi aplikasi `admin123` bawaan seeder) belum dirotasi.
+- [ ] Opsional: bersihkan riwayat git (`git filter-repo`/BFG) lalu force-push setelah rotasi sandi.
+
+
