@@ -237,7 +237,9 @@ class DeviceApiController extends Controller
      * Format firmware asli (dari backup sistem lama):
      *   {mac, action, value}
      *   action: set_status (laporan pompa), set_mode, set_manual_status,
-     *           report_version, report_event
+     *           report_version, report_event, set_pump,
+     *           reset_config / reset_mode_update / reset_ota_update / reset_restart
+     *           (ack firmware bahwa flag satu kali pakai sudah diterima)
      * Format baru (tanpa action): {mac_address, pump_status, control_mode}
      * Device tak dikenal dibalas {status: unregistered} (200) — seperti
      * sistem lama — agar firmware menunggu registrasi, bukan error.
@@ -353,6 +355,29 @@ class DeviceApiController extends Controller
                         $this->writePumpLog($device, $new, "Pompa {$new} (MANUAL) — perintah dashboard");
                     }
                     return response()->json(['status' => 'success', 'pump_command' => $new]);
+
+                // Ack firmware setelah server mengirim flag one-shot.
+                // Firmware (API_Communication.ino) mengirim: reset_config, reset_mode_update,
+                // reset_ota_update, reset_restart — sebelumnya semuanya dibalas 400
+                // "Unknown action" sehingga log serial perangkat penuh error.
+                // Penanganan ini idempoten: flag yang sama juga sudah di-reset oleh status()
+                // saat nilainya dikirim ke perangkat.
+                case 'reset_config':
+                    $device->config_update_command = false;
+                    return $this->ackFirmwareFlag($device, $action);
+
+                case 'reset_mode_update':
+                    $device->mode_update_command = false;
+                    return $this->ackFirmwareFlag($device, $action);
+
+                case 'reset_restart':
+                    $device->restart_command = false;
+                    return $this->ackFirmwareFlag($device, $action);
+
+                case 'reset_ota_update':
+                    // Fitur OTA belum punya kolom flag di skema baru → tetap dibalas 200
+                    // agar firmware tidak menerima error 400.
+                    return $this->ackFirmwareFlag($device, $action);
 
                 default:
                     return response()->json(['status' => 'error', 'message' => "Unknown action: {$action}"], 400);
@@ -547,6 +572,24 @@ class DeviceApiController extends Controller
         ]);
 
         return response()->json(['status' => 'success', 'received' => $count]);
+    }
+
+    /**
+     * Balasan untuk ack flag firmware (reset_config / reset_mode_update /
+     * reset_ota_update / reset_restart): sentuh last_update lalu laporkan flag terkini.
+     */
+    private function ackFirmwareFlag(Device $device, string $action)
+    {
+        $device->last_update = now();
+        $device->save();
+
+        return response()->json([
+            'status' => 'success',
+            'action' => $action,
+            'mode_update_command' => (int) $device->mode_update_command,
+            'config_update_command' => (int) $device->config_update_command,
+            'restart_command' => (int) $device->restart_command,
+        ]);
     }
 
     private function writePumpLog(Device $device, string $status, string $message): void

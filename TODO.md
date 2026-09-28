@@ -294,3 +294,16 @@ pada satu gelombang setelah aplikasi bebas bug.
       merotasi sertifikat perangkat perlu di-reboot. Alternatif jangka panjang: validasi berbasis CA +
       hostname (`setTrustAnchors`) agar tidak bergantung pada pin. Kill-switch server sementara:
       `FINGERPRINT_DISABLED=true` di `.env` + `config:clear`, lalu reboot perangkat.
+
+### 7.3 Catatan data master (hasil pemeriksaan 28 Sep 2026, Task #50)
+
+- [ ] **Konfirmasi relasi perangkat ↔ tangki/pompa/sensor.** Device id 2 (`C4:D8:D5:13:A6:17`, MONITOR)
+      memakai `tank_id=1` "Pamsimas Ngasinan" (tinggi 400) tetapi `pump_id=2`/`sensor_id=2` "Mbaran"
+      (tinggi tangki 225, `full_tank_distance=25`, trigger 80). Nilai yang dikirim ke perangkat
+      (`full=25`, `empty=225`, trigger 80) konsisten dengan data **Mbaran**, bukan Ngasinan.
+- [ ] Device id 3 (ACTUATOR, `CC:50:E3:52:F3:B6`) memakai `tank_id=2` "Mbaran" tetapi `pump_id=4`
+      "Pompa Kendal" (master `on/off_duration_seconds` = 1800/600) — pastikan memang pompa yang benar.
+- [ ] `devices.delay_seconds` **tidak ada** di skema, jadi `/api/status` selalu mengirim `delay_seconds=0`.
+      Firmware saat ini tidak memakai field itu (aman), tetapi master `pumps.delay_seconds`
+      (20/30/40/185 detik) belum pernah sampai ke perangkat — bila nanti firmware memakai cooling-delay,
+      sumbernya harus dari `pumps`.
