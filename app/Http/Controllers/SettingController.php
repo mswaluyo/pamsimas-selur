@@ -193,17 +193,49 @@ class SettingController extends Controller
     public function tariff()
     {
         $this->check();
-        return view('settings.tariff', ['settings' => IndicatorSetting::getSettings()]);
+        return view('settings.tariff', [
+            'settings' => IndicatorSetting::getSettings(),
+            'history' => \App\Models\TariffHistory::orderByDesc('id')->limit(50)->get(),
+        ]);
     }
 
     public function updateTariff(Request $request)
     {
         $this->check('update');
-        IndicatorSetting::query()->first()->update($request->validate([
+        $data = $request->validate([
             'water_price' => 'required|numeric|min:0',
             'admin_fee' => 'required|numeric|min:0',
-        ]));
-        return back()->with('success', 'Tarif diperbarui.');
+        ]);
+
+        $old = IndicatorSetting::getSettings();
+        $oldPrice = (float) ($old['water_price'] ?? 0);
+        $oldFee = (float) ($old['admin_fee'] ?? 0);
+        $newPrice = (float) $data['water_price'];
+        $newFee = (float) $data['admin_fee'];
+
+        // Simpan tanpa perubahan nilai → tidak menulis histori (anti-duplikat)
+        if (abs($oldPrice - $newPrice) < 0.005 && abs($oldFee - $newFee) < 0.005) {
+            return back()->with('success', 'Tidak ada perubahan nilai tarif.');
+        }
+
+        IndicatorSetting::query()->first()->update($data);
+
+        \App\Models\TariffHistory::create([
+            'water_price' => $newPrice,
+            'admin_fee' => $newFee,
+            'old_water_price' => $oldPrice,
+            'old_admin_fee' => $oldFee,
+            'changed_by' => session('user.username', '-'),
+            'created_at' => now(),
+        ]);
+
+        \App\Models\AdminLog::create([
+            'user_id' => session('user.id', 0),
+            'action' => 'Ubah Tarif',
+            'details' => "Harga air {$oldPrice} → {$newPrice} Rp/m³, admin {$oldFee} → {$newFee} Rp",
+        ]);
+
+        return back()->with('success', 'Tarif diperbarui & tercatat di histori.');
     }
 
     // ---------- TAMPILAN / INDIKATOR ----------
