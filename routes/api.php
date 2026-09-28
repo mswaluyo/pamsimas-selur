@@ -1,8 +1,6 @@
 <?php
 
-use App\Http\Controllers\Api\DashboardApiController;
 use App\Http\Controllers\Api\DeviceApiController;
-use App\Http\Controllers\Api\LogApiController;
 use App\Http\Controllers\Api\SystemApiController;
 use App\Http\Controllers\Api\TemplateApiController;
 use App\Http\Controllers\WhatsAppWebhookController;
@@ -16,9 +14,15 @@ use Illuminate\Support\Facades\Route;
 | Jadi Route::post('/log') = POST /api/log. JANGAN tulis '/api/log'
 | di sini (itu akan menjadi /api/api/log → 404 di ESP).
 |
-| Semua endpoint /api/* untuk perangkat dilindungi X-API-KEY
-| via middleware 'device.api' (kecuali /status & /health yang
-| publik agar firmware lama tanpa key tetap bisa konek).
+| Endpoint /api/* untuk perangkat memakai middleware 'device.api'
+| (menerima firmware lama tanpa key) — endpoint maintenance yang
+| merusak data memakai 'device.key' (X-API-KEY wajib valid).
+|
+| Endpoint DATA UI (/api/dashboard/data, /api/dashboard-data,
+| /api/device/history, /api/system/detected-devices,
+| /api/terminal/{events,clear}, /api/meter/last/{id}) TIDAK lagi di
+| sini — dipindahkan ke routes/web.php grup 'auth.session' supaya
+| wajib login (temuan audit Critical 1.2 / 1.3).
 */
 
 // --- WEBHOOK WHATSAPP (dari WA Gateway Node.js) → POST /api/api_wa ---
@@ -43,24 +47,25 @@ Route::middleware('device.api')->group(function () {
 // Route ini didaftarkan di routes/web.php agar tidak kena prefix /api.
 // (Lihat routes/web.php bagian "LEGACY IoT ALIASES".)
 
-// --- DASHBOARD & UI DATA ---
-Route::get('/dashboard/data', [DashboardApiController::class, 'data']);
-Route::get('/dashboard-data', [DashboardApiController::class, 'data']);
-Route::get('/device/history', [DashboardApiController::class, 'history']);
-
-// --- SYSTEM & MONITORING ---
-Route::get('/system/detected-devices', [SystemApiController::class, 'detectedDevices']);
-Route::get('/detected-devices', [SystemApiController::class, 'detectedDevices']);
+// --- FINGERPRINT HARDWARE ---
+// Dipakai firmware (Network_SSL.ino) sebagai handshake awal → tetap publik,
+// hanya membeberkan info runtime server non-sensitif.
 Route::get('/fingerprint', [SystemApiController::class, 'fingerprint']);
-Route::get('/system/cleanup', [SystemApiController::class, 'cleanupLogs']);
 
-// --- LOGS & TERMINAL ---
-Route::get('/terminal/events', [LogApiController::class, 'terminalEvents']);
-Route::post('/terminal/clear', [LogApiController::class, 'clearTerminalEvents']);
+// --- MAINTENANCE (MERUSAK DATA) → WAJIB X-API-KEY VALID ---
+// middleware 'device.key' TIDAK memberi jalur bebas untuk firmware lama.
+// Bila dipanggil cron di server, sertakan key: ?api_key=<DEVICE_API_KEY>
+// atau header X-API-KEY.
+Route::middleware('device.key')->group(function () {
+    Route::get('/system/cleanup', [SystemApiController::class, 'cleanupLogs']);
+});
+
+// --- DATA UI (dashboard/detail/terminal/meter) ---
+// Pindah ke routes/web.php grup 'auth.session' — wajib login (audit Critical 1.2/1.3).
+// GET /api/dashboard/data, /api/dashboard-data, /api/device/history,
+// /api/system/detected-devices, /api/detected-devices, /api/terminal/events,
+// POST /api/terminal/clear, GET /api/meter/last/{id}.
 
 // --- TEMPLATE PREVIEW ---
 Route::get('/template/preview/{id}', [TemplateApiController::class, 'preview']);
-
-// --- METER ---
-Route::get('/meter/last/{customerId}', [DashboardApiController::class, 'lastReading']);
 

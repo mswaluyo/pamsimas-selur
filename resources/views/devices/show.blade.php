@@ -578,6 +578,7 @@
     async function pollDevice() {
         try {
             const res = await fetch('/api/dashboard-data', { headers: { 'Accept': 'application/json' } });
+            if (res.status === 401) { window.location.href = '/login'; return; } // sesi berakhir → login ulang
             const data = await res.json();
             const d = (data.devices || []).find((x) => Number(x.id) === Number(DEVICE_ID));
             if (d) applyDeviceState(d);
@@ -754,6 +755,7 @@
         async function fetchChartData() {
             try {
                 const res = await fetch('/api/device/history?device_id=' + encodeURIComponent(deviceId) + '&range=' + encodeURIComponent(range));
+                if (res.status === 401) { window.location.href = '/login'; return; } // sesi berakhir → login ulang
                 const data = await res.json().catch(function () { return {}; });
                 if (!data || !data.sensors) return;
                 updateChart(data.sensors, data.pumps, data.initial_pump_status, data.window_start, data.window_end);

@@ -391,6 +391,7 @@ function levelBar(pct) {
 async function refresh() {
     try {
         const res = await fetch('/api/dashboard-data');
+        if (res.status === 401) { window.location.href = '/login'; return; } // sesi berakhir → login ulang
         const data = await res.json();
         const devices = data.devices || [];
         devCache = devices;

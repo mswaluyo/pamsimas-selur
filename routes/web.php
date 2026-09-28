@@ -1,6 +1,10 @@
 <?php
 
 use App\Http\Controllers\AdminLogController;
+use App\Http\Controllers\Api\DashboardApiController;
+use App\Http\Controllers\Api\DeviceApiController;
+use App\Http\Controllers\Api\LogApiController;
+use App\Http\Controllers\Api\SystemApiController;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\CustomerController;
 use App\Http\Controllers\DashboardController;
@@ -16,9 +20,9 @@ use App\Http\Controllers\TemplateController;
 use App\Http\Controllers\UserController;
 use Illuminate\Support\Facades\Route;
 
-// Auth
+// Auth — POST /login dibatasi 5 percobaan per menit per IP (anti brute-force, audit High 2.2)
 Route::get('/login', [AuthController::class, 'showLogin'])->name('login');
-Route::post('/login', [AuthController::class, 'login']);
+Route::post('/login', [AuthController::class, 'login'])->middleware('throttle:5,1');
 Route::post('/logout', [AuthController::class, 'logout'])->name('logout');
 Route::get('/logout', [AuthController::class, 'logout']);
 
@@ -41,7 +45,19 @@ Route::middleware('auth.session')->group(function () {
     Route::post('/devices/detected/{id}/delete', [DeviceController::class, 'destroyDetected'])->name('devices.detected.delete');
 
     // Kontrol perangkat dari kartu dashboard (session web + CSRF)
-    Route::post('/api/device-command', [\App\Http\Controllers\Api\DeviceApiController::class, 'command'])->name('devices.command');
+    Route::post('/api/device-command', [DeviceApiController::class, 'command'])->name('devices.command');
+
+    // Data UI monitoring (sebelumnya publik di routes/api.php → wajib login, audit Critical 1.2/1.3).
+    // URI sengaja dipertahankan sama agar fetch() dari dashboard & halaman detail tetap jalan
+    // (cookie sesi ikut terkirim otomatis). POST tetap dilindungi CSRF grup web.
+    Route::get('/api/dashboard/data', [DashboardApiController::class, 'data'])->name('api.dashboard.data');
+    Route::get('/api/dashboard-data', [DashboardApiController::class, 'data'])->name('api.dashboard.data.short');
+    Route::get('/api/device/history', [DashboardApiController::class, 'history'])->name('api.device.history');
+    Route::get('/api/system/detected-devices', [SystemApiController::class, 'detectedDevices'])->name('api.detected-devices');
+    Route::get('/api/detected-devices', [SystemApiController::class, 'detectedDevices'])->name('api.detected-devices.short');
+    Route::get('/api/terminal/events', [LogApiController::class, 'terminalEvents'])->name('api.terminal.events');
+    Route::post('/api/terminal/clear', [LogApiController::class, 'clearTerminalEvents'])->name('api.terminal.clear');
+    Route::get('/api/meter/last/{customerId}', [DashboardApiController::class, 'lastReading'])->name('api.meter.last');
 
     // Monitoring
     Route::get('/monitoring', [MonitoringController::class, 'overview'])->name('monitoring.overview');

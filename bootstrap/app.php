@@ -15,6 +15,7 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->alias([
             'auth.session' => \App\Http\Middleware\EnsureAuthenticated::class,
             'device.api' => \App\Http\Middleware\EnsureDeviceApiKey::class,
+            'device.key' => \App\Http\Middleware\EnsureDeviceApiKeyStrict::class,
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
