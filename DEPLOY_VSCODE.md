@@ -106,7 +106,7 @@ tail -c 3000 storage/logs/laravel.log
 | 500 `unexpected token "]"` di view | Regex JS berisi `{{ ... }}` diparse Blade | Bungkus `<script>` dengan `@verbatim ... @endverbatim` |
 | 500, log tak bertambah, body kosong | Fatal error sebelum Laravel logging | `php8.3 artisan view:cache` (gagal = sintaks blade), cek error FPM |
 | DB `Access denied 1698 (root)` | `bootstrap/cache/config.php` cache lama | `php8.3 artisan config:clear` |
-| **Semua hostname situs** (`pamsimas.` & `ssh.`) membalas **HTTP 530** body `error code: 1033`, SSH mati di `websocket: bad handshake`, padahal DNS & edge Cloudflare sehat (`https://www.cloudflare.com/cdn-cgi/trace` = 200) | Connector **cloudflared di server** tidak terdaftar ke tunnel (crash / tunnel di-rename atau dihapus di dashboard Zero Trust / kredensial connector berganti). 1033 = tunnel error, bukan error origin — Laravel & FPM sebenarnya sehat | Akses server lewat jalur lain (LAN `192.168.20.200` atau konsol hosting/HestiaCP) → `systemctl restart cloudflared`, `journalctl -u cloudflared -n 50 --no-pager`, cek `cloudflared tunnel list` + `cloudflared tunnel ingress show <tunnel>`. Dampak selama mati: dashboard/API tidak terjangkau dan **perangkat ESP berhenti lapor** tetapi tetap jalan lokal dengan konfigurasi terakhir; begitu connector hidup lagi, konfigurasi tertunda **tidak hilang** (flag `config_update_command` bertahan sampai ack — Task #51) |
+| **Semua hostname situs** (`pamsimas.` & `ssh.`) membalas **HTTP 530** body `error code: 1033`, SSH mati di `websocket: bad handshake`, padahal DNS & edge Cloudflare sehat (`https://www.cloudflare.com/cdn-cgi/trace` = 200) | **Server/connector cloudflared tidak hidup** (terkonfirmasi 29 Sep 2026: **listrik padam, server mati total**) — penyebab lain: cloudflared crash, tunnel di-rename/dihapus di Zero Trust, kredensial connector berganti. 1033 = tunnel error, bukan error origin — Laravel & FPM sebenarnya sehat | Akses server lewat jalur lain (LAN `192.168.20.200` atau konsol hosting/HestiaCP) → `systemctl restart cloudflared`, `journalctl -u cloudflared -n 50 --no-pager`, cek `cloudflared tunnel list` + `cloudflared tunnel ingress show <tunnel>`. Dampak selama mati: dashboard/API tidak terjangkau dan **perangkat ESP berhenti lapor** tetapi tetap jalan lokal dengan konfigurasi terakhir; begitu connector hidup lagi, konfigurasi tertunda **tidak hilang** (flag `config_update_command` bertahan sampai ack — Task #51) |
 | `.env` benar tapi request 500 | Cache config usang | `config:clear`; **hindari `config:cache` di server ini** |
 | Halaman "Success!"/"Page Not Found" | Docroot Nginx salah | Lihat bagian 7 |
 
@@ -254,6 +254,45 @@ Troubleshooting: port 2222 terpakai →
   `bootstrap/app.php`, `app/Http/Middleware/EnsureAuthenticated.php`, `app/Http/Middleware/EnsureDeviceApiKeyStrict.php` (baru)
   → lalu `route:clear` + `view:clear`. Jika ada cron/script yang memanggil `/api/system/cleanup`,
   tambahkan `?api_key=<DEVICE_API_KEY>` (atau header `X-API-KEY`) karena endpoint itu kini **wajib key valid**.
+
+## 11. Runbook: Pemulihan Setelah Listrik Padam (server mati total)
+
+**Gejala saat server mati / connector cloudflared tidak jalan:** `pamsimas.selur.my.id` dan
+`ssh.selur.my.id` sama-sama membalas **HTTP 530** body `error code: 1033`; SSH `ssh root@ssh.selur.my.id`
+berhenti di `websocket: bad handshake`. Pembeda dengan masalah Cloudflare: `https://pamsimas.selur.my.id/cdn-cgi/trace`
+**tetap 200** (DNS + routing edge sehat) → masalah ada di **sisi server**, bukan Cloudflare.
+Terverifikasi 29 Sep 2026: penyebabnya **listrik padam, server mati total**.
+
+**Dampak ke perangkat di lapangan (dari source `.fw_code/Pamsimas_Hybrid` — semua ini otomatis):**
+- Jaringan/server putus → firmware mencatat *"NETWORK: Koneksi terputus. Beralih ke mode AUTO sebagai
+  fallback"* (`Pamsimas_Hybrid.ino:228`) → pompa **tetap terkontrol lokal** memakai konfigurasi terakhir
+  yang tersimpan di **EEPROM** (`EEPROM.put(EEPROM_ADDR_DEVICE_CONFIG, …)`, hanya ditulis saat berubah).
+- Data selama padam **tidak hilang**: tertahan di LittleFS — `/sensor_log.txt`, `/pump_log.txt`,
+  `/event_log.txt` — lalu dikirim berangsur (per kloter) lewat `POST /api/log-offline` (`sendOfflineLogs()`)
+  begitu server hidup; file dihapus setelah terkirim.
+- Konfigurasi yang belum sempat diakui perangkat **tidak hilang**: `config_update_command` bertahan sampai
+  ack `reset_config` (Task #51) → terkirim pada polling pertama setelah server hidup.
+- Fingerprint SSL diambil **sekali per boot**; reboot server tidak mengubah sertifikat edge → perangkat
+  aman, tidak perlu diapa-apakan. (Bila Cloudflare yang merotasi sertifikat, lihat catatan Task #49.)
+
+**Urutan pemulihan setelah listrik menyala:**
+1. Nyalakan server (bila tidak auto-on: set BIOS `AC Back / Restore on AC Power Loss = Power On`).
+2. `systemctl is-active nginx php8.3-fpm mariadb cloudflared` → `systemctl restart <yang inactive>`.
+   Perintah artisan tetap wajib `sudo -u admin php8.3 …` (bukan root).
+3. `journalctl -u cloudflared -n 30 --no-pager` → harus ada baris **"Registered connection"**;
+   lalu `curl -s -o /dev/null -w '%{http_code}\n' -H 'Host: pamsimas.selur.my.id' http://127.0.0.1/api/health` → **200**.
+4. Dari luar (bukti tunnel pulih):
+   `curl -s -o NUL -w '%{http_code}\n' https://pamsimas.selur.my.id/api/health` → **200** dan
+   `curl -s https://pamsimas.selur.my.id/api/fingerprint` → **59 karakter** (`^([0-9A-F]{2}:){19}[0-9A-F]{2}$`).
+5. Perangkat reconnect **sendiri** (polling 3 dtk): cek `devices.last_update` < 2 menit; bila
+   `config_update_command` masih `1`, itu normal sampai perangkat ack (`event_logs`
+   "Perangkat menerapkan konfigurasi baru.").
+6. Backlog LittleFS terkirim bertahap → `sensor_logs` akan "melompat" naik beberapa menit (normal),
+   dan `storage/logs/laravel.log` biasanya bertambah error koneksi dari firmware saat restart.
+
+**Cegah berulang:** lihat `TODO.md` bagian **7.5** (UPS untuk server + router, auto-power-on BIOS,
+`Restart=always` untuk `cloudflared`, watchdog + peringatan WhatsApp).
+
 
 ---
 

@@ -329,3 +329,26 @@ pada satu gelombang setelah aplikasi bebas bug.
       `curl -s -o /dev/null -w '%{http_code}' https://pamsimas.selur.my.id/api/health` setiap 1–2 menit,
       `systemctl restart cloudflared` bila bukan 200, dan kirim peringatan lewat webhook WhatsApp yang
       sudah ada (`/api_wa`) supaya operator tahu perangkat berhenti lapor.
+
+### 7.5 Ketahanan daya & tunnel (insiden listrik padam, 29 Sep 2026)
+
+- [ ] **UPS untuk server + router** (≥ 20 menit + auto-shutdown rapi). Selama server mati, dashboard/API
+      tidak terjangkau dan perangkat berhenti lapor — pompa tetap jalan lokal (mode AUTO fallback),
+      data tertahan di LittleFS perangkat. Runbook pemulihan: `DEPLOY_VSCODE.md` bagian **11**.
+- [ ] **Auto power-on setelah listrik kembali**: set BIOS/UEFI `AC Back` / `Restore on AC Power Loss` =
+      **Power On**. Tanpa ini server tidak bisa dinyalakan dari jauh (tidak ada Wake-on-LAN jarak jauh).
+- [ ] **Semua service ikut hidup saat boot**: `systemctl is-enabled nginx php8.3-fpm mariadb cloudflared`
+      → `systemctl enable` yang belum; drop-in unit `cloudflared`: `Restart=always`, `RestartSec=5`,
+      `After=network-online.target` + `Wants=network-online.target` (supaya connector ikut naik bersama jaringan).
+- [ ] **Watchdog connector** (butuh di server): timer 1–2 menit cek `/api/health`, `systemctl restart
+      cloudflared` bila bukan 200 + kirim peringatan lewat webhook WhatsApp (`/api_wa`). Ini menolong saat
+      connector **crash**, bukan saat listrik padam — untuk padam, yang berguna adalah auto-power-on +
+      peringatan "server tidak merespons > N menit" yang **ditulis perangkat** (firmware sudah mencatat
+      event offline ke LittleFS, tinggal dikirim sebagai `event_type` peringatan).
+- [ ] **Jalur darurat kedua**: web **dan** SSH kini satu-nasib lewat tunnel yang sama — saat connector mati
+      tidak ada cara remote untuk memulihkan. Usulkan salah satu: port-forward sementara di router
+      (`2222 → 192.168.20.200:22`, ditutup saat normal) atau **WireGuard di router** sebagai jalur tetap.
+- [ ] **Setelah server hidup**, jalankan checklist `DEPLOY_VSCODE.md` §11: `api/health` 200,
+      `/api/fingerprint` 59 karakter, `devices.last_update` < 2 menit, `config_update_command` turun setelah
+      ack, dan backlog LittleFS (`/sensor_log.txt` dll.) terkirim lewat `/api/log-offline`.
+
