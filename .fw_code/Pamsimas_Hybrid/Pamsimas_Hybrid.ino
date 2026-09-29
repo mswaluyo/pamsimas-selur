@@ -88,14 +88,20 @@ int sensorDebounceDelay = 5;
 // --- Status episode fault sensor (kebijakan ketersediaan air) ---
 // Jangkauan ultrasonik terbatas 3 m, jadi "tidak ada gema" berarti permukaan
 // air berada DI BAWAH jangkauan = tangki sedang butuh air. Dalam mode AUTO
-// pompa justru diralat NYALA, dibatasi safety cut-off (config on_duration) dan
-// SENSOR_FAULT_MAX_BLIND_FILL_CYCLES siklus pengisian buta per episode fault.
+// pompa justru diralat NYALA dan pengisian TIDAK dibatasi jumlah siklus
+// (keputusan 29 Sep 2026: pemasangan sensor sudah terjaga, permukaan tidak akan
+// merendam sensor dan bak punya peluap). Yang tetap melindungi mesin adalah
+// safety cut-off durasi nyala maksimum (config on_duration) + masa istirahat
+// (off_duration): pompa nyala - istirahat - nyala lagi sampai sensor membaca
+// kembali. Sensor dianggap pulih dengan sendirinya saat air naik ke dalam
+// jangkauan 3 m.
 bool sensorFaultActive = false;      // sedang dalam episode fault
 int sensorFaultStreak = 0;           // siklus berturut-turut tanpa gema
-int sensorBlindFillCycles = 0;       // siklus pengisian buta selama episode ini
+int sensorBlindFillCycles = 0;       // jumlah siklus isi buta selama episode ini (informasi)
 unsigned long sensorFaultLastReport = 0;
-const unsigned long SENSOR_FAULT_REPORT_INTERVAL_MS = 120000; // penanda fault maks 1x / 2 menit
-const int SENSOR_FAULT_MAX_BLIND_FILL_CYCLES = 2; // batas pengisian buta per episode
+// Penanda "masih buta" dikirim maks 1x per interval ini; tanpa batas siklus,
+// episode buta bisa berjam-jam sehingga interval pendek akan membanjiri event.
+const unsigned long SENSOR_FAULT_REPORT_INTERVAL_MS = 900000; // 15 menit
 bool buzzerActive = false;
 unsigned long buzzerStartTime = 0;
 unsigned long buzzerDuration = 0;

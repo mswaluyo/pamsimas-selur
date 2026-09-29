@@ -386,26 +386,32 @@ API: ... 'report_event' -> 'EMERGENCY: Sensor Error - Pompa Dimatikan' (HTTP 200
       sensor `-1 %` kini **edge-triggered**: hanya saat masuk episode fault, lalu penanda berulang maksimal
       1× per 2 menit (`SENSOR_FAULT_REPORT_INTERVAL_MS`) — bukan tiap `report_interval` seperti sebelumnya
       (dulu `event_logs` terisi tiap 3 detik). Counter `sensorFaultStreak` ditampilkan di pesan serial.
-- [x] **Firmware: kebijakan dibalik menjadi KEDAISAN AIR (29 Sep 2026, terkonfirmasi jangkauan riil
-      maksimum 3 m).** "Tidak ada gema" kini diartikan **permukaan air di bawah jangkauan = tangki butuh
-      air**, jadi dalam mode AUTO pompa **diralat NYALA** (bukan dimatikan). Pembatas agar tidak meluber:
-      `waterLevelPer = 0` (anggap butuh air) selama masih ada jatah, safety cut-off durasi nyala maksimum
-      (`config on_duration`) tetap bekerja dan setiap cut-off saat sensor buta menaikkan
-      `sensorBlindFillCycles`; setelah `SENSOR_FAULT_MAX_BLIND_FILL_CYCLES` (= 2) siklus buta tercapai,
-      `isResumingFill` tidak dipasang dan level dianggap 100 % → AUTO tidak menyalakan lagi sampai sensor
-      pulih. Laporan tetap anti-spam (event + baris `-1 %` hanya saat masuk episode fault + heartbeat
-      maks 1×/2 menit), ada event `Proteksi: siklus isi buta ke-N/M`, dan event penutup
-      `Sensor Pulih: pengukuran normal kembali (N siklus gagal)`. Mode **MANUAL/TIMED tidak menyentuh
-      relay** (keputusan operator/timer tetap menang). Helper `sensorReadingInBound()` dipakai di loop
-      test (3×) dan loop rata-rata (8×).
+- [x] **Firmware: kebijakan dibalik menjadi KEDAISAN AIR — pengisian buta TANPA batas siklus
+      (29 Sep 2026, jangkauan riil terkonfirmasi maksimum 3 m).** "Tidak ada gema" diartikan
+      **permukaan air di bawah jangkauan = tangki butuh air**, jadi dalam mode AUTO `waterLevelPer`
+      dianggap **0 %** dan pompa **diralat NYALA**. Batas siklus yang sempat dibuat (2 siklus) **dihapus**
+      atas keputusan operator: pemasangan sensor sudah terjaga (permukaan tidak akan merendam sensor) dan
+      bak punya peluap, jadi luber tidak mungkin. Yang tetap melindungi mesin hanya proteksi yang sudah ada:
+      safety cut-off durasi nyala maksimum (`on_duration`) + masa istirahat (`off_duration`), sehingga
+      polanya **nyala → istirahat → nyala** berulang sampai air naik ke dalam jangkauan dan sensor membaca
+      lagi (saat itu event `Sensor Pulih: normal kembali (N siklus gagal, M siklus isi buta)` dikirim dan
+      kendali kembali penuh ke AUTO). Mode **MANUAL/TIMED tidak menyentuh relay**. Laporan tetap anti-spam:
+      1 event saat masuk episode fault + penanda "masih buta" maks **1×/15 menit**
+      (`SENSOR_FAULT_REPORT_INTERVAL_MS` = 900000 — episode buta kini bisa berjam-jam, jadi interval
+      diperlebar agar `event_logs` tidak banjir), dan `sensor_logs` hanya menerima sentinel `-1` pada
+      moment yang sama.
+- [x] **Perbaikan konvensi log:** `logEventOffline()` kini hanya dipanggil **saat jaringan putus**; saat
+      online event dikirim langsung (`report_event`). Sebelumnya keduanya dipanggil bersamaan sehingga
+      event dobel ketika `/event_log.txt` di-flush pada boot/reconnect (`sendOfflineLogs()` hanya jalan di
+      dua moment itu).
 - [ ] **Setelah hardware beres**: catat `Jarak Final` maksimum yang masih stabil, samakan nilai itu dengan
       `tanks.height` / `empty_tank_distance`, lalu pantau 1–2 hari bahwa event `Sensor Pulih` tidak muncul
       lagi dan `sensor_logs` tidak berisi `water_percentage = -1`.
-- [ ] **Tetapkan `on_duration` (durasi nyala maksimum) dengan sadar** — sekarang angka ini yang menjadi
-      batas pengisian buta: total pompa menyala tanpa ukuran level =
-      `SENSOR_FAULT_MAX_BLIND_FILL_CYCLES × on_duration`. Isi dengan waktu isi dari tanda 3 m sampai penuh
-      + ±25 % margin. Naikkan konstanta `SENSOR_FAULT_MAX_BLIND_FILL_CYCLES` hanya jika bak terbukti tidak
-      bisa luber dalam rentang itu.
+- [ ] **`on_duration` / `off_duration` sekarang = pola nyala-istirahat pompa saat buta** (bukan lagi batas
+      total pengisian). Atur `on_duration` ± waktu isi dari tanda 3 m sampai penuh agar pompa tidak sering
+      terpotong, dan `off_duration` sesuai spesifikasi duty-cycle pompa. **Pastikan peluap/pelampung
+      mekanis berfungsi** — setelah batas siklus dilepas, itu satu-satunya penahan pengisian bila sensor
+      mati total selagi bak sudah penuh.
 - [ ] Opsional (**belum** dikerjakan): saring baris `water_percentage = -1` dari grafik riwayat dashboard
       agar tidak dianggap level 0 %, dan tampilkan badge "level tidak terukur — pengisian buta aktif" di
       dashboard saat event terakhir device adalah `Sensor tidak terbaca`.
