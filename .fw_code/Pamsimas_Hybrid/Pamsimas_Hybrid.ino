@@ -85,15 +85,17 @@ long pumpOffDuration = 900000;
 unsigned long sensorDebounceStartTime = 0;
 bool isDebouncing = false;
 int sensorDebounceDelay = 5;
-// --- Status episode fault sensor (anti-spam laporan) ---
-// Kebijakan pompa TIDAK diubah: tanpa gema tetap dianggap gagal dan pompa tetap
-// dimatikan. Variabel ini hanya mencegah event + buzzer + baris sensor "-1%"
-// dikirim berulang setiap siklus (tiap report_interval) saat sensor buta
-// berkepanjangan, misalnya karena jarak melebihi jangkauan sensor.
+// --- Status episode fault sensor (kebijakan ketersediaan air) ---
+// Jangkauan ultrasonik terbatas 3 m, jadi "tidak ada gema" berarti permukaan
+// air berada DI BAWAH jangkauan = tangki sedang butuh air. Dalam mode AUTO
+// pompa justru diralat NYALA, dibatasi safety cut-off (config on_duration) dan
+// SENSOR_FAULT_MAX_BLIND_FILL_CYCLES siklus pengisian buta per episode fault.
 bool sensorFaultActive = false;      // sedang dalam episode fault
 int sensorFaultStreak = 0;           // siklus berturut-turut tanpa gema
+int sensorBlindFillCycles = 0;       // siklus pengisian buta selama episode ini
 unsigned long sensorFaultLastReport = 0;
 const unsigned long SENSOR_FAULT_REPORT_INTERVAL_MS = 120000; // penanda fault maks 1x / 2 menit
+const int SENSOR_FAULT_MAX_BLIND_FILL_CYCLES = 2; // batas pengisian buta per episode
 bool buzzerActive = false;
 unsigned long buzzerStartTime = 0;
 unsigned long buzzerDuration = 0;

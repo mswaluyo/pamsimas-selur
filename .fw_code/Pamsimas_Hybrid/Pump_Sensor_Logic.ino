@@ -40,51 +40,75 @@ void measureAndSendData() {
 
   if (sensorError) {
     sensorFaultStreak++;
-    // ANTI-SPAM: laporan penuh (event + buzzer + baris sensor "-1%") hanya saat
-    // MASUK episode fault, lalu penanda berulang maks 1x per interval. Siklus
-    // diantaranya cukup dicatat di serial, supaya sensor yang berada di tepi
-    // jangkauan (mis. tangki > 3 m) tidak mengisi event_logs/sensor_logs tiap
-    // report_interval. Kebijakan pompa tidak berubah: tetap fail-safe mati.
+    // KEBIJAKAN KEDAISAN AIR: jarak ultrasonik terbatas 3 m, jadi "tidak ada
+    // gema" berarti permukaan air di bawah jangkauan = tangki butuh air.
+    // Dalam mode AUTO pompa justru diralat NYALA (bukan dimatikan), dibatasi
+    // safety cut-off durasi nyala maksimum (config on_duration) dan
+    // SENSOR_FAULT_MAX_BLIND_FILL_CYCLES siklus pengisian buta.
+    // Mode MANUAL/TIMED: relay tidak disentuh (keputusan operator/timer).
+    bool inAuto = (strcmp(currMode, "AUTO") == 0);
+    bool canBlindFill = inAuto && sensorBlindFillCycles < SENSOR_FAULT_MAX_BLIND_FILL_CYCLES;
+
+    // Anggap butuh air (0 %) agar AUTO menahan pompa menyala; kalau jatah isi
+    // buta habis, dianggap penuh (100 %) agar AUTO tidak menyalakan lagi.
+    if (inAuto)
+      waterLevelPer = canBlindFill ? 0 : 100;
+
+    // Anti-spam: laporan penuh hanya saat MASUK episode fault, lalu penanda
+    // berulang maks 1x per interval (level "-1 %" dikirim supaya dashboard
+    // tahu datanya tidak valid, bukan level sungguhan).
     bool announce = !sensorFaultActive;
     bool heartbeat = sensorFaultActive &&
                      (millis() - sensorFaultLastReport >=
                       SENSOR_FAULT_REPORT_INTERVAL_MS);
 
-    Serial.printf("SENSOR: ERROR - tidak ada gema (%.2f cm), siklus gagal ke-%d. ",
+    Serial.printf("SENSOR: tidak ada gema (%.2f cm), siklus gagal ke-%d. ",
                   testDist, sensorFaultStreak);
 
     if (announce || heartbeat) {
-      bool wasOn = relayStatus;
+      const char *newStatus = nullptr;
       sensorFaultActive = true;
       sensorFaultLastReport = millis();
-      Serial.println("Sensor dianggap tidak terbaca -> fail-safe pompa.");
-      if (wasOn) {
-        relayStatus = false;
-        handlePumpStateChange();
-        controlBuzzer(2000);
-        Serial.println("SENSOR: Pompa dimatikan karena error sensor.");
+
+      if (announce) {
+        if (canBlindFill && !relayStatus) {
+          relayStatus = true;
+          pumpStartTime = millis();
+          handlePumpStateChange(); // tulis pin + reset timestamp pumpStartTime
+          controlBuzzer(500);
+          newStatus = "ON";
+          Serial.println("pompa NYALA (fail-safe ketersediaan air).");
+        } else if (inAuto && !canBlindFill && relayStatus) {
+          relayStatus = false;
+          handlePumpStateChange();
+          controlBuzzer(2000);
+          newStatus = "OFF";
+          Serial.println("pompa MATI: batas siklus pengisian buta tercapai.");
+        } else {
+          Serial.println(canBlindFill ? "pompa dibiarkan seperti adanya."
+                                      : "relay tidak diubah (mode non-AUTO).");
+        }
       }
-      char eventMsg[96];
+
+      char eventMsg[112];
       snprintf(eventMsg, sizeof(eventMsg),
-               "EMERGENCY: Sensor Error - tanpa gema (%d siklus berturut)%s",
-               sensorFaultStreak, wasOn ? " - Pompa Dimatikan" : "");
+               "Sensor tidak terbaca (%d siklus) - pompa %s%s", sensorFaultStreak,
+               relayStatus ? "ON" : "OFF",
+               canBlindFill ? "" : (inAuto ? " [batas siklus isi buta]"
+                                           : " [mode non-AUTO]"));
       logEventOffline(eventMsg);
       sendControlCommand("report_event", eventMsg);
-      if (wasOn)
-        sendControlCommand("set_status", "OFF");
+      if (newStatus != nullptr)
+        sendControlCommand("set_status", newStatus);
       sendSensorData(-1.0, testDist);
     } else {
       Serial.println("tidak dilaporkan lagi (episode fault sudah tercatat).");
     }
-
-    // Kebijakan tetap: tanpa pembacaan, level dianggap penuh agar AUTO tidak
-    // menyalakan pompa dari nilai yang tidak jelas.
-    waterLevelPer = 100;
     return;
   }
 
   // Bacaan valid lagi: tutup episode fault dan catat pemulihannya 1x.
-  // Keputusan pompa tetap diserahkan ke logika AUTO/TIMED seperti biasa.
+  // Setelah ini level/keputusan pompa kembali sepenuhnya ke logika AUTO/TIMED.
   if (sensorFaultActive) {
     Serial.printf("SENSOR: Pulih setelah %d siklus gagal. Pengukuran normal.\n",
                   sensorFaultStreak);
@@ -97,6 +121,7 @@ void measureAndSendData() {
     sensorFaultActive = false;
   }
   sensorFaultStreak = 0;
+  sensorBlindFillCycles = 0;
 
   float totalDist = 0;
   int valid = 0;
@@ -142,7 +167,23 @@ void runUniversalPumpLogic() {
       isCoolingDown = true;
       coolDownStartTime = currentMillis;
       
-      if (waterLevelPer < 95) isResumingFill = true;
+      if (sensorFaultActive) {
+        // Pengisian tapi tanpa ukuran level ("buta"): hitung supaya tidak
+        // berulang tanpa batas dan tidak meluber.
+        sensorBlindFillCycles++;
+        char eventMsg[96];
+        snprintf(eventMsg, sizeof(eventMsg),
+                 "Proteksi: siklus isi buta ke-%d/%d (sensor tidak terbaca)",
+                 sensorBlindFillCycles, SENSOR_FAULT_MAX_BLIND_FILL_CYCLES);
+        logEventOffline(eventMsg);
+        sendControlCommand("report_event", eventMsg);
+      }
+      // Jangan pernah melanjutkan pengisian berdasarkan level semu saat sensor
+      // buta, kecuali masih ada jatah siklus pengisian buta.
+      if (waterLevelPer < 95 && (!sensorFaultActive ||
+                                 sensorBlindFillCycles <
+                                     SENSOR_FAULT_MAX_BLIND_FILL_CYCLES))
+        isResumingFill = true;
 
       if (WiFi.status() == WL_CONNECTED) {
         sendControlCommand("set_status", "OFF");

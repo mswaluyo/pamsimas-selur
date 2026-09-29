@@ -382,16 +382,31 @@ API: ... 'report_event' -> 'EMERGENCY: Sensor Error - Pompa Dimatikan' (HTTP 200
       probe (kabel panjang & kecil membunuh sinyal HC-SR04); **kapasitor 470–1000 µF** dekat sensor dengan
       rel 5 V terpisah; usahakan pengukuran saat **pompa OFF** (derau kontakor + riak/oli/busa permukaan
       membuat gema hilang).
-- [x] **Firmware: anti-spam laporan fault (sudah diubah, kebijakan pompa TIDAK berubah).** Gagal baca tetap
-      memicu fail-safe (level dianggap 100 % → AUTO tidak menyalakan pompa), tetapi event `report_event`,
-      `set_status OFF`, buzzer, dan baris sensor `-1 %` kini **edge-triggered**: hanya saat masuk episode
-      fault, lalu penanda berulang maksimal 1× per 2 menit (`SENSOR_FAULT_REPORT_INTERVAL_MS`), plus event
-      penutup `Sensor Pulih: pengukuran normal kembali (N siklus gagal)`. Helper `sensorReadingInBound()`
-      dipakai di loop test (3×) dan loop rata-rata (8×); counter `sensorFaultStreak` dipakai di pesan serial.
+- [x] **Firmware: laporan fault jadi anti-spam.** Event `report_event`, `set_status`, buzzer, dan baris
+      sensor `-1 %` kini **edge-triggered**: hanya saat masuk episode fault, lalu penanda berulang maksimal
+      1× per 2 menit (`SENSOR_FAULT_REPORT_INTERVAL_MS`) — bukan tiap `report_interval` seperti sebelumnya
+      (dulu `event_logs` terisi tiap 3 detik). Counter `sensorFaultStreak` ditampilkan di pesan serial.
+- [x] **Firmware: kebijakan dibalik menjadi KEDAISAN AIR (29 Sep 2026, terkonfirmasi jangkauan riil
+      maksimum 3 m).** "Tidak ada gema" kini diartikan **permukaan air di bawah jangkauan = tangki butuh
+      air**, jadi dalam mode AUTO pompa **diralat NYALA** (bukan dimatikan). Pembatas agar tidak meluber:
+      `waterLevelPer = 0` (anggap butuh air) selama masih ada jatah, safety cut-off durasi nyala maksimum
+      (`config on_duration`) tetap bekerja dan setiap cut-off saat sensor buta menaikkan
+      `sensorBlindFillCycles`; setelah `SENSOR_FAULT_MAX_BLIND_FILL_CYCLES` (= 2) siklus buta tercapai,
+      `isResumingFill` tidak dipasang dan level dianggap 100 % → AUTO tidak menyalakan lagi sampai sensor
+      pulih. Laporan tetap anti-spam (event + baris `-1 %` hanya saat masuk episode fault + heartbeat
+      maks 1×/2 menit), ada event `Proteksi: siklus isi buta ke-N/M`, dan event penutup
+      `Sensor Pulih: pengukuran normal kembali (N siklus gagal)`. Mode **MANUAL/TIMED tidak menyentuh
+      relay** (keputusan operator/timer tetap menang). Helper `sensorReadingInBound()` dipakai di loop
+      test (3×) dan loop rata-rata (8×).
 - [ ] **Setelah hardware beres**: catat `Jarak Final` maksimum yang masih stabil, samakan nilai itu dengan
       `tanks.height` / `empty_tank_distance`, lalu pantau 1–2 hari bahwa event `Sensor Pulih` tidak muncul
       lagi dan `sensor_logs` tidak berisi `water_percentage = -1`.
-- [ ] Opsional (**belum** dikerjakan — perlu keputusan kebijakan): ambang **N siklus berturut-turut** gagal
-      sebelum fail-safe (default 1 = perilaku sekarang) supaya 1–2 timeout tidak mematikan pompa, dan
-      saring baris `water_percentage = -1` dari grafik riwayat dashboard agar tidak dianggap level 0 %.
+- [ ] **Tetapkan `on_duration` (durasi nyala maksimum) dengan sadar** — sekarang angka ini yang menjadi
+      batas pengisian buta: total pompa menyala tanpa ukuran level =
+      `SENSOR_FAULT_MAX_BLIND_FILL_CYCLES × on_duration`. Isi dengan waktu isi dari tanda 3 m sampai penuh
+      + ±25 % margin. Naikkan konstanta `SENSOR_FAULT_MAX_BLIND_FILL_CYCLES` hanya jika bak terbukti tidak
+      bisa luber dalam rentang itu.
+- [ ] Opsional (**belum** dikerjakan): saring baris `water_percentage = -1` dari grafik riwayat dashboard
+      agar tidak dianggap level 0 %, dan tampilkan badge "level tidak terukur — pengisian buta aktif" di
+      dashboard saat event terakhir device adalah `Sensor tidak terbaca`.
 
