@@ -352,3 +352,46 @@ pada satu gelombang setelah aplikasi bebas bug.
       `/api/fingerprint` 59 karakter, `devices.last_update` < 2 menit, `config_update_command` turun setelah
       ack, dan backlog LittleFS (`/sensor_log.txt` dll.) terkirim lewat `/api/log-offline`.
 
+### 7.6 Jangkauan sensor ultrasonik vs tinggi bak 400 cm (temuan 29 Sep 2026)
+
+**Gejala** (log serial perangkat, mode AUTO, pompa sempat ON):
+
+```
+SENSOR: Jarak Final: 298.93 cm, Level: 27 %, RSSI: -55 dBm
+SENSOR: ERROR KRITIS - Jarak tidak valid (0.00 cm). Sensor RUSAK/RUSAK! Pompa DARURAT MATI.
+API: ... 'report_event' -> 'EMERGENCY: Sensor Error - Pompa Dimatikan' (HTTP 200)
+```
+
+- [ ] **Pahami dulu artinya `0.00 cm`**: `pulseIn(ECHOPIN, HIGH, 30000)` mengembalikan `0` saat
+      **timeout = tidak ada gema sama sekali**, bukan jarak 0 cm. Rumus `(duration/2)*0.0343` lalu
+      mencetak `0.00`. Jadi pesan "Sensor RUSAK" = *echo hilang*, bukan komponen rusak.
+- [ ] **Penyebab utama = jarak fisik di tepi jangkauan.** `Jarak Final: 298.93 cm` berarti gema pulang
+      ±17,4 ms dari batas 30 ms. HC-SR04 (kolom `sensors.sensor_type`) di spec sanggup 4 m tetapi di
+      lapangan andal hanya s/d ±2,5–3 m (gema lemah, divergensi beam ±30–40 cm) → kehilangan 1–2 echo
+      itu **normal**, bukan kerusakan.
+- [ ] **`empty_tank_distance` diambil dari `tanks.height`** (`Device::syncFromMasterData()`: tinggi
+      tangki → `empty_tank_distance`), dan itu hanya benar **bila sensor terpasang tepat di bibir atas
+      bak**. Ukur dengan meteran dari **muka sensor ke dasar bak** saat kosong: kalau hasilnya mis. 305 cm,
+      maka tinggi 400 cm membuat level salah (27 % padahal nyaris kosong) **dan** bak kosong tidak akan
+      pernah terbaca → selalu dianggap "sensor rusak" → pompa tidak pernah diizinkan nyala.
+      Alternatif bersih: buat field baseline khusus di `sensors` (mis. `empty_tank_distance`, fallback ke
+      `tanks.height`) supaya tinggi bak untuk volume tidak merangkap sebagai baseline ultrasonik, lalu
+      ikutkan di `syncFromMasterData()` + form Sensor.
+- [ ] **Tindakan hardware (pilih/kombinasi):** ganti ke **JSN-SR04T versi 4,5 m (waterproof)**; atau
+      turunkan posisi sensor / pakai **pipa tenang (standpipe)** agar jarak kerja ±1–2 m; pendekkan kabel
+      probe (kabel panjang & kecil membunuh sinyal HC-SR04); **kapasitor 470–1000 µF** dekat sensor dengan
+      rel 5 V terpisah; usahakan pengukuran saat **pompa OFF** (derau kontakor + riak/oli/busa permukaan
+      membuat gema hilang).
+- [x] **Firmware: anti-spam laporan fault (sudah diubah, kebijakan pompa TIDAK berubah).** Gagal baca tetap
+      memicu fail-safe (level dianggap 100 % → AUTO tidak menyalakan pompa), tetapi event `report_event`,
+      `set_status OFF`, buzzer, dan baris sensor `-1 %` kini **edge-triggered**: hanya saat masuk episode
+      fault, lalu penanda berulang maksimal 1× per 2 menit (`SENSOR_FAULT_REPORT_INTERVAL_MS`), plus event
+      penutup `Sensor Pulih: pengukuran normal kembali (N siklus gagal)`. Helper `sensorReadingInBound()`
+      dipakai di loop test (3×) dan loop rata-rata (8×); counter `sensorFaultStreak` dipakai di pesan serial.
+- [ ] **Setelah hardware beres**: catat `Jarak Final` maksimum yang masih stabil, samakan nilai itu dengan
+      `tanks.height` / `empty_tank_distance`, lalu pantau 1–2 hari bahwa event `Sensor Pulih` tidak muncul
+      lagi dan `sensor_logs` tidak berisi `water_percentage = -1`.
+- [ ] Opsional (**belum** dikerjakan — perlu keputusan kebijakan): ambang **N siklus berturut-turut** gagal
+      sebelum fail-safe (default 1 = perilaku sekarang) supaya 1–2 timeout tidak mematikan pompa, dan
+      saring baris `water_percentage = -1` dari grafik riwayat dashboard agar tidak dianggap level 0 %.
+

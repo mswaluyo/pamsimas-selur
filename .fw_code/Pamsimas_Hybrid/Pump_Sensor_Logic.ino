@@ -1,3 +1,7 @@
+// Satu pembacaan ultrasonik dianggap valid hanya bila berada di rentang ini.
+// Nilai 0 berarti pulseIn timeout (TIDAK ADA GEMA), bukan jarak 0 cm.
+bool sensorReadingInBound(float d) { return d > 2.0 && d < 500.0; }
+
 float calculateMovingAverage() {
   float sum = 0;
   int count = bufferFilled ? SMOOTHING_WINDOW_SIZE : bufferIndex;
@@ -25,9 +29,9 @@ void measureAndSendData() {
     digitalWrite(TRIGPIN, HIGH);
     delayMicroseconds(15);
     digitalWrite(TRIGPIN, LOW);
-    float duration = pulseIn(ECHOPIN, HIGH, 30000);
+    unsigned long duration = pulseIn(ECHOPIN, HIGH, 30000);
     testDist = (duration / 2.0) * 0.0343;
-    if (testDist < 2.0 || testDist > 500.0 || duration == 0) {
+    if (duration == 0 || !sensorReadingInBound(testDist)) {
       sensorError = true;
       break;
     }
@@ -35,22 +39,64 @@ void measureAndSendData() {
   }
 
   if (sensorError) {
-    Serial.printf("SENSOR: ERROR KRITIS - Jarak tidak valid (%.2f cm). Sensor "
-                  "RUSAK/RUSAK! Pompa DARURAT MATI.\n",
-                  testDist);
-    if (relayStatus) {
-      relayStatus = false;
-      handlePumpStateChange();
-      sendControlCommand("report_event",
-                         "EMERGENCY: Sensor Error - Pompa Dimatikan");
-      sendControlCommand("set_status", "OFF");
-      controlBuzzer(2000);
-      Serial.println("SENSOR: Pompa dimatikan karena error sensor.");
+    sensorFaultStreak++;
+    // ANTI-SPAM: laporan penuh (event + buzzer + baris sensor "-1%") hanya saat
+    // MASUK episode fault, lalu penanda berulang maks 1x per interval. Siklus
+    // diantaranya cukup dicatat di serial, supaya sensor yang berada di tepi
+    // jangkauan (mis. tangki > 3 m) tidak mengisi event_logs/sensor_logs tiap
+    // report_interval. Kebijakan pompa tidak berubah: tetap fail-safe mati.
+    bool announce = !sensorFaultActive;
+    bool heartbeat = sensorFaultActive &&
+                     (millis() - sensorFaultLastReport >=
+                      SENSOR_FAULT_REPORT_INTERVAL_MS);
+
+    Serial.printf("SENSOR: ERROR - tidak ada gema (%.2f cm), siklus gagal ke-%d. ",
+                  testDist, sensorFaultStreak);
+
+    if (announce || heartbeat) {
+      bool wasOn = relayStatus;
+      sensorFaultActive = true;
+      sensorFaultLastReport = millis();
+      Serial.println("Sensor dianggap tidak terbaca -> fail-safe pompa.");
+      if (wasOn) {
+        relayStatus = false;
+        handlePumpStateChange();
+        controlBuzzer(2000);
+        Serial.println("SENSOR: Pompa dimatikan karena error sensor.");
+      }
+      char eventMsg[96];
+      snprintf(eventMsg, sizeof(eventMsg),
+               "EMERGENCY: Sensor Error - tanpa gema (%d siklus berturut)%s",
+               sensorFaultStreak, wasOn ? " - Pompa Dimatikan" : "");
+      logEventOffline(eventMsg);
+      sendControlCommand("report_event", eventMsg);
+      if (wasOn)
+        sendControlCommand("set_status", "OFF");
+      sendSensorData(-1.0, testDist);
+    } else {
+      Serial.println("tidak dilaporkan lagi (episode fault sudah tercatat).");
     }
+
+    // Kebijakan tetap: tanpa pembacaan, level dianggap penuh agar AUTO tidak
+    // menyalakan pompa dari nilai yang tidak jelas.
     waterLevelPer = 100;
-    sendSensorData(-1.0, testDist);
     return;
   }
+
+  // Bacaan valid lagi: tutup episode fault dan catat pemulihannya 1x.
+  // Keputusan pompa tetap diserahkan ke logika AUTO/TIMED seperti biasa.
+  if (sensorFaultActive) {
+    Serial.printf("SENSOR: Pulih setelah %d siklus gagal. Pengukuran normal.\n",
+                  sensorFaultStreak);
+    char eventMsg[96];
+    snprintf(eventMsg, sizeof(eventMsg),
+             "Sensor Pulih: pengukuran normal kembali (%d siklus gagal)",
+             sensorFaultStreak);
+    logEventOffline(eventMsg);
+    sendControlCommand("report_event", eventMsg);
+    sensorFaultActive = false;
+  }
+  sensorFaultStreak = 0;
 
   float totalDist = 0;
   int valid = 0;
@@ -62,7 +108,7 @@ void measureAndSendData() {
     digitalWrite(TRIGPIN, LOW);
     float d = pulseIn(ECHOPIN, HIGH, 30000);
     float single = (d / 2.0) * 0.0343;
-    if (single > 2.0 && single < 500.0) {
+    if (sensorReadingInBound(single)) {
       totalDist += single;
       valid++;
     }
