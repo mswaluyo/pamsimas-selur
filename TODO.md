@@ -323,3 +323,9 @@ pada satu gelombang setelah aplikasi bebas bug.
       Bila firmware mulai memakai cooling-delay, tambahkan kolom + ikutkan di `Device::syncFromMasterData()`.
 - [ ] Opsional: tampilkan badge "menunggu perangkat menerapkan" di daftar perangkat saat
       `config_update_command = 1`, agar admin tahu perubahan belum diakui perangkat.
+- [ ] **Watchdog connector cloudflared** (penyebab insiden 29 Sep 2026 ±02:10: `pamsimas.` dan `ssh.`
+      sama-sama **530 / error code 1033** selama >15 menit, tidak ada jalur remote untuk memulihkan
+      karena SSH juga lewat tunnel). Usulan: systemd unit timer di server yang mengecek
+      `curl -s -o /dev/null -w '%{http_code}' https://pamsimas.selur.my.id/api/health` setiap 1–2 menit,
+      `systemctl restart cloudflared` bila bukan 200, dan kirim peringatan lewat webhook WhatsApp yang
+      sudah ada (`/api_wa`) supaya operator tahu perangkat berhenti lapor.
