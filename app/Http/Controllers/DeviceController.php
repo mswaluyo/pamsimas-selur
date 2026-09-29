@@ -185,12 +185,46 @@ class DeviceController extends Controller
         ]);
 
         $device->fill($data);
+        $masterChanged = $device->isDirty(['tank_id', 'pump_id', 'sensor_id']);
+        $device->save();
+
+        // Bila tangki/pompa/sensor diganti, nilai turunan (jarak penuh/kosong, pemicu,
+        // durasi ON/OFF) harus ikut master yang baru — kalau tidak, perangkat tetap
+        // memakai angka lama dan perubahan seolah tidak pernah diterapkan.
+        $synced = $masterChanged ? $device->syncFromMasterData() : false;
+
         // Tandai agar firmware menarik konfigurasi baru pada poll berikutnya
+        // (flag baru diturunkan setelah perangkat meng-ack lewat /api/update).
         $device->config_update_command = true;
         $device->mode_update_command = true;
         $device->save();
 
-        return redirect()->route('devices.index')->with('success', 'Konfigurasi perangkat diperbarui.');
+        \App\Models\AdminLog::create([
+            'user_id' => session('user.id', 0),
+            'action' => 'Ubah Perangkat',
+            'details' => sprintf(
+                '%s: %s, mode %s, tangki #%s, pompa #%s, sensor %s, penuh %s cm, kosong %s cm, pemicu %s%%, interval %ss',
+                $device->mac_address,
+                $device->device_type,
+                $device->control_mode,
+                $device->tank_id,
+                $device->pump_id,
+                $device->sensor_id ?? '-',
+                $device->full_tank_distance,
+                $device->empty_tank_distance,
+                $device->trigger_percentage,
+                $device->report_interval
+            ),
+        ]);
+
+        $message = 'Konfigurasi perangkat diperbarui & dikirim ke perangkat.';
+        if ($masterChanged) {
+            $message .= $synced
+                ? ' Parameter dari master data baru sudah disinkronkan.'
+                : ' Master data baru dipakai (nilai parameternya tidak berubah).';
+        }
+
+        return redirect()->route('devices.index')->with('success', $message);
     }
 
     public function destroy(int $id)
@@ -209,35 +243,38 @@ class DeviceController extends Controller
         return back()->with('success', 'Perintah terapkan konfigurasi dikirim ke perangkat.');
     }
 
+    /**
+     * Tombol "Sync Master Data": selaraskan parameter perangkat dengan master data
+     * (tangki/sensor/pompa) lalu minta firmware menarik konfigurasi baru.
+     */
     public function syncWithMasterData(int $id)
     {
         $this->check('update');
         $device = Device::with(['tank', 'pump', 'sensor'])->findOrFail($id);
-        $this->fillFromMasterData($device);
+        $changed = $device->syncFromMasterData();
         $device->config_update_command = true;
         $device->save();
 
-        return back()->with('success', 'Perangkat disinkronkan dengan data master.');
+        \App\Models\AdminLog::create([
+            'user_id' => session('user.id', 0),
+            'action' => 'Sync Perangkat',
+            'details' => "{$device->mac_address}: sinkron dari master data (" . ($changed ? 'ada nilai berubah' : 'nilai sudah sama') . ")",
+        ]);
+
+        return back()->with('success', $changed
+            ? 'Perangkat disinkronkan dengan data master (ada nilai yang diperbarui).'
+            : 'Perangkat disinkronkan dengan data master (nilai sudah sama).');
     }
 
     /**
      * Ambil parameter perangkat otomatis dari master data
      * (tangki = tinggi; sensor = jarak penuh & trigger; pompa = durasi ON/OFF).
+     * Logika berada di Device::syncFromMasterData() agar dipakai bersama
+     * SettingController ketika master data diubah.
      */
     private function fillFromMasterData(Device $device): Device
     {
-        if ($device->tank) {
-            $device->empty_tank_distance = (int) $device->tank->height;
-        }
-        if ($device->sensor) {
-            $device->full_tank_distance = $device->sensor->full_tank_distance;
-            $device->trigger_percentage = $device->sensor->trigger_percentage;
-        }
-        if ($device->pump) {
-            $device->on_duration = (int) ceil($device->pump->on_duration_seconds / 60);
-            $device->off_duration = (int) ceil($device->pump->off_duration_seconds / 60);
-        }
-        $device->save();
+        $device->syncFromMasterData();
         return $device;
     }
 

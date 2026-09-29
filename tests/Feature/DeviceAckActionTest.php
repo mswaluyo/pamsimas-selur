@@ -89,8 +89,8 @@ class DeviceAckActionTest extends TestCase
             ->assertJsonPath('status', 'unregistered');
     }
 
-    /** Status mengirim konfigurasi dalam DETIK (DB menyimpan menit) lalu mereset flag. */
-    public function test_status_mengirim_konfigurasi_dan_mereset_flag(): void
+    /** Status mengirim konfigurasi dalam DETIK (DB menyimpan menit) dan flag BERTAHAN sampai ack. */
+    public function test_status_mengirim_konfigurasi_dan_flag_bertahan_sampai_ack(): void
     {
         $id = $this->seedDevice();
         DB::table('devices')->where('id', $id)->update(['on_duration' => 11, 'off_duration' => 10]);
@@ -100,9 +100,23 @@ class DeviceAckActionTest extends TestCase
             ->assertJsonPath('on_duration', 660)   // 11 menit x 60
             ->assertJsonPath('off_duration', 600)  // 10 menit x 60
             ->assertJsonPath('config_update_command', 1)
-            ->assertJsonPath('mode_update_command', 1);
+            ->assertJsonPath('mode_update_command', 1)
+            ->assertJsonPath('config_update', true);
+
+        // Flag TIDAK boleh turun hanya karena sudah dikirim — kalau turun di sini,
+        // perubahan dari dashboard bisa hilang saat satu kali kirim gagal.
+        $this->assertSame(1, $this->flag($id, 'config_update_command'));
+        $this->assertSame(1, $this->flag($id, 'mode_update_command'));
+
+        // Setelah perangkat meng-ack, flag baru diturunkan + tercatat di event_logs.
+        $this->postJson('/api/update', ['mac' => self::MAC, 'action' => 'reset_config', 'value' => '0'])
+            ->assertStatus(200);
+        $this->postJson('/api/update', ['mac' => self::MAC, 'action' => 'reset_mode_update', 'value' => '0'])
+            ->assertStatus(200);
 
         $this->assertSame(0, $this->flag($id, 'config_update_command'));
         $this->assertSame(0, $this->flag($id, 'mode_update_command'));
+        $this->assertSame(1, (int) DB::table('event_logs')
+            ->where('device_id', $id)->where('message', 'like', 'Perangkat menerapkan konfigurasi baru%')->count());
     }
 }

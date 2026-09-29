@@ -216,16 +216,19 @@ class DeviceApiController extends Controller
             $response['pump_command'] = $device->status;
         }
 
-        // Perintah one-shot: diberikan sekali lalu di-reset
+        // Restart: tetap di-reset di sisi server saat dikirim (one-shot) — kalau tidak,
+        // perangkat akan reboot berulang ketika ack-nya hilang di link yang buruk.
         if ($device->restart_command) {
             $response['restart'] = true;
             $device->restart_command = false;
         }
-        if ($device->config_update_command || $device->mode_update_command) {
-            $response['config_update'] = true;
-            $device->config_update_command = false;
-            $device->mode_update_command = false;
-        }
+
+        // Config & mode: JANGAN diturunkan di sini. Flag baru turun ketika perangkat
+        // meng-ack lewat /api/update (reset_config / reset_mode_update), sehingga
+        // perubahan dari dashboard tidak hilang bila satu kali kirim gagal —
+        // perangkat terus menerima flag 1 sampai benar-benar menarik konfigurasi.
+        $response['config_update'] = (bool) ($device->config_update_command || $device->mode_update_command);
+
         $device->save();
 
         return response()->json($response);
@@ -363,16 +366,13 @@ class DeviceApiController extends Controller
                 // Penanganan ini idempoten: flag yang sama juga sudah di-reset oleh status()
                 // saat nilainya dikirim ke perangkat.
                 case 'reset_config':
-                    $device->config_update_command = false;
-                    return $this->ackFirmwareFlag($device, $action);
+                    return $this->ackFirmwareFlag($device, $action, 'config_update_command', 'Perangkat menerapkan konfigurasi baru.');
 
                 case 'reset_mode_update':
-                    $device->mode_update_command = false;
-                    return $this->ackFirmwareFlag($device, $action);
+                    return $this->ackFirmwareFlag($device, $action, 'mode_update_command', 'Perangkat menerapkan perubahan mode.');
 
                 case 'reset_restart':
-                    $device->restart_command = false;
-                    return $this->ackFirmwareFlag($device, $action);
+                    return $this->ackFirmwareFlag($device, $action, 'restart_command', 'Perintah restart diterima perangkat.');
 
                 case 'reset_ota_update':
                     // Fitur OTA belum punya kolom flag di skema baru → tetap dibalas 200
@@ -576,12 +576,32 @@ class DeviceApiController extends Controller
 
     /**
      * Balasan untuk ack flag firmware (reset_config / reset_mode_update /
-     * reset_ota_update / reset_restart): sentuh last_update lalu laporkan flag terkini.
+     * reset_ota_update / reset_restart).
+     *
+     * Inilah SATU-SATUNYA tempat flag satu kali pakai diturunkan: flag baru dibersihkan
+     * ketika perangkat benar-benar menerima/menerapkan perintah (ack), bukan saat
+     * perintah dikirim — mencegah perubahan dari dashboard hilang di link yang buruk.
+     * Setiap penurunan flag dicatat ke event_logs sebagai jejak "sudah diterapkan".
      */
-    private function ackFirmwareFlag(Device $device, string $action)
+    private function ackFirmwareFlag(Device $device, string $action, ?string $flagColumn = null, ?string $logMessage = null)
     {
+        $wasPending = $flagColumn !== null && (int) $device->{$flagColumn} === 1;
+
+        if ($wasPending) {
+            $device->{$flagColumn} = false;
+        }
+
         $device->last_update = now();
         $device->save();
+
+        if ($wasPending && $logMessage !== null) {
+            EventLog::create([
+                'device_id' => $device->id,
+                'event_type' => 'Info',
+                'message' => $logMessage,
+                'event_time' => now(),
+            ]);
+        }
 
         return response()->json([
             'status' => 'success',

@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Device;
 use App\Models\IndicatorSetting;
 use App\Models\Pump;
 use App\Models\Sensor;
@@ -88,7 +89,8 @@ class SettingController extends Controller
             'height' => 'required|numeric|min:1',
         ]));
         $this->applyTankDimensions($request, $tank);
-        return back()->with('success', 'Tangki diperbarui.');
+        $this->propagateMasterToDevices('tank_id', $id, "Tangki {$tank->tank_name} (tinggi {$tank->height} cm)");
+        return back()->with('success', 'Tangki diperbarui & dikirim ke perangkat terkait.');
     }
 
     public function destroyTank(int $id)
@@ -132,8 +134,10 @@ class SettingController extends Controller
     public function updatePump(Request $request, int $id)
     {
         $this->check('update');
-        Pump::findOrFail($id)->update($request->validate($this->pumpRules()));
-        return back()->with('success', 'Pompa diperbarui.');
+        $pump = Pump::findOrFail($id);
+        $pump->update($request->validate($this->pumpRules()));
+        $this->propagateMasterToDevices('pump_id', $id, "Pompa {$pump->pump_name} (ON {$pump->on_duration_seconds}s / OFF {$pump->off_duration_seconds}s)");
+        return back()->with('success', 'Pompa diperbarui & dikirim ke perangkat terkait.');
     }
 
     public function destroyPump(int $id)
@@ -174,8 +178,38 @@ class SettingController extends Controller
     public function updateSensor(Request $request, int $id)
     {
         $this->check('update');
-        Sensor::findOrFail($id)->update($request->validate($this->sensorRules()));
-        return back()->with('success', 'Sensor diperbarui.');
+        $sensor = Sensor::findOrFail($id);
+        $sensor->update($request->validate($this->sensorRules()));
+        $this->propagateMasterToDevices('sensor_id', $id, "Sensor {$sensor->sensor_name} (penuh {$sensor->full_tank_distance} cm / pemicu {$sensor->trigger_percentage}%)");
+        return back()->with('success', 'Sensor diperbarui & dikirim ke perangkat terkait.');
+    }
+
+    /**
+     * Setelah master data diubah, kirim ulang parameternya ke perangkat yang memakainya:
+     * nilai turunan (jarak penuh/kosong, pemicu, durasi ON/OFF) disinkronkan lalu
+     * config_update_command dinaikkan agar firmware menarik konfigurasi pada poll
+     * berikutnya (flag baru turun setelah perangkat meng-ack lewat /api/update).
+     */
+    private function propagateMasterToDevices(string $column, int $masterId, string $label): void
+    {
+        $devices = Device::with(['tank', 'pump', 'sensor'])->where($column, $masterId)->get();
+        if ($devices->isEmpty()) {
+            return;
+        }
+
+        $touched = [];
+        foreach ($devices as $device) {
+            $device->syncFromMasterData();
+            $device->config_update_command = true;
+            $device->save();
+            $touched[] = $device->mac_address;
+        }
+
+        \App\Models\AdminLog::create([
+            'user_id' => session('user.id', 0),
+            'action' => 'Sync Perangkat',
+            'details' => $label . ' → konfigurasi dikirim ke: ' . implode(', ', $touched),
+        ]);
     }
 
     public function destroySensor(int $id)

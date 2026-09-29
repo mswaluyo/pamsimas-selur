@@ -307,3 +307,19 @@ pada satu gelombang setelah aplikasi bebas bug.
       Firmware saat ini tidak memakai field itu (aman), tetapi master `pumps.delay_seconds`
       (20/30/40/185 detik) belum pernah sampai ke perangkat — bila nanti firmware memakai cooling-delay,
       sumbernya harus dari `pumps`.
+
+### 7.4 Tindak lanjut propagasi konfigurasi (Task #51, 28–29 Sep 2026)
+
+- [ ] **Koreksi relasi perangkat ↔ master sekarang berdampak langsung.** Setelah #51, menyimpan
+      master data di Pengaturan otomatis mengirim ulang konfigurasi ke perangkat pemakainya. Contoh
+      nyata: perangkat #2 memakai `tank_id=1` (Ngasinan, tinggi 400) tetapi `empty_tank_distance=225`
+      (nilai Mbaran). Begitu tangki #1 disimpan, kode akan memaksa `empty_tank_distance` → **400** dan
+      perangkat memakai tinggi 400 cm. **Jadwalkan bersama operator**: tentukan sumber kebenaran
+      (ganti `tank_id` perangkat #2 ke Mbaran, atau betulkan tinggi tangki) sebelum menyimpan.
+- [ ] **Perangkat ber-firmware pra-#50** tidak mengirim ack → `config_update_command` menempel `1`
+      dan konfigurasi terkirim ulang tiap polling. Pantau `event_logs` (tidak muncul pesan
+      "Perangkat menerapkan konfigurasi baru.") dan flash firmware bila perlu.
+- [ ] `pumps.delay_seconds` belum ikut tersinkron (kolom `devices.delay_seconds` tidak ada di skema).
+      Bila firmware mulai memakai cooling-delay, tambahkan kolom + ikutkan di `Device::syncFromMasterData()`.
+- [ ] Opsional: tampilkan badge "menunggu perangkat menerapkan" di daftar perangkat saat
+      `config_update_command = 1`, agar admin tahu perubahan belum diakui perangkat.
