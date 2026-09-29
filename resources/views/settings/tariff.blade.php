@@ -59,10 +59,16 @@
         <p class="mb-4 text-sm text-slate-500">Harga per m³ dan biaya administrasi bulanan dipakai BillingService untuk menghitung tagihan otomatis.</p>
         <form method="POST" action="{{ route('settings.tariff') }}" class="space-y-3">
             @csrf
-            <input type="number" name="water_price" required min="0" step="0.01" value="{{ $settings['water_price'] }}"
-                   placeholder="Harga air (Rp / m³)" class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm">
-            <input type="number" name="admin_fee" required min="0" step="0.01" value="{{ $settings['admin_fee'] }}"
-                   placeholder="Biaya admin bulanan (Rp)" class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm">
+            <div>
+                <label for="water_price" class="mb-1 block text-sm font-medium">Harga Air (Rp per m³)</label>
+                <input type="number" id="water_price" name="water_price" required min="0" step="0.01" value="{{ $settings['water_price'] }}"
+                       placeholder="cth: 5000" class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm">
+            </div>
+            <div>
+                <label for="admin_fee" class="mb-1 block text-sm font-medium">Biaya Administrasi Bulanan (Rp)</label>
+                <input type="number" id="admin_fee" name="admin_fee" required min="0" step="0.01" value="{{ $settings['admin_fee'] }}"
+                       placeholder="cth: 5000" class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm">
+            </div>
             <button class="w-full rounded-lg bg-sky-600 py-2 font-semibold text-white hover:bg-sky-700">Simpan Tarif</button>
         </form>
     </div>

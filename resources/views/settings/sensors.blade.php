@@ -45,10 +45,24 @@
         <h2 class="mb-4 font-semibold">Tambah Sensor</h2>
         <form method="POST" action="{{ route('settings.sensors') }}" class="space-y-3">
             @csrf
-            <input type="text" name="sensor_name" required placeholder="Nama sensor" class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm">
-            <input type="text" name="sensor_type" value="JSN-SR04T" class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm">
-            <input type="number" name="full_tank_distance" required min="1" placeholder="Jarak penuh (cm)" class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm">
-            <input type="number" name="trigger_percentage" required min="1" max="100" placeholder="Trigger (%)" class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm">
+            <div>
+                <label for="add-sensor-name" class="mb-1 block text-sm font-medium">Nama Sensor</label>
+                <input type="text" id="add-sensor-name" name="sensor_name" required placeholder="cth: Sensor Bak Atas" class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm">
+            </div>
+            <div>
+                <label for="add-sensor-type" class="mb-1 block text-sm font-medium">Tipe Sensor</label>
+                <input type="text" id="add-sensor-type" name="sensor_type" value="JSN-SR04T" placeholder="cth: HC-SR04 / JSN-SR04T" class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm">
+            </div>
+            <div>
+                <label for="add-full-tank-distance" class="mb-1 block text-sm font-medium">Jarak Sensor saat Penuh (cm)</label>
+                <input type="number" id="add-full-tank-distance" name="full_tank_distance" required min="1" placeholder="cth: 30" class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm">
+                <p class="mt-1 text-xs text-slate-500">Jarak yang diukur sensor ketika permukaan air di titik penuh.</p>
+            </div>
+            <div>
+                <label for="add-trigger-percentage" class="mb-1 block text-sm font-medium">Ambang Trigger Pompa (%)</label>
+                <input type="number" id="add-trigger-percentage" name="trigger_percentage" required min="1" max="100" placeholder="cth: 70" class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm">
+                <p class="mt-1 text-xs text-slate-500">Level (%) saat pompa mulai dinyalakan kembali.</p>
+            </div>
             <button class="w-full rounded-lg bg-sky-600 py-2 font-semibold text-white hover:bg-sky-700">Simpan</button>
         </form>
     </div>
@@ -56,14 +70,28 @@
 
 {{-- Modal Edit Sensor --}}
 <div id="sensorModal" class="fixed inset-0 z-50 hidden items-center justify-center bg-black/50">
-    <div class="w-full max-w-md rounded-xl bg-white p-6 shadow">
+    <div class="max-h-[90vh] w-full max-w-md overflow-y-auto rounded-xl bg-white p-6 shadow">
         <h2 class="mb-4 font-semibold">Edit Sensor</h2>
         <form id="sensorEditForm" method="POST" class="space-y-3">
             @csrf
-            <input type="text" id="sensor_name" name="sensor_name" required placeholder="Nama sensor" class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm">
-            <input type="text" id="sensor_type" name="sensor_type" class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm">
-            <input type="number" id="full_tank_distance" name="full_tank_distance" required min="1" placeholder="Jarak penuh (cm)" class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm">
-            <input type="number" id="trigger_percentage" name="trigger_percentage" required min="1" max="100" placeholder="Trigger (%)" class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm">
+            <div>
+                <label for="sensor_name" class="mb-1 block text-sm font-medium">Nama Sensor</label>
+                <input type="text" id="sensor_name" name="sensor_name" required placeholder="cth: Sensor Bak Atas" class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm">
+            </div>
+            <div>
+                <label for="sensor_type" class="mb-1 block text-sm font-medium">Tipe Sensor</label>
+                <input type="text" id="sensor_type" name="sensor_type" placeholder="cth: HC-SR04 / JSN-SR04T" class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm">
+            </div>
+            <div>
+                <label for="full_tank_distance" class="mb-1 block text-sm font-medium">Jarak Sensor saat Penuh (cm)</label>
+                <input type="number" id="full_tank_distance" name="full_tank_distance" required min="1" placeholder="cth: 30" class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm">
+                <p class="mt-1 text-xs text-slate-500">Jarak yang diukur sensor ketika permukaan air di titik penuh (dibawa ke perangkat sebagai <code>full_tank_distance</code>).</p>
+            </div>
+            <div>
+                <label for="trigger_percentage" class="mb-1 block text-sm font-medium">Ambang Trigger Pompa (%)</label>
+                <input type="number" id="trigger_percentage" name="trigger_percentage" required min="1" max="100" placeholder="cth: 70" class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm">
+                <p class="mt-1 text-xs text-slate-500">Level (%) saat pompa mulai dinyalakan kembali.</p>
+            </div>
             <div class="flex gap-2">
                 <button class="w-full rounded-lg bg-sky-600 py-2 font-semibold text-white hover:bg-sky-700">Simpan Perubahan</button>
                 <button type="button" onclick="closeModal('sensorModal')" class="w-full rounded-lg bg-slate-200 py-2 font-semibold text-slate-700 hover:bg-slate-300">Batal</button>

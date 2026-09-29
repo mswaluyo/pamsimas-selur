@@ -55,19 +55,38 @@
         <h2 class="mb-4 font-semibold">Tambah Tangki</h2>
         <form method="POST" action="{{ route('settings.tanks') }}" class="space-y-3">
             @csrf
-            <input type="text" name="tank_name" required placeholder="Nama tangki" class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm">
-            <select name="tank_shape" onchange="toggleDimFields('add', this.value)" class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm">
-                <option value="kotak">Kotak</option>
-                <option value="bulat">Bulat (Tabung)</option>
-            </select>
+            <div>
+                <label for="add-tank-name" class="mb-1 block text-sm font-medium">Nama Tangki</label>
+                <input type="text" id="add-tank-name" name="tank_name" required placeholder="cth: Bak Atas" class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm">
+            </div>
+            <div>
+                <label for="add-tank-shape" class="mb-1 block text-sm font-medium">Bentuk Tangki</label>
+                <select id="add-tank-shape" name="tank_shape" onchange="toggleDimFields('add', this.value)" class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm">
+                    <option value="kotak">Kotak</option>
+                    <option value="bulat">Bulat (Tabung)</option>
+                </select>
+            </div>
             <div id="add-dim-kotak" class="grid grid-cols-2 gap-2">
-                <input type="number" step="0.01" min="0" name="rectangular_length" id="add-rect-length" placeholder="Panjang (cm)" class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm">
-                <input type="number" step="0.01" min="0" name="rectangular_width" id="add-rect-width" placeholder="Lebar (cm)" class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm">
+                <div>
+                    <label for="add-rect-length" class="mb-1 block text-sm font-medium">Panjang (cm)</label>
+                    <input type="number" step="0.01" min="0" name="rectangular_length" id="add-rect-length" placeholder="cth: 150" class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm">
+                </div>
+                <div>
+                    <label for="add-rect-width" class="mb-1 block text-sm font-medium">Lebar (cm)</label>
+                    <input type="number" step="0.01" min="0" name="rectangular_width" id="add-rect-width" placeholder="cth: 120" class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm">
+                </div>
             </div>
             <div id="add-dim-bulat" class="hidden">
-                <input type="number" step="0.01" min="0" name="circular_diameter" id="add-circ-diameter" placeholder="Diameter (cm)" class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm">
+                <div>
+                    <label for="add-circ-diameter" class="mb-1 block text-sm font-medium">Diameter (cm)</label>
+                    <input type="number" step="0.01" min="0" name="circular_diameter" id="add-circ-diameter" placeholder="cth: 120" class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm">
+                </div>
             </div>
-            <input type="number" name="height" required min="1" step="0.01" placeholder="Tinggi (cm)" class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm">
+            <div>
+                <label for="add-tank-height" class="mb-1 block text-sm font-medium">Tinggi Tangki (cm)</label>
+                <input type="number" id="add-tank-height" name="height" required min="1" step="0.01" placeholder="cth: 400" class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm">
+                <p class="mt-1 text-xs text-slate-500">Dipakai perangkat sebagai jarak sensor &rarr; dasar bak (<code>empty_tank_distance</code>). HC-SR04 hanya akurat ±3 m: bila tinggi bak lebih dari itu, level di bawah jangkauan tidak akan pernah terbaca.</p>
+            </div>
             <button class="w-full rounded-lg bg-sky-600 py-2 font-semibold text-white hover:bg-sky-700">Simpan</button>
         </form>
     </div>
@@ -75,23 +94,42 @@
 
 {{-- Modal Edit Tangki --}}
 <div id="tankModal" class="fixed inset-0 z-50 hidden items-center justify-center bg-black/50">
-    <div class="w-full max-w-md rounded-xl bg-white p-6 shadow">
+    <div class="max-h-[90vh] w-full max-w-md overflow-y-auto rounded-xl bg-white p-6 shadow">
         <h2 class="mb-4 font-semibold">Edit Tangki</h2>
         <form id="tankEditForm" method="POST" class="space-y-3">
             @csrf
-            <input type="text" id="tank_name" name="tank_name" required placeholder="Nama tangki" class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm">
-            <select id="tank_shape" name="tank_shape" onchange="toggleDimFields('edit', this.value)" class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm">
-                <option value="kotak">Kotak</option>
-                <option value="bulat">Bulat (Tabung)</option>
-            </select>
+            <div>
+                <label for="tank_name" class="mb-1 block text-sm font-medium">Nama Tangki</label>
+                <input type="text" id="tank_name" name="tank_name" required placeholder="cth: Bak Atas" class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm">
+            </div>
+            <div>
+                <label for="tank_shape" class="mb-1 block text-sm font-medium">Bentuk Tangki</label>
+                <select id="tank_shape" name="tank_shape" onchange="toggleDimFields('edit', this.value)" class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm">
+                    <option value="kotak">Kotak</option>
+                    <option value="bulat">Bulat (Tabung)</option>
+                </select>
+            </div>
             <div id="edit-dim-kotak" class="grid grid-cols-2 gap-2">
-                <input type="number" step="0.01" min="0" id="rect_length" name="rectangular_length" placeholder="Panjang (cm)" class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm">
-                <input type="number" step="0.01" min="0" id="rect_width" name="rectangular_width" placeholder="Lebar (cm)" class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm">
+                <div>
+                    <label for="rect_length" class="mb-1 block text-sm font-medium">Panjang (cm)</label>
+                    <input type="number" step="0.01" min="0" id="rect_length" name="rectangular_length" placeholder="cth: 150" class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm">
+                </div>
+                <div>
+                    <label for="rect_width" class="mb-1 block text-sm font-medium">Lebar (cm)</label>
+                    <input type="number" step="0.01" min="0" id="rect_width" name="rectangular_width" placeholder="cth: 120" class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm">
+                </div>
             </div>
             <div id="edit-dim-bulat" class="hidden">
-                <input type="number" step="0.01" min="0" id="circ_diameter" name="circular_diameter" placeholder="Diameter (cm)" class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm">
+                <div>
+                    <label for="circ_diameter" class="mb-1 block text-sm font-medium">Diameter (cm)</label>
+                    <input type="number" step="0.01" min="0" id="circ_diameter" name="circular_diameter" placeholder="cth: 120" class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm">
+                </div>
             </div>
-            <input type="number" id="height" name="height" required min="1" step="0.01" placeholder="Tinggi (cm)" class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm">
+            <div>
+                <label for="height" class="mb-1 block text-sm font-medium">Tinggi Tangki (cm)</label>
+                <input type="number" id="height" name="height" required min="1" step="0.01" placeholder="cth: 400" class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm">
+                <p class="mt-1 text-xs text-slate-500">Dipakai perangkat sebagai jarak sensor &rarr; dasar bak (<code>empty_tank_distance</code>) sehingga persen level akurat. HC-SR04 hanya akurat ±3 m: di bawah itu sensor melaporkan "tidak terbaca" dan pompa mengisi tanpa ukuran level.</p>
+            </div>
             <div class="flex gap-2">
                 <button class="w-full rounded-lg bg-sky-600 py-2 font-semibold text-white hover:bg-sky-700">Simpan Perubahan</button>
                 <button type="button" onclick="closeModal('tankModal')" class="w-full rounded-lg bg-slate-200 py-2 font-semibold text-slate-700 hover:bg-slate-300">Batal</button>

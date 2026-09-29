@@ -6,8 +6,8 @@
     <h2 class="font-semibold">Template Gauge Dashboard</h2>
     <form method="POST" action="{{ route('templates.index') }}" class="flex gap-2">
         @csrf
-        <input type="text" name="name" required placeholder="Nama template baru" class="rounded-lg border border-slate-300 px-3 py-2 text-sm">
-        <input type="text" name="description" placeholder="Deskripsi" class="rounded-lg border border-slate-300 px-3 py-2 text-sm">
+        <input type="text" name="name" required placeholder="Nama template baru" aria-label="Nama template baru" class="rounded-lg border border-slate-300 px-3 py-2 text-sm">
+        <input type="text" name="description" placeholder="Deskripsi" aria-label="Deskripsi template" class="rounded-lg border border-slate-300 px-3 py-2 text-sm">
         <button class="rounded-lg bg-sky-600 px-4 py-2 text-sm font-semibold text-white hover:bg-sky-700">+ Tambah</button>
     </form>
 </div>

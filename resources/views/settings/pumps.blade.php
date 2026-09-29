@@ -45,11 +45,27 @@
         <h2 class="mb-4 font-semibold">Tambah Pompa</h2>
         <form method="POST" action="{{ route('settings.pumps') }}" class="space-y-3">
             @csrf
-            <input type="text" name="pump_name" required placeholder="Nama pompa" class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm">
-            <input type="number" step="0.1" name="flow_rate_lps" placeholder="Debit (L/s)" class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm">
-            <input type="number" name="power_watt" placeholder="Daya (Watt)" class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm">
-            <input type="number" name="on_duration_seconds" required min="1" placeholder="Durasi ON (detik)" class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm">
-            <input type="number" name="off_duration_seconds" required min="1" placeholder="Durasi OFF (detik)" class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm">
+            <div>
+                <label for="add-pump-name" class="mb-1 block text-sm font-medium">Nama Pompa</label>
+                <input type="text" id="add-pump-name" name="pump_name" required placeholder="cth: Pompa Mbaran" class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm">
+            </div>
+            <div>
+                <label for="add-flow-rate" class="mb-1 block text-sm font-medium">Debit Air (liter/detik)</label>
+                <input type="number" id="add-flow-rate" step="0.1" name="flow_rate_lps" placeholder="cth: 0.6" class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm">
+            </div>
+            <div>
+                <label for="add-power-watt" class="mb-1 block text-sm font-medium">Daya Listrik (Watt)</label>
+                <input type="number" id="add-power-watt" name="power_watt" placeholder="cth: 1300" class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm">
+            </div>
+            <div>
+                <label for="add-on-duration" class="mb-1 block text-sm font-medium">Durasi ON (detik)</label>
+                <input type="number" id="add-on-duration" name="on_duration_seconds" required min="1" placeholder="cth: 600" class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm">
+                <p class="mt-1 text-xs text-slate-500">Batas nyala maksimum tiap siklus (proteksi mesin), dikirim ke perangkat sebagai <code>on_duration</code>.</p>
+            </div>
+            <div>
+                <label for="add-off-duration" class="mb-1 block text-sm font-medium">Durasi OFF / Istirahat (detik)</label>
+                <input type="number" id="add-off-duration" name="off_duration_seconds" required min="1" placeholder="cth: 300" class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm">
+            </div>
             <button class="w-full rounded-lg bg-sky-600 py-2 font-semibold text-white hover:bg-sky-700">Simpan</button>
         </form>
     </div>
@@ -61,13 +77,37 @@
         <h2 class="mb-4 font-semibold">Edit Pompa</h2>
         <form id="pumpEditForm" method="POST" class="space-y-3">
             @csrf
-            <input type="text" id="pump_name" name="pump_name" required placeholder="Nama pompa" class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm">
-            <input type="number" step="0.01" id="flow_rate_lps" name="flow_rate_lps" placeholder="Debit (L/s)" class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm">
-            <input type="number" step="0.1" id="power_hp" name="power_hp" placeholder="Daya (HP)" class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm">
-            <input type="number" id="power_watt" name="power_watt" placeholder="Daya (Watt)" class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm">
-            <input type="number" id="delay_seconds" name="delay_seconds" min="0" placeholder="Delay start (detik)" class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm">
-            <input type="number" id="on_duration_seconds" name="on_duration_seconds" required min="1" placeholder="Durasi ON (detik)" class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm">
-            <input type="number" id="off_duration_seconds" name="off_duration_seconds" required min="1" placeholder="Durasi OFF (detik)" class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm">
+            <div>
+                <label for="pump_name" class="mb-1 block text-sm font-medium">Nama Pompa</label>
+                <input type="text" id="pump_name" name="pump_name" required placeholder="cth: Pompa Mbaran" class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm">
+            </div>
+            <div>
+                <label for="flow_rate_lps" class="mb-1 block text-sm font-medium">Debit Air (liter/detik)</label>
+                <input type="number" step="0.01" id="flow_rate_lps" name="flow_rate_lps" placeholder="cth: 0.6" class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm">
+            </div>
+            <div>
+                <label for="power_hp" class="mb-1 block text-sm font-medium">Daya (HP / Horsepower)</label>
+                <input type="number" step="0.1" id="power_hp" name="power_hp" placeholder="cth: 1.5" class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm">
+            </div>
+            <div>
+                <label for="power_watt" class="mb-1 block text-sm font-medium">Daya (Watt)</label>
+                <input type="number" id="power_watt" name="power_watt" placeholder="cth: 1300" class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm">
+            </div>
+            <div>
+                <label for="delay_seconds" class="mb-1 block text-sm font-medium">Delay Start (detik)</label>
+                <input type="number" id="delay_seconds" name="delay_seconds" min="0" placeholder="cth: 20" class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm">
+                <p class="mt-1 text-xs text-slate-500">Jeda sebelum pompa menyala setelah level menyentuh ambang trigger.</p>
+            </div>
+            <div>
+                <label for="on_duration_seconds" class="mb-1 block text-sm font-medium">Durasi ON maksimum (detik)</label>
+                <input type="number" id="on_duration_seconds" name="on_duration_seconds" required min="1" placeholder="cth: 660" class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm">
+                <p class="mt-1 text-xs text-slate-500">Dikirim ke perangkat sebagai <code>on_duration</code>: setelah selama ini pompa dipaksa mati (safety cut-off) lalu istirahat selama Durasi OFF, lalu menyala lagi. Saat sensor tidak terbaca, nilai ini yang menentukan panjang tiap siklus pengisian.</p>
+            </div>
+            <div>
+                <label for="off_duration_seconds" class="mb-1 block text-sm font-medium">Durasi OFF / Istirahat (detik)</label>
+                <input type="number" id="off_duration_seconds" name="off_duration_seconds" required min="1" placeholder="cth: 600" class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm">
+                <p class="mt-1 text-xs text-slate-500">Dikirim ke perangkat sebagai <code>off_duration</code>: masa tunggu sebelum pompa boleh menyala lagi.</p>
+            </div>
             <div class="flex gap-2">
                 <button class="w-full rounded-lg bg-sky-600 py-2 font-semibold text-white hover:bg-sky-700">Simpan Perubahan</button>
                 <button type="button" onclick="closeModal('pumpModal')" class="w-full rounded-lg bg-slate-200 py-2 font-semibold text-slate-700 hover:bg-slate-300">Batal</button>
