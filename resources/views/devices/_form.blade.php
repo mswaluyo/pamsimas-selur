@@ -17,7 +17,7 @@
                 <option value="MONITOR" @if($isEdit && $device->device_type === 'MONITOR') selected @endif>MONITOR - sensor + pompa (fungsi ganda)</option>
                 <option value="ACTUATOR" @if($isEdit && $device->device_type === 'ACTUATOR') selected @endif>ACTUATOR - pompa saja (tanpa baca sensor)</option>
             </select>
-            <div class="mt-1.5 space-y-1 text-xs leading-relaxed text-slate-500">
+            <div class="mt-1 text-xs text-slate-500">
                 <p id="hint-type-monitor" class="hidden">
                     <span class="font-semibold text-slate-700">MONITOR = fungsi ganda (sensor + pompa)</span>: papan ini membaca sensor
                     ultrasonik lalu melaporkannya ke server setiap &ldquo;Interval Lapor&rdquo;,
@@ -25,7 +25,7 @@
                     logika level air. Level air dari papan ini juga yang dipakai mengontrol perangkat ACTUATOR di tangki yang sama, jadi
                     <span class="text-amber-700">satu papan MONITOR saja sudah cukup</span> untuk sensor sekaligus pompa.
                 </p>
-                <p id="hint-type-actuator" class="hidden">
+                <p id="hint-type-actuator" class="mt-1 hidden">
                     <span class="font-semibold text-slate-700">ACTUATOR = pompa saja</span>: papan hanya mengeksekusi nyala/mati pompa (plus
                     timer ON/OFF saat link terputus). <span class="text-amber-700">Pembacaan sensor fisik di papan ini dilewati</span> &mdash;
                     papan ini tidak punya andil sensor &mdash; level air diambil dari perangkat MONITOR di tangki yang sama. Pilih ini bila papan
