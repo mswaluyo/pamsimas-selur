@@ -17,22 +17,6 @@
                 <option value="MONITOR" @if($isEdit && $device->device_type === 'MONITOR') selected @endif>MONITOR - sensor + pompa (fungsi ganda)</option>
                 <option value="ACTUATOR" @if($isEdit && $device->device_type === 'ACTUATOR') selected @endif>ACTUATOR - pompa saja (tanpa baca sensor)</option>
             </select>
-            <div class="mt-1 text-xs text-slate-500">
-                <p id="hint-type-monitor" class="hidden">
-                    <span class="font-semibold text-slate-700">MONITOR = fungsi ganda (sensor + pompa)</span>: papan ini membaca sensor
-                    ultrasonik lalu melaporkannya ke server setiap &ldquo;Interval Lapor&rdquo;,
-                    <span class="text-amber-700">sekaligus menggerakkan relay pompa sendiri</span> karena pada mode AUTO relay papan ini ikut
-                    logika level air. Level air dari papan ini juga yang dipakai mengontrol perangkat ACTUATOR di tangki yang sama, jadi
-                    <span class="text-amber-700">satu papan MONITOR saja sudah cukup</span> untuk sensor sekaligus pompa.
-                </p>
-                <p id="hint-type-actuator" class="mt-1 hidden">
-                    <span class="font-semibold text-slate-700">ACTUATOR = pompa saja</span>: papan hanya mengeksekusi nyala/mati pompa (plus
-                    timer ON/OFF saat link terputus). <span class="text-amber-700">Pembacaan sensor fisik di papan ini dilewati</span> &mdash;
-                    papan ini tidak punya andil sensor &mdash; level air diambil dari perangkat MONITOR di tangki yang sama. Pilih ini bila papan
-                    memang hanya penggerak pompa dan MONITOR sudah ada di tangki tersebut; kalau tidak ada MONITOR, level air tidak pernah
-                    diperbarui dan pompa tidak bekerja sesuai pemicu.
-                </p>
-            </div>
         </div>
         <div>
             <label class="mb-1 block text-sm font-medium">Mode Kontrol</label>
@@ -93,20 +77,6 @@
         {{ $isEdit ? 'Simpan Perubahan' : 'Daftarkan Perangkat' }}
     </button>
 </form>
-
-<script>
-// Tampilkan penjelasan tipe perangkat yang dipilih (MONITOR vs ACTUATOR).
-(function () {
-    const typeSel = document.getElementById('sel-device-type');
-    if (!typeSel) return;
-    const syncTypeHint = () => {
-        document.getElementById('hint-type-monitor').classList.toggle('hidden', typeSel.value !== 'MONITOR');
-        document.getElementById('hint-type-actuator').classList.toggle('hidden', typeSel.value !== 'ACTUATOR');
-    };
-    typeSel.addEventListener('change', syncTypeHint);
-    syncTypeHint();
-})();
-</script>
 
 @if(!$isEdit)
 <script>
