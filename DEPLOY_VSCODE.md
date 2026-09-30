@@ -248,6 +248,11 @@ Troubleshooting: port 2222 terpakai →
 - ⚠️ Daftar file yang beda server↔repo: bandingkan **MD5 konten setelah `tr -d '\r'`**
   (bukan `md5sum` mentah, bukan sha1 git) — view di server ber-CRLF, di repo ber-LF.
 - ❌ Set custom docroot manual dua kali (menumpuk).
+- 🗑️ Panduan server lama **`DEPLOY_AAPANEL.md` dihapus** (platform AAPANEL sudah ditinggalkan,
+  kini HestiaCP di STB) — dokumen ini + `DEPLOYMENT.md` satu-satunya acuan. Riwayat pemakaiannya
+  tetap terbaca di Task #47 (tabel §9) dan histori git (`git log --diff-filter=D -- DEPLOY_AAPANEL.md`).
+  Dokumen deploy di `public_html/` **tidak** dapat diakses publik (`curl .../DEPLOY_AAPANEL.md`
+  → **404**, docroot = `public_html/public`) — diverifikasi ulang saat Task #52.
 - ⚠️ Task #49 (kontrak `/api/fingerprint`): sertifikat edge Cloudflare yang kini dipin firmware =
   SHA1 `53:0C:FD:23:8E:95:45:C2:54:25:C6:2A:1A:52:28:30:34:B5:CA:D6` (valid s/d **2026-12-16**).
   Firmware mengambil nilai ini **sekali per boot**; bila Cloudflare merotasi sertifikat, perangkat
