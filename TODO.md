@@ -454,9 +454,11 @@ sementara ACTUATOR murni penggerak pompa tanpa andil sensor.
   `tank_id` yang sama (`DeviceApiController.php:129-137`). Kalau tidak ada MONITOR di tangki itu,
   level air ACTUATOR **beku** di laporan terakhir dan pompa tidak bekerja sesuai pemicu.
 - **Perbaikan UI (sudah dideploy):** label opsi form `Tipe Perangkat` kini menyebut perannya secara eksplisit
-  — `MONITOR - sensor + pompa (fungsi ganda)` dan `ACTUATOR - pompa saja (tanpa baca sensor)` — dengan hint
-  dinamis di bawahnya (`resources/views/devices/_form.blade.php`). Baris "Sumber Data Monitor" →
-  "Sumber Level Air" (`devices/show.blade.php:209`) juga dibuat jujur soal siapa yang membaca sensor.
+  — `MONITOR - sensor + pompa (fungsi ganda)` dan `ACTUATOR - pompa saja (tanpa baca sensor)`
+  (`resources/views/devices/_form.blade.php`). Baris "Sumber Data Monitor" → "Sumber Level Air"
+  (`devices/show.blade.php:209`) juga dibuat jujur soal siapa yang membaca sensor.
+  Catatan: paragraf penjelasan panjang di bawah `select` (beserta JS toggle `hint-type-*`) sempat dipasang lalu
+  **dihapus atas permintaan operator** (`c9bf061`, 30 Sep 2026) — label opsi dianggap cukup jelas.
 - [ ] **Validasi server** (usul): saat `device_type = ACTUATOR` tanpa MONITOR lain di `tank_id` yang sama,
       tampilkan peringatan (bukan error) di form + halaman detail. Konfirmasi dulu dengan operator karena
       perangkat single-board mungkin sengaja di-set ACTUATOR.
