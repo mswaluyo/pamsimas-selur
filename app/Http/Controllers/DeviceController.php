@@ -181,9 +181,11 @@ class DeviceController extends Controller
             'empty_tank_distance' => 'nullable|integer|min:1',
             'trigger_percentage' => 'nullable|integer|min:1|max:100',
             'control_mode' => 'required|in:AUTO,MANUAL,TIMED',
-            'report_interval' => 'nullable|integer|min:1',
         ]);
 
+        // Catatan: report_interval TIDAK dapat diubah dari form (nilai tetap 3 detik =
+        // default firmware `STATUS_FETCH_NORMAL`, lihat TODO.md bagian 7.8). Field ini
+        // sengaja tidak divalidasi agar kiriman lama pun tidak mengubah nilainya.
         $device->fill($data);
         $masterChanged = $device->isDirty(['tank_id', 'pump_id', 'sensor_id']);
         $device->save();

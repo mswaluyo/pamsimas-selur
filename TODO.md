@@ -468,3 +468,30 @@ sementara ACTUATOR murni penggerak pompa tanpa andil sensor.
       `mode_update_command` sudah dinaikkan oleh `DeviceController::update()` dan diturunkan lagi
       setelah perangkat ack `reset_config`).
 
+### 7.8 "Interval Lapor (detik)" ternyata interval *poll*, bukan interval lapor (30 Sep 2026)
+
+**Temuan (perbandingan kode server ↔ firmware):**
+
+| Sisi | Fakta |
+|---|---|
+| Server | `devices.report_interval` (default 3, migrasi `2024_01_01_000001`) dikirim apa adanya di `/api/status` (`DeviceApiController.php:203`) |
+| Firmware | `API_Communication.ino:221-222`: `currentStatusFetchInterval = doc["report_interval"] * 1000` → dipakai untuk **poll `/api/status`**, bukan untuk mengirim data sensor |
+| Firmware | Interval kirim data sensor = **konstanta** `dataSendInterval = 3000 ms` (`Pamsimas_Hybrid.ino:123`, dipakai di `:311-314`); default poll `STATUS_FETCH_NORMAL = 3000` (`:124`) — karena angkanya kebetulan sama, nilainya tampak "mengikuti firmware" |
+| Firmware | Yang dicetak `- Report Interval: 3000 ms` juga `currentStatusFetchInterval` (`API_Communication.ino:235-236`) — salah label di sisi firmware |
+
+**Konsekuensi:** menaikkan nilai itu memperlambat **respons perintah** (pump_command, config/mode update + ack, restart/OTA) dan melambatkan penyegaran `water_percentage` bagi ACTUATOR — tetapi **tidak** mengubah laju pelaporan sensor (tetap 3 dtk), tidak mengubah status online (`Device::isOnline()` = 300 dtk, `Device.php:54-57`; heartbeat `/api/health` 60 dtk, `Pamsimas_Hybrid.ino:127`), dan tidak mengubah agregasi menit/jam (`aggregate()`, `DeviceApiController.php:635-653`).
+
+**Tindakan (sudah dideploy, `b...` → lihat `DEPLOY_VSCODE.md` §9 Task #54):**
+- Field **"Interval Lapor (detik)" dihapus** dari form Registrasi & Edit Perangkat
+  (`resources/views/devices/_form.blade.php`).
+- Validasi `report_interval` dilepas dari `DeviceController::update()` sehingga kiriman
+  form lama pun tidak bisa mengubah nilainya; nilai tetap **3 detik** (default kolom DB =
+  default firmware). Data saat ini sudah seragam: device #2 `C4:D8:D5:13:A6:17` (MONITOR) dan
+  #3 `CC:50:E3:52:F3:B6` (ACTUATOR) sama-sama `report_interval = 3`.
+- `/api/status` tetap mengirim `report_interval` (dari DB) agar kontrak API tidak berubah.
+- [ ] **Backlog opsional** bila operator ingin benar-benar bisa mengatur **laju lapor sensor**:
+      opsi B (firmware memakai nilai server untuk `dataSendInterval`) atau opsi C (pisah dua field:
+      lapor data + poll perintah; perlu migrasi DB + flash ulang). Saran rentang bila dikerjakan:
+      **3–300 detik** — jangan di bawah 3 detik karena satu siklus pengukuran saja sudah ±0,5–0,6 dtk
+      (8 bacaan × `delay(50)`, `Pump_Sensor_Logic.ino:133-146`) dan `setTimeout` SSL 5 dtk.
+

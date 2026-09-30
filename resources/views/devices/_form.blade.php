@@ -52,11 +52,6 @@
             </select>
         </div>
         <div>
-            <label class="mb-1 block text-sm font-medium">Interval Lapor (detik)</label>
-            <input type="number" name="report_interval" min="1" value="{{ $device->report_interval ?? 3 }}"
-                   class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm">
-        </div>
-        <div>
             <label class="mb-1 block text-sm font-medium">Jarak Penuh (cm) <span class="text-xs text-emerald-600">otomatis dari Sensor</span></label>
             <input type="number" name="full_tank_distance" min="1" value="{{ $device->full_tank_distance ?? 30 }}" id="f-full"
                    readonly class="w-full cursor-not-allowed rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-500">
