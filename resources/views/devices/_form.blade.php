@@ -13,10 +13,25 @@
     <div class="grid grid-cols-1 gap-4 md:grid-cols-2">
         <div>
             <label class="mb-1 block text-sm font-medium">Tipe Perangkat</label>
-            <select name="device_type" class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm">
-                <option value="MONITOR" @if($isEdit && $device->device_type === 'MONITOR') selected @endif>MONITOR (sensor saja)</option>
-                <option value="ACTUATOR" @if($isEdit && $device->device_type === 'ACTUATOR') selected @endif>ACTUATOR (pompa saja, tanpa sensor)</option>
+            <select name="device_type" id="sel-device-type" class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm">
+                <option value="MONITOR" @if($isEdit && $device->device_type === 'MONITOR') selected @endif>MONITOR - baca sensor, lapor level air</option>
+                <option value="ACTUATOR" @if($isEdit && $device->device_type === 'ACTUATOR') selected @endif>ACTUATOR - eksekutor pompa, tidak baca sensor</option>
             </select>
+            <div class="mt-1.5 space-y-1 text-xs leading-relaxed text-slate-500">
+                <p id="hint-type-monitor" class="hidden">
+                    <span class="font-semibold text-slate-700">MONITOR</span> = papan yang memasang sensor ultrasonik: ia membaca jarak
+                    permukaan air lalu melaporkannya ke server setiap &ldquo;Interval Lapor&rdquo;. Level air dari papan inilah yang dipakai
+                    menyalakan/mematikan pompa milik perangkat ACTUATOR di tangki yang sama.
+                    <span class="text-amber-700">Pada mode AUTO relay papan ini ikut logika level air</span>, jadi satu papan MONITOR saja
+                    sudah cukup menggerakkan pompa.
+                </p>
+                <p id="hint-type-actuator" class="hidden">
+                    <span class="font-semibold text-slate-700">ACTUATOR</span> = papan yang hanya mengeksekusi nyala/mati pompa (plus timer
+                    ON/OFF saat link terputus). <span class="text-amber-700">Pembacaan sensor fisik di papan ini dilewati</span>: level air
+                    diambil dari perangkat MONITOR di tangki yang sama. Pilih ini hanya bila MONITOR sudah ada di tangki tersebut; kalau
+                    tidak, level air tidak pernah diperbarui dan pompa tidak bekerja sesuai pemicu.
+                </p>
+            </div>
         </div>
         <div>
             <label class="mb-1 block text-sm font-medium">Mode Kontrol</label>
@@ -77,6 +92,20 @@
         {{ $isEdit ? 'Simpan Perubahan' : 'Daftarkan Perangkat' }}
     </button>
 </form>
+
+<script>
+// Tampilkan penjelasan tipe perangkat yang dipilih (MONITOR vs ACTUATOR).
+(function () {
+    const typeSel = document.getElementById('sel-device-type');
+    if (!typeSel) return;
+    const syncTypeHint = () => {
+        document.getElementById('hint-type-monitor').classList.toggle('hidden', typeSel.value !== 'MONITOR');
+        document.getElementById('hint-type-actuator').classList.toggle('hidden', typeSel.value !== 'ACTUATOR');
+    };
+    typeSel.addEventListener('change', syncTypeHint);
+    syncTypeHint();
+})();
+</script>
 
 @if(!$isEdit)
 <script>
