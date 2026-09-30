@@ -437,10 +437,14 @@ membaca — sehingga mudah disalahartikan sebagai "sensor aktif".
 
 **Aturan praktis (dokumen ini; belum ada validasi di server):**
 
-| Tipe | Peran | Sensor fisik | Pompa |
+| Tipe | Peran | Sensor fisik | Relay pompa |
 |---|---|---|---|
-| `MONITOR` | Membaca & melapor level air tiap *Interval Lapor* | **Ya** (HC-SR04) | Pada mode AUTO relay ikut logika level air → satu papan cukup |
-| `ACTUATOR` | Mengeksekusi nyala/mati pompa + timer ON/OFF saat link putus | **Tidak** (dilewati firmware) | Ya; level air diambil dari MONITOR satu tangki |
+| `MONITOR` | **Fungsi ganda**: membaca & melapor level air tiap *Interval Lapor* **dan** menggerakkan relay pompa sendiri (pada mode AUTO relay ikut logika level air) | **Ya** (HC-SR04, `Pamsimas_Hybrid.ino:218`) | **Ya** — `Pump_Sensor_Logic.ino:245-307` + `digitalWrite(RelayPin)` |
+| `ACTUATOR` | Mengeksekusi nyala/mati pompa + timer ON/OFF saat link putus | **Tidak** (dilewati firmware, `Pump_Sensor_Logic.ino:17-20`) | Ya; level air diambil dari MONITOR satu tangki |
+
+Satu papan MCU punya pin relay yang sama (`const int RelayPin = D0`, `Pamsimas_Hybrid.ino:49`) untuk kedua
+peran — jadi MONITOR memang bisa "sensor sekaligus pompa" (berguna bila pemasangan hanya satu papan),
+sementara ACTUATOR murni penggerak pompa tanpa andil sensor.
 
 - MONITOR → `device_mode = 1`, ACTUATOR → `device_mode = 0`; nilai dikirim dari
   `device_type` (`DeviceApiController.php:184`) — **bukan** dari `sensor_id`. Perangkat boleh
@@ -449,9 +453,10 @@ membaca — sehingga mudah disalahartikan sebagai "sensor aktif".
 - "Interlock satu bak": log level dari MONITOR langsung memicu `applyAutoControl()` pada ACTUATOR
   `tank_id` yang sama (`DeviceApiController.php:129-137`). Kalau tidak ada MONITOR di tangki itu,
   level air ACTUATOR **beku** di laporan terakhir dan pompa tidak bekerja sesuai pemicu.
-- **Perbaikan UI (sudah dideploy):** label opsi form `Tipe Perangkat` + hint dinamis di bawahnya
-  (`resources/views/devices/_form.blade.php`), dan baris "Sumber Data Monitor" → "Sumber Level Air"
-  (`devices/show.blade.php:209`) kini jujur soal siapa yang membaca sensor.
+- **Perbaikan UI (sudah dideploy):** label opsi form `Tipe Perangkat` kini menyebut perannya secara eksplisit
+  — `MONITOR - sensor + pompa (fungsi ganda)` dan `ACTUATOR - pompa saja (tanpa baca sensor)` — dengan hint
+  dinamis di bawahnya (`resources/views/devices/_form.blade.php`). Baris "Sumber Data Monitor" →
+  "Sumber Level Air" (`devices/show.blade.php:209`) juga dibuat jujur soal siapa yang membaca sensor.
 - [ ] **Validasi server** (usul): saat `device_type = ACTUATOR` tanpa MONITOR lain di `tank_id` yang sama,
       tampilkan peringatan (bukan error) di form + halaman detail. Konfirmasi dulu dengan operator karena
       perangkat single-board mungkin sengaja di-set ACTUATOR.

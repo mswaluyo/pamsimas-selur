@@ -206,7 +206,7 @@
                 <ul class="detail-list">
                     <li><span class="k">Nama Pompa</span><span class="v" id="val-pump-name">{{ $device->pump?->pump_name ?? 'N/A' }}</span></li>
                     <li><span class="k">Tangki</span><span class="v">{{ $device->tank?->tank_name ?? '-' }}</span></li>
-                    <li><span class="k">Sumber Level Air</span><span class="v" id="val-data-source">@if($device->device_type === 'MONITOR')Sensor ultrasonik pada perangkat ini{{ $device->sensor ? ' (' . $device->sensor->sensor_name . ')' : '' }}@elseDari perangkat MONITOR satu tangki (sensor fisik perangkat ini dilewati)@endif &mdash; Bak {{ $device->tank?->tank_name ?? '-' }}</span></li>
+                    <li><span class="k">Sumber Level Air</span><span class="v" id="val-data-source">@if($device->device_type === 'MONITOR')Sensor ultrasonik pada perangkat ini (relay ikut logika AUTO){{ $device->sensor ? ' (' . $device->sensor->sensor_name . ')' : '' }}@elseDari perangkat MONITOR satu tangki (perangkat ini pompa saja)@endif &mdash; Bak {{ $device->tank?->tank_name ?? '-' }}</span></li>
                     <li><span class="k">Sinkron Offline</span><span class="v">{{ $device->last_offline_sync?->format('d-m-Y H:i:s') ?? '-' }}</span></li>
                 </ul>
             </div>
@@ -221,7 +221,7 @@
                 <ul class="detail-list">
                     <li><span class="k">MAC Address</span><span class="v" id="val-mac">{{ $device->mac_address }}</span></li>
                     <li><span class="k">Versi Firmware</span><span class="v" id="val-firmware">{{ $device->firmware_version ?: 'N/A' }}@if($device->firmware_build_date) ({{ $device->firmware_build_date }})@endif</span></li>
-                    <li><span class="k">Tipe Perangkat</span><span class="v">{{ $device->device_type }}@if($device->device_type === 'MONITOR') (baca sensor, lapor level air)@else (eksekutor pompa, tanpa baca sensor)@endif</span></li>
+                    <li><span class="k">Tipe Perangkat</span><span class="v">{{ $device->device_type }}@if($device->device_type === 'MONITOR') (sensor + pompa, fungsi ganda)@else (pompa saja, tanpa baca sensor)@endif</span></li>
                     <li><span class="k">Waktu Nyala</span><span class="v" id="val-uptime">{{ floor(($device->uptime ?? 0) / 3600) }} jam {{ floor((($device->uptime ?? 0) % 3600) / 60) }} menit</span></li>
                     <li><span class="k">Free Heap</span><span class="v" id="val-heap">{{ number_format(($device->free_heap ?? 0) / 1024, 1) }} KB</span></li>
                     <li><span class="k">Reset Terakhir</span><span class="v" id="val-reset-reason">{{ $device->reset_reason ?: '-' }}</span></li>
