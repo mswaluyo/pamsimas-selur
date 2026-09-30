@@ -481,7 +481,7 @@ sementara ACTUATOR murni penggerak pompa tanpa andil sensor.
 
 **Konsekuensi:** menaikkan nilai itu memperlambat **respons perintah** (pump_command, config/mode update + ack, restart/OTA) dan melambatkan penyegaran `water_percentage` bagi ACTUATOR — tetapi **tidak** mengubah laju pelaporan sensor (tetap 3 dtk), tidak mengubah status online (`Device::isOnline()` = 300 dtk, `Device.php:54-57`; heartbeat `/api/health` 60 dtk, `Pamsimas_Hybrid.ino:127`), dan tidak mengubah agregasi menit/jam (`aggregate()`, `DeviceApiController.php:635-653`).
 
-**Tindakan (sudah dideploy, `b...` → lihat `DEPLOY_VSCODE.md` §9 Task #54):**
+**Tindakan (sudah dideploy, commit `7149e32` → lihat `DEPLOY_VSCODE.md` §9 Task #54):**
 - Field **"Interval Lapor (detik)" dihapus** dari form Registrasi & Edit Perangkat
   (`resources/views/devices/_form.blade.php`).
 - Validasi `report_interval` dilepas dari `DeviceController::update()` sehingga kiriman
