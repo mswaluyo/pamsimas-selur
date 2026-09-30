@@ -415,4 +415,49 @@ API: ... 'report_event' -> 'EMERGENCY: Sensor Error - Pompa Dimatikan' (HTTP 200
 - [ ] Opsional (**belum** dikerjakan): saring baris `water_percentage = -1` dari grafik riwayat dashboard
       agar tidak dianggap level 0 %, dan tampilkan badge "level tidak terukur — pengisian buta aktif" di
       dashboard saat event terakhir device adalah `Sensor tidak terbaca`.
+- [x] **Keterbacaan tipe perangkat di form diperbaiki (30 Sep 2026).** Lihat bagian **7.7**.
+
+### 7.7 Salah pilih Tipe Perangkat = sensor tidak pernah dibaca (30 Sep 2026)
+
+**Gejala** (log serial perangkat yang dikira punya sensor, mode AUTO, pompa ON):
+
+```
+[PROSES PENGECEKAN KONFIGURASI ...] semua parameter sensor terkirim (Jarak Penuh 25 cm, Jarak Kosong 225 cm, ...)
+FETCH: Konfigurasi identik. Melewati penulisan EEPROM.
+SENSOR: Mode Actuator, melewati pembacaan sensor fisik.
+FETCH: Level air dari server: 27 %
+```
+
+**Penyebab** (bukan sensor rusak): perangkat terdaftar sebagai **ACTUATOR**, padahal
+memakai sensor ultrasonik. `measureAndSendData()` keluar lebih dulu saat `device_mode == 0`
+(`.fw_code/Pamsimas_Hybrid/Pump_Sensor_Logic.ino:17-20`) sehingga **HC-SR04 tidak pernah dibaca**; level air
+hanya diambil dari `water_percentage` server (`API_Communication.ino:60-62`, `163-165`). Padahal log
+konfigurasi tetap menampilkan seluruh parameter sensor — parameternya terkirim, tapi tidak dipakai untuk
+membaca — sehingga mudah disalahartikan sebagai "sensor aktif".
+
+**Aturan praktis (dokumen ini; belum ada validasi di server):**
+
+| Tipe | Peran | Sensor fisik | Pompa |
+|---|---|---|---|
+| `MONITOR` | Membaca & melapor level air tiap *Interval Lapor* | **Ya** (HC-SR04) | Pada mode AUTO relay ikut logika level air → satu papan cukup |
+| `ACTUATOR` | Mengeksekusi nyala/mati pompa + timer ON/OFF saat link putus | **Tidak** (dilewati firmware) | Ya; level air diambil dari MONITOR satu tangki |
+
+- MONITOR → `device_mode = 1`, ACTUATOR → `device_mode = 0`; nilai dikirim dari
+  `device_type` (`DeviceApiController.php:184`) — **bukan** dari `sensor_id`. Perangkat boleh
+  `device_type = ACTUATOR` sambil tetap punya `sensor_id` (master data dipakai untuk ambang), sehingga
+  `sensor_id` **bukan** penentu mode.
+- "Interlock satu bak": log level dari MONITOR langsung memicu `applyAutoControl()` pada ACTUATOR
+  `tank_id` yang sama (`DeviceApiController.php:129-137`). Kalau tidak ada MONITOR di tangki itu,
+  level air ACTUATOR **beku** di laporan terakhir dan pompa tidak bekerja sesuai pemicu.
+- **Perbaikan UI (sudah dideploy):** label opsi form `Tipe Perangkat` + hint dinamis di bawahnya
+  (`resources/views/devices/_form.blade.php`), dan baris "Sumber Data Monitor" → "Sumber Level Air"
+  (`devices/show.blade.php:209`) kini jujur soal siapa yang membaca sensor.
+- [ ] **Validasi server** (usul): saat `device_type = ACTUATOR` tanpa MONITOR lain di `tank_id` yang sama,
+      tampilkan peringatan (bukan error) di form + halaman detail. Konfirmasi dulu dengan operator karena
+      perangkat single-board mungkin sengaja di-set ACTUATOR.
+- [ ] **Cek cepat saat debug log serial:** baris `SENSOR: Mode Actuator, melewati pembacaan sensor fisik.`
+      = perangkat dalam mode ACTUATOR. Kalau seharusnya punya sensor, perbaiki `device_type` di
+      Pengaturan → Perangkat (tidak perlu flash ulang; `config_update_command` +
+      `mode_update_command` sudah dinaikkan oleh `DeviceController::update()` dan diturunkan lagi
+      setelah perangkat ack `reset_config`).
 
