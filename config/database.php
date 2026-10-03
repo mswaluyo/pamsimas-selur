@@ -59,6 +59,12 @@ return [
             'prefix_indexes' => true,
             'strict' => true,
             'engine' => null,
+            // PAMSIMAS: sinkronkan timezone sesi MySQL ke WIB (padanan
+            // `SET time_zone='+07:00'` di core/Database.php sistem lama).
+            // Kolom TIMESTAMP (sensor_logs.record_time, pump_logs.timestamp,
+            // event_logs.event_time, devices.last_update) otomatis dibaca WIB;
+            // CURRENT_TIMESTAMP default pun ikut WIB.
+            'timezone' => env('DB_TIMEZONE', '+07:00'),
             'options' => extension_loaded('pdo_mysql') ? array_filter([
                 (PHP_VERSION_ID >= 80500 ? Mysql::ATTR_SSL_CA : PDO::MYSQL_ATTR_SSL_CA) => env('MYSQL_ATTR_SSL_CA'),
             ]) : [],
@@ -79,6 +85,8 @@ return [
             'prefix_indexes' => true,
             'strict' => true,
             'engine' => null,
+            // Sama seperti koneksi mysql: sesi MariaDB memakai WIB (+07:00).
+            'timezone' => env('DB_TIMEZONE', '+07:00'),
             'options' => extension_loaded('pdo_mysql') ? array_filter([
                 (PHP_VERSION_ID >= 80500 ? Mysql::ATTR_SSL_CA : PDO::MYSQL_ATTR_SSL_CA) => env('MYSQL_ATTR_SSL_CA'),
             ]) : [],

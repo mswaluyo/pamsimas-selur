@@ -63,9 +63,13 @@ return [
     | will be used by the PHP date and date-time functions. The timezone
     | is set to "UTC" by default as it is suitable for most use cases.
     |
+    | PAMSIMAS: memakai WIB (Asia/Jakarta) seperti sistem lama (backup_pamsimas
+    | .env: TIMEZONE=Asia/Jakarta) — seluruh riwayat sensor/pompa/kejadian
+    | ditampilkan memakai jam lokal operator.
+    |
     */
 
-    'timezone' => 'UTC',
+    'timezone' => env('APP_TIMEZONE', 'Asia/Jakarta'),
 
     /*
     |--------------------------------------------------------------------------

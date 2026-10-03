@@ -596,4 +596,69 @@ bergantung pada data MONITOR — lewat server, bukan langsung.
 - **Sekunder:** pisahkan catu daya/beban relay (R6) atau tambahkan snubber; isi
   `duration_seconds`; simpan `reset_reason` per kejadian `boot`.
 
+### 7.10 Riwayat meleset 7 jam: aplikasi Laravel memakai UTC, seharusnya WIB (3 Okt 2026)
+
+**Gejala (laporan operator).** Setelah perangkat di-flash, riwayat (sensor/pompa/kejadian)
+tidak cocok dengan jam sekarang.
+
+**Bukti jam dinding operator = WIB, bukan UTC:**
+- Mesin kerja operator: `2026-10-03 20:35:07 +07:00`, zona `SE Asia Standard Time` =
+  *(UTC+07:00) Bangkok, Hanoi, Jakarta*, `BaseUtcOffset 07:00:00`, tanpa DST; selisih vs
+  UTC tepat 7,000000 jam.
+- Firmware: `long timeZone = 7 * 3600;` (`Pamsimas_Hybrid.ino:109`) — preset lokal +7.
+- Sistem lama: `backup_pamsimas/.env` → `TIMEZONE=Asia/Jakarta`;
+  `backup_pamsimas/public/index.php:86` & `core/Database.php:15` →
+  `date_default_timezone_set('Asia/Jakarta')`; `core/Database.php:57-62` →
+  `SET time_zone='+07:00'` dengan komentar "agar query berbasis waktu (NOW, DATE_SUB) akurat".
+- Port Laravel **kehilangan** keduanya: `config/app.php:68` `'UTC'`, koneksi `mysql` tanpa
+  kunci `timezone` → sesi MySQL `SYSTEM` = UTC. Semua stempel memakai `now()`
+  (`DeviceApiController.php:121,336,401`) dan semua view mencetak nilai mentah
+  (`logs/sensors.blade.php:28`, `logs/events.blade.php:27`, `logs/pumps.blade.php:28`,
+  `devices/show.blade.php:228,285`) → riwayat tampil 7 jam lebih muda.
+
+**Perbaikan (mengikuti sistem lama) — sudah live:**
+
+| Berkas | Perubahan |
+|---|---|
+| `config/app.php` | `'timezone' => env('APP_TIMEZONE', 'Asia/Jakarta')` |
+| `config/database.php` (blok `mysql` & `mariadb`) | `'timezone' => env('DB_TIMEZONE', '+07:00')` — didukung Laravel 12 (`vendor/laravel/framework/.../MySqlConnector.php:110-111`) |
+| `.env.example` | `APP_TIMEZONE=Asia/Jakarta`, `DB_TIMEZONE=+07:00` (opsional; default config sudah WIB, sehingga `.env` server **tidak** diubah = mudah dibalik) |
+
+**Kenapa data lama tidak perlu diubah:** kolom `TIMESTAMP` (`sensor_logs.record_time`,
+`pump_logs.timestamp`, `event_logs.event_time`, `devices.last_update`) disimpan sebagai
+instan UTC; begitu sesi MySQL `+07:00`, pembacaan otomatis WIB (terbukti: `sensor_logs.max`
+02:09:52 → **09:09:52**; event 13:27 → **20:27**). Kolom `DATETIME` agregat **tidak** ikut
+terkonversi → digeser sekali `+7 HOUR`: `minute_sensor_logs` 7.524 baris,
+`hourly_sensor_logs` 135 baris (4 tabel agregat lain kosong). UPDATE wajib
+`ORDER BY <kolom> DESC` karena PK `(device_id, timestamp)` — tanpa itu MySQL bentrok
+"Duplicate entry" saat memproses baris demi baris.
+**Verifikasi deploy (3 Okt 2026, semuanya lulus):** `config('app.timezone') = Asia/Jakarta`
+dan sesi MySQL `+07:00` dengan `now() = 20:38:25` selagi `date` server
+`13:38:25 UTC` (= beda tepat 7 jam); jalur yang sama dipakai view
+(Eloquent cast + `format`) → event `03-10-2026 19:26:35`, pump `20:27:51`,
+sensor `30-09-2026 09:09:52`, device `20:38:23` + `online = YA`;
+agregat menit `2026-09-30 09:09:00` **cocok** dengan rata-rata `sensor_logs` pada menit itu
+(selisih pada baris jam adalah efek normal "rata-rata dari rata-rata menit", bukan geseran);
+`laravel.log` error 94 → 94 (tidak bertambah); perangkat tetap polling
+`/api/status` HTTP 200 tiap 3 detik; `/login` 200; MD5 config terpasang
+`0dd01448aaad768b24b8a9a042a0631d` (app.php) & `63bd61644cea74a7be2df79f04829e03`
+(database.php); cadangan config `/tmp/backup-tz-20261003-133648`.
+
+**Catatan penting:**
+- `APP_TIMEZONE` dan `DB_TIMEZONE` **wajib sejalan**. Kalau hanya salah satu diubah,
+  `Device::isOnline()` (ambang 300 dtk) dan timer dashboard meleset 7 jam.
+- Tabel cadangan agregat pra-geser **tidak dipertahankan** (terhapus saat dedup tabel
+  cadangan ganda). Amankan karena `minute/hourly_sensor_logs` adalah turunan
+  `sensor_logs` (mentah, utuh 108.327 baris) dan geseran reversibel dengan `-7 HOUR`.
+- Firmware **tidak** perlu di-flash ulang; `server_time` (epoch UTC) tidak berubah.
+- **Rollback:** kembalikan 2 berkas config dari `/tmp/backup-tz-…` → `config:clear`
+  → (opsional) geser agregat `-7 HOUR` dengan `ORDER BY <kolom> ASC`.
+- Temuan menyertai saat analisa ini: pasca-flash kedua perangkat sudah memakai firmware
+  `Sep 29 2026 20:38:26`, tetapi **MONITOR #2 masih belum mengirim data**
+  (`sensor_logs` berhenti di 30 Sep; 0 request `/api/log` di access log; `uptime`
+  hanya 128 detik saat kontak terakhir 19:26 WIB) dan **ACTUATOR #3 reboot tiap 1-2 menit**
+  (`uptime = 120.001 ms`, event `boot` berulang, `reset_reason = Power On`) — lihat §7.9
+  (R6 brownout) dan Opsi C untuk tindakan lapangan.
+
+
 
