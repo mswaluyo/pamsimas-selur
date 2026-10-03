@@ -596,6 +596,13 @@ bergantung pada data MONITOR — lewat server, bukan langsung.
 - **Sekunder:** pisahkan catu daya/beban relay (R6) atau tambahkan snubber; isi
   `duration_seconds`; simpan `reset_reason` per kejadian `boot`.
 
+> **UPDATE 3 Okt 2026 (lihat §7.12):** untuk bak **Pamsimas Mbaran**, R1 (risiko luber),
+> R4 (ACTUATOR tanpa MONITOR), dan **Opsi C** dinyatakan **TIDAK BERLAKU** — operator
+> sengaja mematikan MONITOR #2 agar ACTUATOR #3 berjalan **otonom AUTO** karena debit air
+> masih kurang (pengisian menerus memang diinginkan). **Opsi A/B dibatalkan.**
+> Yang tetap berlaku: R2/R3 sudah diperbaiki (§7.11), R6 (catu daya/brownout) masih
+> relevan, dan `on_duration`/`off_duration` menjadi satu-satunya proteksi siklus.
+
 ### 7.10 Riwayat meleset 7 jam: aplikasi Laravel memakai UTC, seharusnya WIB (3 Okt 2026)
 
 **Gejala (laporan operator).** Setelah perangkat di-flash, riwayat (sensor/pompa/kejadian)
@@ -661,7 +668,47 @@ agregat menit `2026-09-30 09:09:00` **cocok** dengan rata-rata `sensor_logs` pad
   (`uptime = 120.001 ms`, event `boot` berulang, `reset_reason = Power On`) — lihat §7.9
   (R6 brownout) dan Opsi C untuk tindakan lapangan.
 
+### 7.12 Keputusan operator: bak **Pamsimas Mbaran** sengaja berjalan OTONOM AUTO tanpa sensor (3 Okt 2026)
+
+**Pernyataan operator (3 Okt 2026).**
+1. Perbaikan riwayat/grafik §7.11 sudah sesuai harapan.
+2. **Risiko luber tidak berlaku**: kenyataannya **debit air masih kurang**, sehingga pengisian
+   menerus memang diinginkan.
+3. **MONITOR #2 dimatikan atas permintaan operator** (bukan kerusakan/kabel putus) agar
+   ACTUATOR #3 berjalan **otonom di mode AUTO**.
+
+**Konsekuensi yang disengaja (dan diterima):**
+- Level acuan #3 tidak pernah sahih ⇒ server mengirim `water_percentage = 0` (basi) +
+  `source_ready = 1` ⇒ firmware AUTO #3 mempertahankan pengisian.
+- Siklus nyata: **ON = `on_duration` (30 menit) → istirahat `off_duration` (10 menit)**,
+  berulang terus. Dua timer inilah **satu-satunya proteksi** (tidak ada proteksi berbasis
+  level). Karena itu `on_duration`/`off_duration` di master data **wajib** diisi wajar.
+- Pompa #2 (Pompa Mbaran) tidak bertenaga selama perangkat #2 mati ⇒ praktis hanya
+  Pompa Kendal (#4, lewat #3) yang mengisi bak ini.
+
+**Yang TIDAK dilakukan (dicabut dari rencana):**
+- Opsi A/B §7.9 (menandai sumber basi lalu **menghentikan** pompa / `source_ready = 0`)
+  **dibatalkan** — bertentangan dengan keputusan ini. Jangan diimplementasikan tanpa
+  persetujuan baru dari operator.
+- Rekomendasi §7.9 R1/R4 & Opsi C (pindahkan #3 ke MANUAL, cabut relay) **dinyatakan tidak
+  berlaku** untuk bak Pamsimas Mbaran.
+
+**Yang masih layak dipertimbangkan (opsional, tidak mengubah perilaku):**
+- Label UI yang jujur: tampilkan "sumber level mati — mode otonom (siklus 30 mnt ON /
+  10 mnt OFF)" alih-alih angka `0%` yang tampak seperti pembacaan nyata
+  (`DashboardApiController::data()` tetap mengirim `water_percentage = 0`).
+- Bila kelak debit sudah cukup: hidupkan kembali MONITOR #2 → AUTO otomatis kembali
+  berbasis level (tanpa perubahan kode).
+- Jangan sampai **dua pompa** mengisi bak yang sama secara bersamaan ketika #2 dihidupkan
+  kembali (periksa penugasan `pump_id` #2 vs #3 di master data).
+
+**Status teknis pendukung:** siklus 30,1 mnt ON / 10,0 mnt OFF terverifikasi live
+(§7.11); laporan relay diterima server sebagai `set_status` perangkat, dan sejak
+perbaikan §7.11 server tidak lagi menimpanya.
+
 ### 7.11 Grafik tidak menampilkan istirahat 10 menit — server menimpa laporan OFF perangkat (3 Okt 2026)
+
+*(Perbaikan teknis di website; keputusan operator yang menyertainya ada di §7.12 di atas.)*
 
 **Gejala (laporan operator).** Di grafik halaman perangkat ACTUATOR tidak terlihat jeda OFF
 10 menit; seolah pompa nyala terus (_ON_ ~40 menit sekali siklus).
