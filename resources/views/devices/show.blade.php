@@ -206,7 +206,20 @@
                 <ul class="detail-list">
                     <li><span class="k">Nama Pompa</span><span class="v" id="val-pump-name">{{ $device->pump?->pump_name ?? 'N/A' }}</span></li>
                     <li><span class="k">Tangki</span><span class="v">{{ $device->tank?->tank_name ?? '-' }}</span></li>
-                    <li><span class="k">Sumber Level Air</span><span class="v" id="val-data-source">@if($device->device_type === 'MONITOR')Sensor ultrasonik pada perangkat ini (relay ikut logika AUTO){{ $device->sensor ? ' (' . $device->sensor->sensor_name . ')' : '' }}@else{{ 'Dari perangkat MONITOR satu tangki (perangkat ini pompa saja)' }}@endif &mdash; Bak {{ $device->tank?->tank_name ?? '-' }}</span></li>
+                    @php
+                        // Sumber level air = sensor terdaftar. MONITOR memakai sensor miliknya sendiri;
+                        // ACTUATOR memakai sensor milik perangkat MONITOR pada tangki yang sama
+                        // (interlock `DeviceApiController::tankMonitor()`). Penjelasan peran perangkat
+                        // sudah ada di baris "Tipe Perangkat", jadi di sini cukup nama sensornya.
+                        $sumberSensor = $device->sensor?->sensor_name;
+                        if ($device->device_type !== 'MONITOR' && $device->tank_id) {
+                            $sumberSensor = \App\Models\Device::where('tank_id', $device->tank_id)
+                                ->where('device_type', 'MONITOR')
+                                ->where('id', '!=', $device->id)
+                                ->first()?->sensor?->sensor_name;
+                        }
+                    @endphp
+                    <li><span class="k">Sumber Level Air</span><span class="v" id="val-data-source">{{ $sumberSensor ?: 'Belum ada sensor terdaftar' }}</span></li>
                     <li><span class="k">Sinkron Offline</span><span class="v">{{ $device->last_offline_sync?->format('d-m-Y H:i:s') ?? '-' }}</span></li>
                 </ul>
             </div>

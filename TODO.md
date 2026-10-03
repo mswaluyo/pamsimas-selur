@@ -796,6 +796,28 @@ Cadangan view: `/tmp/backup-view-20261003-150920`.
 **Catatan gaya penulisan Blade (cegah terulang):** setelah direktif **tanpa argumen**
 (`@else`, `@endif`, `@endforeach`, `@empty`, `@endwhile`) selalu beri spasi/newline; jangan
 menyambungnya langsung ke kata (mis. `@elseDari`), karena akan dibaca sebagai direktif baru.
+
+### 7.14 Penyederhanaan label "Sumber Level Air" — cukup nama sensor terdaftar (3 Okt 2026)
+
+**Usulan operator.** Di halaman detail perangkat, baris *Sumber Level Air* cukup menyebutkan
+**sumbernya saja = nama sensor yang terdaftar**; tidak perlu kalimat panjang
+("Sensor ultrasonik pada perangkat ini (relay ikut logika AUTO) …", "… (perangkat ini pompa
+saja) — Bak …"). Peran perangkat sudah dijelaskan baris **Tipe Perangkat**
+("MONITOR (sensor + pompa, fungsi ganda)" / "ACTUATOR (pompa saja, tanpa baca sensor)") dan
+nama bak sudah ada pada baris **Tangki**, jadi keduanya berulang.
+
+**Perubahan (`resources/views/devices/show.blade.php`, blok `@php` + satu baris `<li>`):**
+- **MONITOR** → nama sensor miliknya sendiri (`$device->sensor?->sensor_name`).
+- **ACTUATOR** → nama sensor milik perangkat **MONITOR se-tangki** (resolusi sama dengan
+  interlock `DeviceApiController::tankMonitor()`), karena ACTUATOR tidak punya sensor sendiri
+  (`sensor_id = NULL` pada #3).
+- Tidak ada sensor terdaftar ⇒ teks `Belum ada sensor terdaftar` (bukan kalimat panjang).
+- Sufiks `— Bak <nama tangki>` dihapus karena sudah ada baris *Tangki*.
+
+**Verifikasi.** MD5 terpasang `85d8caeef7350042be8fe793facf62e7` (lokal = server),
+`view:clear` + `view:cache` OK; blok 14 baris **diambil langsung dari berkas terpasang** lalu
+dirender dengan data nyata → **#2 MONITOR**: `Sensor Mbaran`; **#3 ACTUATOR**: `Sensor Mbaran`
+(diambil dari MONITOR se-tangki). Cadangan view `/tmp/backup-view-20261003-151527`.
 - `applyAutoControl()` kini murni saran; interlock `source_ready` bawaan sistem lama
   (`source_ready == 0` ⇒ firmware lama mematikan pompa) belum dipulihkan: port ini masih
   mengirim `source_ready = 1` hardcode dan firmware Hybrid belum membacanya (butuh
