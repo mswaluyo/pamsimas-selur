@@ -495,3 +495,105 @@ sementara ACTUATOR murni penggerak pompa tanpa andil sensor.
       **3–300 detik** — jangan di bawah 3 detik karena satu siklus pengukuran saja sudah ±0,5–0,6 dtk
       (8 bacaan × `delay(50)`, `Pump_Sensor_Logic.ino:133-146`) dan `setTimeout` SSL 5 dtk.
 
+### 7.9 Analisa: perilaku ACTUATOR saat **sumber level air offline** (3 Okt 2026)
+
+**Definisi.** "Sumber" = perangkat **MONITOR se-tangki** yang memasok level air
+(label UI `Sumber Level Air`, `devices/show.blade.php:209`). ACTUATOR tidak punya
+sensor sendiri (`sensor_id = NULL`; `measureAndSendData()` langsung `return` untuk
+`device_mode == 0`, `Pump_Sensor_Logic.ino:17-20`), jadi seluruh keputusan AUTO-nya
+bergantung pada data MONITOR — lewat server, bukan langsung.
+
+**Kondisi nyata saat analisa dibuat (bukan simulasi):**
+
+| Objek | Keadaan |
+|---|---|
+| MONITOR #2 `C4:D8:D5:13:A6:17` | **OFFLINE sejak 30 Sep 2026 02:09:49** (± 82 jam / 3,4 hari). Tidak ada kontak `/api/*` sama sekali (heartbeat 60 dtk pun tidak) |
+| Log terakhir MONITOR #2 | `record_time = 2026-09-30 02:09:52`, `pct = 0`, `cm = 255,82` (melebihi `empty_tank_distance` 225 cm) |
+| ACTUATOR #3 `CC:50:E3:52:F3:B6` | **ONLINE** (poll 3 dtk), `mode = AUTO`, `status = ON`, `sensor_id = NULL`, `on_duration = 30 mnt`, `off_duration = 10 mnt`, `trigger = 70%`, firmware `Jul 20 2026 09:14:35` |
+| Respons `/api/status` #3 (curl loopback) | `water_percentage: 0`, **`source_ready: 1`**, `pump_command: "ON"`, `on_duration: 1800`, `off_duration: 600` |
+
+**Rantai keputusan (server → firmware):**
+1. `DeviceApiController::resolveWaterInfo()` (baris 47-62) mengambil **log terakhir
+   MONITOR se-tangki tanpa memeriksa umur data** → pct = 0 (data 3,4 hari lalu).
+   Tidak ada satu pun pemakaian `isOnline()` untuk data level (hanya badge UI).
+2. `status()` (baris 177, 186-189) mengirim `water_percentage: 0` +
+   **`source_ready: 1` hardcode** (komentar baris 187-188: "pompa tetap bisa
+   dikendalikan meski monitor hilang").
+3. `applyAutoControl()` (baris 71-88) memakai `pct < trigger` → **status ON** dan
+   menulis `pump_logs` "Pompa ON (AUTO) @ 0%". Server tidak pernah tahu angka 0 itu
+   sudah basi.
+4. Firmware `fetchQuickStatus()` (baris 60-63) menyalin `water_percentage` ke
+   `waterLevelPer` (khusus `device_mode == 0`); relay dari server hanya disinkronkan
+   di mode non-AUTO (baris 82) ⇒ **di AUTO keputusan relay murni milik firmware**
+   dengan angka basi tadi.
+5. `runUniversalPumpLogic()` AUTO: `waterLevelPer <= trigger` → ON; OFF hanya bila
+   `waterLevelPer >= 98` (tidak akan pernah) **atau** safety cut-off
+   (`pumpOnDuration`). Setelah cut-off: `isResumingFill = true` bila `waterLevelPer < 95`
+   (`Pump_Sensor_Logic.ino:182-183`) → istirahat `off_duration` → **isi lagi**, berulang.
+6. `source_ready` **tidak dibaca firmware sama sekali** (tidak ada di `*.ino`), jadi
+   walau server mengirim 0/1, perilaku tidak berubah tanpa flash ulang.
+**Perilaku terukur (`pump_logs`/`event_logs` #3, 24 jam terakhir):**
+- 41 siklus ON, rata-rata **ON 34,6 mnt / OFF 0,2 mnt** (angka OFF adalah artefak, lihat R2).
+  Pola event: `Pompa OFF (AUTO) — laporan perangkat` → `Safety Cut-off: Durasi Maksimal`
+  → **4 detik** kemudian `Pompa ON (AUTO) @ 0%`.
+- Siklus fisik sebenarnya = **30 mnt nyala + 10 mnt istirahat** (`on_duration` = 1800 s,
+  `off_duration` = 600 s) ⇒ "isi buta" hampir 24 jam/hari, 3,4 hari berturut-turut,
+  tanpa satu pun alarm di dashboard.
+- Episode tidak stabil 10:51-12:00: boot berulang (10:51:15, 11:00:53, 11:26:39,
+  11:31:59, 11:41:49, 11:45:34; `reset_reason = Power On`) — tiap kali tepat **2-3 detik
+  setelah relay turun** (safety cut-off) ⇒ indikasi **brownout saat kontaktor pompa lepas**
+  (catu ESP sebaris beban pompa, tanpa snubber/PSU terpisah).
+- `duration_seconds` di `pump_logs` selalu **0** (kolom tidak pernah diisi kode).
+
+**Risiko/celah yang teridentifikasi:**
+- **R1 — Isi buta tak terbatas tanpa peringatan.** Data beku `< 95%` ⇒ ACTUATOR mengisi
+  terus (siklus 30/10) selamanya; proteksi hanya dua timer itu. Monitor yang mati tidak
+  bisa melihat air naik ⇒ **risiko luber** (tergantung pelampung fisik). Pengisian baru
+  berhenti sendiri bila data beku **>= 95%** (kondisi `isResumingFill` tidak terpenuhi).
+- **R2 — Server menimpa laporan OFF perangkat.** `applyAutoControl()` menulis
+  `status = ON` ~4 detik setelah firmware melaporkan cut-off/OFF ⇒ di DB & dashboard pompa
+  tampak **ON padahal relay sedang istirahat 10 menit**, dan `pumpStatusSince` (badge timer)
+  jadi **10 menit lebih awal** dari kenyataan (`DashboardController.php:112-119`,
+  `DashboardApiController.php:46-50`). Ada dua pengendali AUTO (server & firmware) untuk
+  aktuator yang sama.
+- **R3 — Ambang OFF tidak konsisten.** Server OFF di `pct >= 99`
+  (`DeviceApiController.php:79`); firmware OFF di `pct >= 98` (`Pump_Sensor_Logic.ino:264`).
+  Pita 98-98,99% bisa membuat status DB berbeda dari relay. Ambang ON juga beda: `<=`
+  (firmware) vs `<` (server).
+- **R4 — ACTUATOR tanpa MONITOR = pompa "ON" permanen.** `tankMonitor()` `null` ⇒
+  fallback ke log ACTUATOR sendiri yang tidak pernah ada ⇒ `pct = 0` selamanya (belum ada
+  validasi/peringatan di UI — butir backlog §7.8).
+- **R5 — Tidak ada indikator kesegaran data di UI.** Gauge/dashboard menampilkan
+  `water_percentage: 0` + "Online" untuk #3 tanpa membedakan "tangki kosong" dan "sumber
+  mati 3,4 hari" (`DashboardApiController.php:31-42` hanya fallback nilai, tanpa umur data;
+  `devices/show.blade.php:209` masih teks statis).
+- **R6 — Reboot saat relay turun** menghapus `isCoolingDown` & `pumpStartTime` (variabel RAM)
+  ⇒ jendela proteksi 30 menit **mulai ulang dari nol** dan pompa langsung distart ulang,
+  memperbanyak start/stop motor.
+- **R7 — ACTUATOR yang benar-benar offline** (WiFi mati) memakai cabang timer
+  (`Pump_Sensor_Logic.ino:205-243`) dengan pola 30/10 yang sama ⇒ **safeguard-nya identik**;
+  mematikan WiFi perangkat tidak menambah proteksi apa pun terhadap sumber yang mati.
+  Di cabang itu `sendControlCommand("report_event", ...)` tetap dipanggil walau offline
+  (komentar "tidak bisa kirim ke server" hanya pada `set_status`) ⇒ setiap transisi
+  menunggu timeout TLS.
+
+**Rekomendasi (belum diimplementasikan — butuh keputusan kebijakan):**
+- **Opsi A (tanpa flash).** Tandai level basi di server: bila `record_time` log monitor
+  lebih tua dari **600 detik**, kirim `source_ready = 0` + tambah `source_age_seconds`;
+  `applyAutoControl()` tidak boleh memaksa ON dari data basi (paling sedikit: tulis
+  `event_logs` "Sumber level air basi (MONITOR #x offline)"), dan tampilkan badge merah di
+  dashboard/gauge. ACTUATOR tanpa MONITOR ⇒ `source_ready = 0` sejak awal.
+  Efek lapangan: hentikan isi buta #3 sampai monitor dicek.
+- **Opsi B (A + firmware, butuh flash).** Firmware membaca `source_ready`/`source_age_seconds`:
+  bila basi ⇒ AUTO tidak mempertahankan pengisian otomatis (masuk "safety rest", buzzer +
+  `report_event`), atau batasi **N siklus isi buta** lalu berhenti sampai monitor pulih.
+  Sekaligus: samakan ambang 98 vs 99, isi `duration_seconds`, catat `reset_reason` per boot.
+- **Opsi C (operasional, tanpa kode).** Periksa MONITOR #2 hari ini (catatan terakhirnya
+  `cm = 255,82` di luar batas kosong 225 cm lalu hilang total) dan selama sumber belum
+  pulih **pindahkan #3 ke MANUAL / cabut relay** — di MANUAL `applyAutoControl()` berhenti
+  (`control_mode !== 'AUTO'`) dan pompa hanya mengikuti dashboard (proteksi cooling-down tetap
+  aktif).
+- **Sekunder:** pisahkan catu daya/beban relay (R6) atau tambahkan snubber; isi
+  `duration_seconds`; simpan `reset_reason` per kejadian `boot`.
+
+
