@@ -697,9 +697,20 @@ MD5 terpasang `000547f84e7f87ffd37ce5990bfff158`, `laravel.log` error 94 → 94,
 perangkat tetap `GET /api/status` HTTP 200 tiap 3 detik.
 
 **Sisa yang belum ditangani (masih terbuka):**
-- 187 event lama `Pompa ON (AUTO) @ x%` di `event_logs` (phantom dari server) masih
-  tersimpan → grafik masa lalu tetap kurang akurat. Perbaikan menyeluruh opsional:
-  rekonstruksi ON = (waktu OFF perangkat + `off_duration`).
+- **Riwayat lama sudah direkonstruksi (3 Okt 2026 21:40 WIB).** Dari 187 event phantom
+  `Pompa ON (AUTO) @ x%`: **156** digeser ke ON nyata = (waktu OFF perangkat +
+  `off_duration`, pesan diberi tanda `(rekonstruksi)`), **11 dikembalikan** ke waktu asli
+  karena siklusnya dimulai setelah **reboot** (perangkat menyala segera, tanpa menunggu
+  istirahat), dan **20 dilewati** (perpotongan waktu terlalu rapat saat reboot beruntun).
+  Sisa 31 baris `Pompa ON (AUTO) @ x%` memang ON asli/interupsi reboot sehingga dibiarkan.
+  Cadangan sebelum perubahan: `event_logs_bak_20261003_214008` (2.050 baris) dan
+  `pump_logs_bak_20261003_214008` (1.221 baris) — bisa dibandingkan/dipulihkan.
+- **Bukti live pasca-fix:** pengamat mencatat `21:37:27 status_db=ON` → perangkat lapor
+  OFF `21:38:01` → `21:38:12 status_db=OFF` **tanpa** ON palsu (sebelumnya selalu muncul
+  3-4 detik setelah OFF), lalu perangkat lapor ON kembali. Hasil akhir siklus nyata:
+  `20:57:57 OFF → 21:07:57 ON` (jeda **10,0** menit) dan `21:38:01 OFF (laporan perangkat)
+  → 21:48:02 ON (laporan perangkat)` (jeda **10,0** menit) dengan durasi nyala **30,1**
+  menit per siklus — grafik kini menampilkan 30 menit ON + 10 menit OFF sesuai kenyataan.
 - `applyAutoControl()` kini murni saran; interlock `source_ready` bawaan sistem lama
   (`source_ready == 0` ⇒ firmware lama mematikan pompa) belum dipulihkan: port ini masih
   mengirim `source_ready = 1` hardcode dan firmware Hybrid belum membacanya (butuh
