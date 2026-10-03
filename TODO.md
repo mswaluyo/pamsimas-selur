@@ -818,6 +818,43 @@ nama bak sudah ada pada baris **Tangki**, jadi keduanya berulang.
 `view:clear` + `view:cache` OK; blok 14 baris **diambil langsung dari berkas terpasang** lalu
 dirender dengan data nyata → **#2 MONITOR**: `Sensor Mbaran`; **#3 ACTUATOR**: `Sensor Mbaran`
 (diambil dari MONITOR se-tangki). Cadangan view `/tmp/backup-view-20261003-151527`.
+
+### 7.15 Grafik "muncul dari bawah" setiap live refresh (3 Okt 2026)
+
+**Gejala (laporan operator).** Grafik riwayat di halaman detail perangkat tampak
+**muncul/tumbuh dari bawah setiap live refresh** (tiap 5 detik). Yang diharapkan: garis
+cukup **bertambah panjang**; animasi masuk hanya saat halaman di-reload.
+
+**Sebab.** `updateChart()` (`resources/views/devices/show.blade.php`) memanggil
+`chart.update()` — animasi Chart.js aktif — **dan** mengganti `chart.options` secara utuh
+(`chart.options = options`) pada setiap refresh. Chart.js memperlakukan opsi/deret yang
+diganti sebagai keadaan baru sehingga memutar ulang animasi masuk (tumbuh dari garis dasar).
+
+**Perbaikan.** Chart diperbarui **di tempat** dan **tanpa animasi**:
+hanya bagian yang dinamis yang diubah — `chart.data.datasets`, anotasi
+(`chart.options.plugins.annotation.annotations`), `scales.x.time.unit`,
+`scales.y.beginAtZero`, `scales.y.min` — lalu `chart.update('none')`. Chart hanya dibuat
+sekali (`new Chart(...)`), sehingga animasi tumbuh-dari-bawah terjadi **hanya** saat chart
+pertama dibuat (reload halaman / pindah perangkat).
+
+**Verifikasi (harness Node, A/B — bukan sekadar baca kode).** Blok grafik
+(`function boxAnnotation` … sebelum `async function fetchChartData`) diekstrak dari berkas,
+`Chart` di-stub yang mencatat konstruksi + argumen `update()`:
+
+| Berkas | Konstruksi Chart | Mode `update()` |
+|---|---|---|
+| Sebelum (cadangan server) | 1 | `(default = beranimasi)` × 3 |
+| Sesudah (lokal) | 1 | `none` × 3 |
+| Sesudah (**unduhan dari server**) | 1 | `none` × 3 |
+
+Dataset & anotasi tetap diperbarui (`pumpBoxLast`, `triggerLine`), dan `scales.x.time.unit`
+ikut berubah saat rentang diganti (`live` → `1440` ⇒ `hour`). Deploy: MD5
+`1fc484240d93ddb421952b155e9b85c5` (lokal = server), `view:clear` + `view:cache` OK,
+`update('none')` ada dan `chart.options = options` sudah **0**; cadangan
+`/tmp/backup-view-20261003-152305`.
+
+**Efek samping yang disengaja:** mengganti rentang (60/1h/1d) dan toggle *auto-scale* kini
+juga instan tanpa animasi — konsisten dengan permintaan ("animasi hanya saat reload").
 - `applyAutoControl()` kini murni saran; interlock `source_ready` bawaan sistem lama
   (`source_ready == 0` ⇒ firmware lama mematikan pompa) belum dipulihkan: port ini masih
   mengirim `source_ready = 1` hardcode dan firmware Hybrid belum membacanya (butuh

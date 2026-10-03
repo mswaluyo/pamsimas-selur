@@ -756,9 +756,19 @@
             };
 
             if (chart) {
+                // Live refresh: JANGAN buat ulang chart dan JANGAN animasikan.
+                // Chart.js memutar ulang animasi "tumbuh dari bawah" bila chart dibuat ulang
+                // atau di-update dengan animasi aktif — karena itu tiap 5 detik grafik tampak
+                // muncul dari bawah. Di sini cukup perbarui data + anotasi di tempat lalu
+                // update('none') supaya garis hanya "bertambah panjang".
+                // Animasi tumbuh-dari-bawah hanya terjadi saat chart pertama dibuat
+                // (yaitu ketika halaman di-reload / chart belum ada).
                 chart.data.datasets = datasets;
-                chart.options = options;
-                chart.update();
+                chart.options.plugins.annotation.annotations = options.plugins.annotation.annotations;
+                chart.options.scales.x.time.unit = options.scales.x.time.unit;
+                chart.options.scales.y.beginAtZero = options.scales.y.beginAtZero;
+                chart.options.scales.y.min = options.scales.y.min;
+                chart.update('none');
             } else {
                 chart = new Chart(canvas.getContext('2d'), { type: 'line', data: { datasets: datasets }, options: options });
             }
