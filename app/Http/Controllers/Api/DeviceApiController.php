@@ -62,29 +62,38 @@ class DeviceApiController extends Controller
     }
 
     /**
-     * Kontrol pompa AUTO berdasarkan persentase (pct dari MONITOR satu tangki):
-     * ON di bawah trigger%, OFF saat penuh (>=99%). Update status + pompa log
-     * hanya bila berubah. Berlaku untuk perangkat ACTUATOR.
+     * Kontrol pompa AUTO berdasarkan persentase (pct dari MONITOR satu tangki).
      *
-     * @return string status pompa terbaru (ON/OFF)
+     * PERBAIKAN 3 Okt 2026 — "grafik tidak menunjukkan istirahat 10 menit":
+     * Pada mode AUTO, PEMEGANG KENDALI adalah perangkat (firmware menjalankan logika
+     * level + masa istirahat mesin `off_duration` sendiri). Port Laravel sebelumnya
+     * menulis ulang `status` + `pump_logs` dari data level pada SETIAP poll
+     * `/api/status` (3 detik) sehingga ~4 detik setelah perangkat melaporkan OFF
+     * (safety cut-off) server menulis ON lagi. Akibatnya jeda istirahat 10 menit
+     * hilang dari riwayat/grafik (durasi nyala tampak ~40 menit, bukan 30+10) dan
+     * badge timer memakai waktu transisi yang salah.
+     *
+     * Sistem lama (`backup_pamsimas/app/Controllers/Api/DeviceApiController.php`)
+     * pun hanya mengubah `status` dari laporan perangkat — server tidak pernah
+     * menimpanya. Fungsi ini sekarang hanya MENGHITUNG perintah usulan
+     * (`pump_command`) dengan ambang yang sama seperti firmware:
+     * ON bila `pct <= trigger_percentage`, OFF bila `pct >= 98`.
+     * Perubahan `status` di DB hanya terjadi lewat `/api/update` action `set_status`.
+     *
+     * @return string perintah usulan (ON/OFF) — TIDAK mengubah status di DB
      */
     private function applyAutoControl(Device $actuator, float $pct): string
     {
         if ($actuator->control_mode !== 'AUTO') {
             return $actuator->status;
         }
-        $newStatus = $actuator->status;
-        if ($pct < (int) ($actuator->trigger_percentage ?? 80)) {
-            $newStatus = 'ON';
-        } elseif ($pct >= 99) {
-            $newStatus = 'OFF';
+        if ($pct <= (int) ($actuator->trigger_percentage ?? 80)) {
+            return 'ON';
         }
-        if ($newStatus !== $actuator->status) {
-            $actuator->status = $newStatus;
-            $actuator->save();
-            $this->writePumpLog($actuator, $newStatus, "Pompa {$newStatus} ({$actuator->control_mode}) @ {$pct}%");
+        if ($pct >= 98) {
+            return 'OFF';
         }
-        return $newStatus;
+        return $actuator->status;
     }
 
     /**

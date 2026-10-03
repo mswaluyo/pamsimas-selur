@@ -661,5 +661,49 @@ agregat menit `2026-09-30 09:09:00` **cocok** dengan rata-rata `sensor_logs` pad
   (`uptime = 120.001 ms`, event `boot` berulang, `reset_reason = Power On`) — lihat §7.9
   (R6 brownout) dan Opsi C untuk tindakan lapangan.
 
+### 7.11 Grafik tidak menampilkan istirahat 10 menit — server menimpa laporan OFF perangkat (3 Okt 2026)
+
+**Gejala (laporan operator).** Di grafik halaman perangkat ACTUATOR tidak terlihat jeda OFF
+10 menit; seolah pompa nyala terus (_ON_ ~40 menit sekali siklus).
+
+**Sebab.** Port Laravel menulis ulang `devices.status` + `pump_logs` dari data level pada
+**setiap** poll `/api/status` (tiap 3 detik) di `applyAutoControl()`. Urutan kejadiannya:
+1. Perangkat mencapai safety cut-off `on_duration` → relay OFF → kirim `/api/update`
+   `set_status OFF` (+ `report_event` "Safety Cut-off: Durasi Maksimal").
+2. Server mencatat OFF, lalu **~4 detik** kemudian (poll berikutnya, `pct` masih 0 < trigger)
+   server menulis **ON** lagi + log `Pompa ON (AUTO) @ 0%`.
+3. Masa istirahat mesin (`off_duration` = 10 menit) berjalan di firmware, tetapi di DB
+   status sudah ON sehingga saat perangkat benar-benar menyala lagi, laporannya **tidak
+   menghasilkan log baru** (nilai sama) — jeda 10 menit itu raib dari riwayat.
+   Pada zoom 6 jam, 4 detik ≈ 0,05 piksel ⇒ praktis tak terlihat.
+
+**Sistem lama tidak begini.** `backup_pamsimas/app/Controllers/Api/DeviceApiController.php`
+tidak pernah menulis `status` dari level; status hanya berubah dari laporan perangkat.
+Jadi ini regresi porting, bukan perilaku asli.
+
+**Perbaikan (live sejak 3 Okt 2026 21:02 WIB / commit berikutnya):**
+`applyAutoControl()` tidak lagi menyimpan apa pun — hanya **menghitung perintah usulan**
+`pump_command` dengan ambang yang sama seperti firmware (`pct <= trigger` ⇒ ON,
+`pct >= 98` ⇒ OFF). Perubahan `devices.status`/`pump_logs` **hanya** dari `/api/update`
+action `set_status` (laporan perangkat). Efek: riwayat & grafik menampilkan 30 menit nyala
++ 10 menit istirahat sesuai kenyataan, dan badge timer memakai transisi yang benar.
+
+**Verifikasi (uji A/B terkontrol, tanpa efek samping).** Perangkat dummy (ACTUATOR, AUTO,
+`status = OFF`, level sumber 0%) dipanggil `/api/status` di dalam transaksi DB lalu
+di-`rollback`: hasilnya `status DB OFF → OFF` (tidak ditimpa), `pump_logs` baru **0**,
+`event_logs` baru **0**, sedangkan respons tetap `pump_command = ON`, `status = OFF`,
+`water_percentage = 0`, `source_ready = 1`. Setelah rollback `devices = 2` (bersih).
+MD5 terpasang `000547f84e7f87ffd37ce5990bfff158`, `laravel.log` error 94 → 94,
+perangkat tetap `GET /api/status` HTTP 200 tiap 3 detik.
+
+**Sisa yang belum ditangani (masih terbuka):**
+- 187 event lama `Pompa ON (AUTO) @ x%` di `event_logs` (phantom dari server) masih
+  tersimpan → grafik masa lalu tetap kurang akurat. Perbaikan menyeluruh opsional:
+  rekonstruksi ON = (waktu OFF perangkat + `off_duration`).
+- `applyAutoControl()` kini murni saran; interlock `source_ready` bawaan sistem lama
+  (`source_ready == 0` ⇒ firmware lama mematikan pompa) belum dipulihkan: port ini masih
+  mengirim `source_ready = 1` hardcode dan firmware Hybrid belum membacanya (butuh
+  perubahan firmware + flash). Lihat §7.9 Opsi A/B.
+
 
 
