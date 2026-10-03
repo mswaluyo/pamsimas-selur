@@ -77,6 +77,7 @@
 #device-show-page .log-time { flex:0 0 128px; color:#64748b; font-size:.74rem; font-variant-numeric:tabular-nums; font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace; }
 #device-show-page .log-type { flex:0 0 84px; color:#94a3b8; font-size:.7rem; text-transform:uppercase; letter-spacing:.03em; overflow:hidden; text-overflow:ellipsis; }
 #device-show-page .log-message { flex:1 1 auto; min-width:0; overflow:hidden; text-overflow:ellipsis; color:#2c3e50; font-weight:500; }
+#device-show-page .log-dur { flex:0 0 auto; margin-left:auto; background:#f1f5f9; color:#475569; border-radius:999px; padding:1px 8px; font-size:.7rem; font-variant-numeric:tabular-nums; white-space:nowrap; font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace; }
 #device-show-page .log-power .log-icon-wrapper { background:#fff3cd; color:#b8860b; }
 #device-show-page .log-success .log-icon-wrapper { background:#d1fae5; color:#059669; }
 #device-show-page .log-warning .log-icon-wrapper { background:#fee2e2; color:#dc2626; }
@@ -294,10 +295,22 @@
     {{-- Log Kejadian Terakhir --}}
     <div class="card log-container">
         <h2>🕓 Log Kejadian Terakhir</h2>
+        @php
+            // Durasi nyala/mati tiap transisi pompa dihitung dari pump_logs (TANPA mengubah
+            // database; kolom duration_seconds memang tidak pernah diisi). Dipetakan per waktu
+            // supaya bisa dicocokkan dengan entri kejadian bertipe "Pump" di daftar bawah.
+            $pumpDurTime = [];
+            foreach (\App\Support\PumpDuration::mapFromLogs($pumpLogs) as $pd) {
+                $pumpDurTime[$pd['waktu']] = $pd;
+            }
+        @endphp
         <ul class="log-list" id="event-log-list">
             @forelse($eventLogs as $log)
                 @php
                     $msg = strtolower((string) $log->message);
+                    // Durasi nyala/mati entri Pump: dicocokkan lewat waktu kejadian yang sama.
+                    $durKey = $log->event_time ? \Carbon\Carbon::parse($log->event_time)->format('Y-m-d H:i:s') : null;
+                    $dur = ($log->event_type === 'Pump' && $durKey) ? ($pumpDurTime[$durKey] ?? null) : null;
                     $colorClass = '';
                     $icon = 'ℹ️';
                     if (str_contains($msg, 'tersambung')) { $colorClass = 'log-success'; $icon = '📶'; }
@@ -311,6 +324,9 @@
                     <span class="log-time">{{ $log->event_time ? \Carbon\Carbon::parse($log->event_time)->format('d-m-Y H:i:s') : '-' }}</span>
                     <span class="log-type">{{ $log->event_type }}</span>
                     <span class="log-message">{{ $log->message }}</span>
+                    @if($dur)
+                        <span class="log-dur" title="{{ $dur['dari'] === 'ON' ? 'Durasi nyala sebelum pompa dimatikan' : 'Durasi mati/istirahat sebelum pompa menyala' }}">{{ $dur['dari'] === 'ON' ? 'nyala' : 'mati' }} {{ $dur['teks'] }}</span>
+                    @endif
                 </li>
             @empty
                 <li class="log-empty">Belum ada log tersedia.</li>

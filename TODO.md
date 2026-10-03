@@ -937,10 +937,79 @@ terpasang lalu dirender dengan data nyata: **#3 → 6 event = 6 `<li class="log-
 `04-10-2026 05:15:42  Pump  Pompa ON (AUTO) — laporan perangkat`. Deploy: MD5
 `54aa831df9263d70c5139c7a0f48f1b0` (lokal = server), `view:clear` + `view:cache` OK,
 backup `/tmp/backup-view-20261003-224224`.
+
 - `applyAutoControl()` kini murni saran; interlock `source_ready` bawaan sistem lama
   (`source_ready == 0` ⇒ firmware lama mematikan pompa) belum dipulihkan: port ini masih
   mengirim `source_ready = 1` hardcode dan firmware Hybrid belum membacanya (butuh
   perubahan firmware + flash). Lihat §7.9 Opsi A/B.
+
+### 7.18 Log durasi **nyala/mati** pompa dihitung dari transisi (tanpa ubah database) (4 Okt 2026)
+
+**Permintaan operator.** "Tanpa mengubah database, tambahkan log durasi nyala dan mati" —
+operator ingin langsung melihat **berapa lama pompa menyala** dan **berapa lama istirahat**
+pada log, tanpa menambah kolom/tabel.
+
+**Akar masalah.** Kolom `pump_logs.duration_seconds` **sudah ada** tetapi **tidak pernah diisi**
+(firmware tidak mengirimnya, server pun tidak menghitungnya — sudah dicatat di §7.9/§7.16),
+sehingga halaman *Riwayat Log Pompa* selalu menampilkan **`0`** pada kolom *"Durasi (dtk)"*
+alias informasi durasi sebenarnya hilang. Karena itu **DB tidak diubah** (sesuai permintaan):
+durasi dihitung **saat render** dari selisih waktu antar-transisi yang sudah tersimpan.
+
+**Cara hitung (helper baru `app/Support/PumpDuration.php`).** Untuk tiap transisi, durasi =
+selisih `pump_logs.timestamp` dengan **transisi sebelumnya pada perangkat yang sama**
+(dikelompokkan per `device_id`, diurutkan menaik — penting karena halaman *Riwayat Log Pompa*
+mencampur semua perangkat dalam satu tabel):
+| Baris | Durasi yang ditampilkan | Label |
+|---|---|---|
+| `pump_status = OFF` | selisih ke transisi **ON** sebelumnya = **lama pompa menyala** | `nyala 00:30:02` |
+| `pump_status = ON` | selisih ke transisi **OFF** sebelumnya = **lama istirahat/mati** | `mati 00:10:01` |
+
+- `PumpDuration::format()` → `HH:MM:SS` (+ `Xd ` bila lebih dari sehari);
+- `PumpDuration::mapFromLogs($logs)` → peta `id` ⇒ `['id','waktu','dari','detik','teks']`,
+  `'waktu'` (`Y-m-d H:i:s`) dipakai untuk **mencocokkan entri `event_logs` bertipe `Pump`**
+  di halaman detail (waktu kejadian & waktu `pump_logs` memang identik — satu `now()`);
+- baris transisi paling tua di satu halaman paginasi tidak punya pembanding di halaman itu ⇒
+  helper mengambil **satu SELECT tambahan** (`previousRow()`: transisi terakhir sebelum baris
+  itu pada perangkat yang sama) supaya durasi **selalu terisi**, tidak `—`;
+- hanya **SELECT**, tidak ada `INSERT/UPDATE/ALTER` ⇒ **skema & data tidak berubah** (§3/§10).
+
+**Tampilan.**
+1. `resources/views/logs/pumps.blade.php` — header `Durasi (dtk)` → **`Durasi`**; sel diisi
+   chip `nyala 00:30:02` / `mati 00:10:01` (Tailwind: `rounded-full bg-slate-100 … font-mono`)
+   dari `PumpDuration::mapFromLogs(collect($logs->items()))`.
+2. `resources/views/devices/show.blade.php` — daftar *Log Kejadian Terakhir* (satu baris/entri,
+   §7.17) diberi **chip durasi di ujung kanan** (`.log-dur`, `margin-left:auto`) khusus entri
+   `event_type = Pump`, dicocokkan lewat waktu kejadian; entri lain (`Info`, `Koneksi`, …) tetap
+   bersih tanpa chip. Tooltip menjelaskan arti (`Durasi nyala sebelum pompa dimatikan`).
+
+**Verifikasi.**
+- Helper (10 transisi terakhir **#3**, data nyata):
+  `… 02:35:28 OFF → mati 00:10:02` · `03:05:29 ON → nyala 00:30:01` · `03:15:32 OFF → mati 00:10:03`
+  · `03:45:37 ON → nyala 00:30:05` … — **berpasangan ganjil-genap & sesuai** `on_duration`
+  #3 = 30 menit / `off_duration` = 10 menit.
+- Tabel *Riwayat Log Pompa* (50 baris pertama, **semua perangkat** dicampur): **50 chip durasi,
+  0 sel masih bernilai `0`** — mis. `C4:D8:D5:13:A6:17` (#2) `OFF → nyala 00:11:03` dan
+  `CC:50:E3:52:F3:B6` (#3) `OFF → nyala 00:30:02` ⇒ pengelompokan per perangkat terbukti benar.
+- Daftar log halaman detail (blok `@php` + `<ul class="log-list">` dari **berkas terpasang**,
+  dirender dengan `eventLogs`/`pumpLogs` nyata): **#3 → 4 chip dari 6 entri**, **#2 → 4 chip
+  dari 6 entri**, keduanya `OFF → nyala 00:30:02` (#3) / `nyala 00:11:03` (#2) dan
+  `ON → mati 00:10:01`; entri `Info Safety Cut-off` **tanpa chip** (benar).
+- Deploy: 3 berkas (`app/Support/PumpDuration.php` baru + 2 view), staging LF/no-BOM,
+  `php8.3 -l` OK, **MD5 3/3 MATCH** (`cd60e7011c0ab01806d2cb6476f18d2e`,
+  `4f4d43416b186002667f086b83e9a8dd`, `831036fcd50a67489b69b3035af8f853`),
+  autoload **PSR-4 tanpa classmap** (kelas baru langsung dikenali — cek `App\Support\Permission`
+  di `vendor/composer/autoload_classmap.php`), `view:clear` + `view:cache` OK (54 view ter-cache;
+  hasil kompilasi memuat `log-dur` & `PumpDuration`), backup `/tmp/backup-dur-20261003-225437`.
+- Catatan operasional: `ssh -p 2222 root@127.0.0.1` memunculkan
+  **`WARNING: REMOTE HOST IDENTIFICATION HAS CHANGED!`** ⇒ sebelum menyentuh berkas, host
+  dipastikan lewat `hostname` (`pamsimas.selur.my.id`) **dan** MD5 view terpasang masih sama
+  dengan baseline §7.17 (`54aa831d…`) — dipakai opsi `-o UserKnownHostsFile=/dev/null -o
+  StrictHostKeyChecking=no` untuk sesi ini.
+
+**Verifikasi awal yang menyesatkan (dicatat supaya tidak terulang):** harness pertama mengambil
+potongan template **mulai dari baris `<ul class="log-list">`** sehingga blok `@php` pemetaan
+durasi (yang berada **di atas** `<ul>`) tidak ikut dirender ⇒ hasil `0 chip` (padahal view
+benar). Slice harus dimulai dari **baris `@php`** blok tersebut.
 
 
 
