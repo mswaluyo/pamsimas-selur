@@ -909,6 +909,34 @@ firmware yang mengirim detik, sesuaikan di sini.
   (reboot ~22:56, kemungkinan saat operator memasang kembali perangkat monitor).
   Keduanya reboot di rentang waktu yang sama (21:55–23:00) — patut dicatat sebagai jeda
   gangguan daya/pemasangan, bukan pola reboot berulang.
+
+### 7.17 "Log Kejadian Terakhir" dibuat satu log = satu baris (4 Okt 2026)
+
+**Permintaan operator.** Daftar log informasi di halaman detail perangkat agar **1 log = 1
+baris** supaya mudah diperiksa dan dibandingkan.
+
+**Sebelum.** Tiap entri memakai 2 baris: pesan (tebal) di atas, lalu waktu • tipe di bawahnya
+(`<div class="log-content">` berisi `.log-message` + `.log-timestamp`), padding 12/15px, ikon
+32px ⇒ hanya ~5-6 entri terlihat dan waktu antar-entri sulit dibandingkan.
+
+**Sesudah.** Satu baris fleksibel (`<li class="log-item">` berisi `<span>` saja, tanpa `<div>`):
+| Kolom | Lebar | Gaya |
+|---|---|---|
+| ikon status | 22×22 px | lingkaran berwarna sesuai jenis (power/success/warning) |
+| waktu | tetap **128 px** | monospace + `tabular-nums` (`04-10-2026 05:15:42`) agar rapi sejajar |
+| tipe | tetap **84 px** | uppercase, abu-abu (`PUMP`, `INFO`, `KONEKSI`) |
+| pesan | `flex:1` | dipotong `…` bila panjang, teks lengkap via tooltip `title` |
+
+Padding diringkas jadi 6/12px + highlight saat hover ⇒ ±13 entri terlihat tanpa scroll.
+Halaman log lain (`logs/events`, `logs/pumps`, `logs/sensors`, `logs/admin`) memang sudah
+berupa tabel (satu baris per entri) sehingga tidak diubah.
+
+**Verifikasi.** Blok `<ul class="log-list">…</ul>` (baris 297-318) diambil dari berkas
+terpasang lalu dirender dengan data nyata: **#3 → 6 event = 6 `<li class="log-item">` dengan
+0 `<div>`**; **#2 → 6 = 6, 0 `<div>`**; setiap entri tercetak satu baris, mis.
+`04-10-2026 05:15:42  Pump  Pompa ON (AUTO) — laporan perangkat`. Deploy: MD5
+`54aa831df9263d70c5139c7a0f48f1b0` (lokal = server), `view:clear` + `view:cache` OK,
+backup `/tmp/backup-view-20261003-224224`.
 - `applyAutoControl()` kini murni saran; interlock `source_ready` bawaan sistem lama
   (`source_ready == 0` ⇒ firmware lama mematikan pompa) belum dipulihkan: port ini masih
   mengirim `source_ready = 1` hardcode dan firmware Hybrid belum membacanya (butuh

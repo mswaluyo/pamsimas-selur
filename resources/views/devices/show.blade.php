@@ -68,13 +68,15 @@
 #device-show-page .auto-scale-wrapper input { accent-color:#3498db; }
 #device-show-page .chart-canvas-container { grid-column:1 / 3; width:100%; height:300px; position:relative; border-top:1px solid #eee; padding-top:15px; }
 
-/* --- Log Kejadian Terakhir --- */
+/* --- Log Kejadian Terakhir: satu log = satu baris (mudah dibandingkan) --- */
 #device-show-page .log-list { list-style:none; padding:0; margin:0; max-height:400px; overflow-y:auto; border:1px solid #e0e0e0; border-radius:8px; background:#fff; }
-#device-show-page .log-item { padding:12px 15px; border-bottom:1px solid #f0f0f0; display:flex; align-items:flex-start; gap:12px; font-size:.85rem; }
+#device-show-page .log-item { padding:6px 12px; border-bottom:1px solid #f0f0f0; display:flex; align-items:center; gap:10px; font-size:.8rem; line-height:1.5; white-space:nowrap; }
 #device-show-page .log-item:last-child { border-bottom:none; }
-#device-show-page .log-icon-wrapper { width:32px; height:32px; border-radius:50%; display:flex; align-items:center; justify-content:center; background:#f1f5f9; color:#64748b; flex:none; }
-#device-show-page .log-message { color:#2c3e50; font-weight:600; }
-#device-show-page .log-timestamp { color:#94a3b8; font-size:.72rem; margin-top:2px; }
+#device-show-page .log-item:hover { background:#f8fafc; }
+#device-show-page .log-icon-wrapper { width:22px; height:22px; border-radius:50%; display:flex; align-items:center; justify-content:center; background:#f1f5f9; color:#64748b; flex:none; font-size:.72rem; }
+#device-show-page .log-time { flex:0 0 128px; color:#64748b; font-size:.74rem; font-variant-numeric:tabular-nums; font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace; }
+#device-show-page .log-type { flex:0 0 84px; color:#94a3b8; font-size:.7rem; text-transform:uppercase; letter-spacing:.03em; overflow:hidden; text-overflow:ellipsis; }
+#device-show-page .log-message { flex:1 1 auto; min-width:0; overflow:hidden; text-overflow:ellipsis; color:#2c3e50; font-weight:500; }
 #device-show-page .log-power .log-icon-wrapper { background:#fff3cd; color:#b8860b; }
 #device-show-page .log-success .log-icon-wrapper { background:#d1fae5; color:#059669; }
 #device-show-page .log-warning .log-icon-wrapper { background:#fee2e2; color:#dc2626; }
@@ -304,12 +306,11 @@
                     elseif (str_contains($msg, 'nyala')) { $colorClass = 'log-success'; $icon = '⏻'; }
                     elseif (str_contains($msg, 'mati')) { $colorClass = 'log-warning'; $icon = '⏻'; }
                 @endphp
-                <li class="log-item {{ $colorClass }}">
-                    <div class="log-icon-wrapper">{{ $icon }}</div>
-                    <div class="log-content">
-                        <div class="log-message">{{ $log->message }}</div>
-                        <div class="log-timestamp">{{ $log->event_time ? \Carbon\Carbon::parse($log->event_time)->format('d-m-Y H:i:s') : '-' }} • {{ $log->event_type }}</div>
-                    </div>
+                <li class="log-item {{ $colorClass }}" title="{{ $log->event_type }} · {{ $log->message }}">
+                    <span class="log-icon-wrapper">{{ $icon }}</span>
+                    <span class="log-time">{{ $log->event_time ? \Carbon\Carbon::parse($log->event_time)->format('d-m-Y H:i:s') : '-' }}</span>
+                    <span class="log-type">{{ $log->event_type }}</span>
+                    <span class="log-message">{{ $log->message }}</span>
                 </li>
             @empty
                 <li class="log-empty">Belum ada log tersedia.</li>
