@@ -855,6 +855,60 @@ ikut berubah saat rentang diganti (`live` → `1440` ⇒ `hour`). Deploy: MD5
 
 **Efek samping yang disengaja:** mengganti rentang (60/1h/1d) dan toggle *auto-scale* kini
 juga instan tanpa animasi — konsisten dengan permintaan ("animasi hanya saat reload").
+
+### 7.16 "Waktu Nyala" 1000× terlalu besar — `uptime` milidetik dianggap detik (4 Okt 2026)
+
+**Gejala (laporan operator).** Kartu *Detail Konfigurasi* menampilkan
+**ACTUATOR #3 "308 hari 7 jam 29 menit"** dan **MONITOR #2 "265 hari 19 jam 53 menit"**,
+padahal kedua perangkat baru di-flash 3 Okt — mustahil.
+
+**Sebab.** Firmware mengirim `uptime` sebagai **MILIDETIK** (`millis()`):
+`.fw_code/Pamsimas_Hybrid/Network_SSL.ino:90` → `doc["uptime"] = millis();` — dan seluruh
+firmware sistem lama juga begitu (bahkan berkomentar "Uptime dalam milidetik",
+`backup_pamsimas/.fw_code/Pamsimas_esp8266/Pamsimas_esp8266.ino:1201`). Tampilan
+memperlakukannya sebagai **DETIK**:
+- server (`show.blade.php:238`) → `floor($device->uptime / 3600)` "jam";
+- klien (`show.blade.php` → `fmtUptime(d.uptime)` dari `/api/dashboard-data`) → dibagi 86400
+  sebagai "hari" (itulah kenapa angka hari muncul, dengan format berbeda dari sisi server).
+Nilai ms/1000 = 1000 detik/… ⇒ hasil **1000× lebih besar**.
+
+**Perbaikan (di sisi tampilan; DB & API tetap milidetik).** `devices.uptime` **tidak** diubah
+supaya tetap kompatibel dengan sistem lama (kolom & API yang sama). Yang disesuaikan:
+1. Blade: blok `@php` menghitung `$uptimeSec = intdiv($device->uptime, 1000)` lalu memformat
+   persis seperti `fmtUptime()` (hari hanya bila > 0, jam bila ada hari/jam, menit selalu).
+2. JS: `setText('val-uptime', fmtUptime(Math.floor((Number(d.uptime) || 0) / 1000)))`.
+
+**Verifikasi.**
+- Node (harness `fmtUptime` yang diekstrak dari berkas — sebelum vs sesudah):
+  | Perangkat | Nilai | Sebelum (salah) | Sesudah (benar) |
+  |---|---|---|---|
+  | #2 | 23.153.589 ms | `267 hari 23 jam 33 menit` | `6 jam 25 menit` |
+  | #3 | 26.818.149 ms | `310 hari 9 jam 29 menit` | `7 jam 26 menit` |
+  | contoh | 95.000.000 ms | — | `1 hari 2 jam 23 menit` |
+- Render sisi server (blok asli diambil dari berkas terpasang): #2 `uptime = 23.216.395 ms`
+  → **`6 jam 26 menit`**; #3 `26.939.434 ms` → **`7 jam 28 menit`** — format identik dengan
+  sisi JS sehingga angka tidak "melompat" saat poll pertama.
+- Deploy: MD5 `650b0919de889691af42c368d6ed430b` (lokal = server), `view:clear`+`view:cache` OK,
+  backup `/tmp/backup-view-20261003-222356`.
+
+**Kontrak data (penting):** `devices.uptime` = **milidetik** (`millis()` perangkat). Setiap
+konsumen tampilan baru **wajib** membagi 1000 (atau gunakan 1 helper bersama). Bila kelak ada
+firmware yang mengirim detik, sesuaikan di sini.
+
+**Temuan operasional menyertai (4 Okt 2026 pagi):**
+- **MONITOR #2 sudah ONLINE dan mengirim data lagi** sejak 3 Okt 22:06 (58 request `/api/log`
+  di log akses; `sensor_logs` 4 Okt sudah 4.583 baris); level **≈66,6 %** (`cm ≈ 92,8`),
+  naik dari 0 % pada 3 Okt ⇒ pengisian selama 3,4 hari itu memang mengisi bak.
+  Konsekuensinya **keputusan §7.12 (mode otonom tanpa sensor) kini tidak lagi berlaku** —
+  ACTUATOR #3 kembali memakai data level yang sahih (`source_ready`/level segar).
+- Siklus kedua perangkat kini bersih tanpa ON palsu: #2 `OFF 04:45:59 → ON 04:56:01`
+  (istirahat 10,0 mnt) `→ OFF 05:07:05` (nyala 11,1 mnt) `→ ON 05:17:06`; #3
+  `OFF 04:25:37 → ON 04:35:40` (10,0 mnt) `→ OFF 05:05:41` (30,0 mnt) `→ ON 05:15:42`.
+- `reset_reason` #3 = **`Exception`** (reboot terakhir karena *crash*/panic, bukan power-on)
+  sekitar 3 Okt 21:55; **stabil 7,5 jam** sejak itu, heap 31 KB. #2 = `External System`
+  (reboot ~22:56, kemungkinan saat operator memasang kembali perangkat monitor).
+  Keduanya reboot di rentang waktu yang sama (21:55–23:00) — patut dicatat sebagai jeda
+  gangguan daya/pemasangan, bukan pola reboot berulang.
 - `applyAutoControl()` kini murni saran; interlock `source_ready` bawaan sistem lama
   (`source_ready == 0` ⇒ firmware lama mematikan pompa) belum dipulihkan: port ini masih
   mengirim `source_ready = 1` hardcode dan firmware Hybrid belum membacanya (butuh

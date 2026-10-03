@@ -235,7 +235,20 @@
                     <li><span class="k">MAC Address</span><span class="v" id="val-mac">{{ $device->mac_address }}</span></li>
                     <li><span class="k">Versi Firmware</span><span class="v" id="val-firmware">{{ $device->firmware_version ?: 'N/A' }}@if($device->firmware_build_date) ({{ $device->firmware_build_date }})@endif</span></li>
                     <li><span class="k">Tipe Perangkat</span><span class="v">{{ $device->device_type }}@if($device->device_type === 'MONITOR') (sensor + pompa, fungsi ganda)@else (pompa saja, tanpa baca sensor)@endif</span></li>
-                    <li><span class="k">Waktu Nyala</span><span class="v" id="val-uptime">{{ floor(($device->uptime ?? 0) / 3600) }} jam {{ floor((($device->uptime ?? 0) % 3600) / 60) }} menit</span></li>
+                    @php
+                        // Firmware mengirim `uptime` dalam MILIDETIK (`millis()` — Network_SSL.ino:90,
+                        // juga firmware sistem lama), sedangkan tampilan memakai satuan DETIK.
+                        // Format di sini disamakan persis dengan fmtUptime() di JS agar angka tidak
+                        // "melompat" saat poll pertama datang.
+                        $uptimeSec = intdiv((int) ($device->uptime ?? 0), 1000);
+                        $upDays = intdiv($uptimeSec, 86400);
+                        $upHours = intdiv($uptimeSec % 86400, 3600);
+                        $upMins = intdiv($uptimeSec % 3600, 60);
+                        $uptimeText = ($upDays > 0 ? $upDays . ' hari ' : '')
+                            . ($upDays > 0 || $upHours > 0 ? $upHours . ' jam ' : '')
+                            . $upMins . ' menit';
+                    @endphp
+                    <li><span class="k">Waktu Nyala</span><span class="v" id="val-uptime">{{ $uptimeText }}</span></li>
                     <li><span class="k">Free Heap</span><span class="v" id="val-heap">{{ number_format(($device->free_heap ?? 0) / 1024, 1) }} KB</span></li>
                     <li><span class="k">Reset Terakhir</span><span class="v" id="val-reset-reason">{{ $device->reset_reason ?: '-' }}</span></li>
                     <li><span class="k">Update Terakhir</span><span class="v" id="val-last-update">{{ $device->last_update?->format('d-m-Y H:i:s') ?? 'N/A' }}</span></li>
@@ -513,7 +526,9 @@
         setText('stat-signal-value', rssi + ' dBm');
 
         // Detail konfigurasi
-        setText('val-uptime', fmtUptime(d.uptime));
+        // CATATAN: `/api/dashboard-data` mengirim `uptime` dalam MILIDETIK (nilai `millis()`
+        // perangkat), sedangkan fmtUptime() memakai detik -> konversi di sini.
+        setText('val-uptime', fmtUptime(Math.floor((Number(d.uptime) || 0) / 1000)));
         setText('val-heap', fmtBytes(d.free_heap));
         setText('val-last-update', fmtTime(d.last_update));
         if (typeof d.reset_reason !== 'undefined') setText('val-reset-reason', d.reset_reason || '-');
