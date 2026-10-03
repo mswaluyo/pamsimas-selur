@@ -758,6 +758,44 @@ perangkat tetap `GET /api/status` HTTP 200 tiap 3 detik.
   `20:57:57 OFF → 21:07:57 ON` (jeda **10,0** menit) dan `21:38:01 OFF (laporan perangkat)
   → 21:48:02 ON (laporan perangkat)` (jeda **10,0** menit) dengan durasi nyala **30,1**
   menit per siklus — grafik kini menampilkan 30 menit ON + 10 menit OFF sesuai kenyataan.
+
+### 7.13 Bug render Blade: `@else` menempel teks di kartu "Aset & Sumber Data" (3 Okt 2026)
+
+**Gejala (laporan operator).** Di halaman detail perangkat MONITOR, baris *Sumber Level Air*
+menampilkan teks mentah `@else` dan **kedua cabang tampil sekaligus**:
+
+> Sensor ultrasonik pada perangkat ini (relay ikut logika AUTO) (Sensor Mbaran)**@else**Dari
+> perangkat MONITOR satu tangki (perangkat ini pompa saja) — Bak Pamsimas Mbaran
+
+**Sebab.** `resources/views/devices/show.blade.php:209` menulis `@elseDari perangkat …` tanpa
+pemisah. Compiler Blade menangkap nama direktif secara *greedy* (`[A-Za-z0-9_]+`) sehingga
+yang terbaca adalah direktif tak dikenal **`elseDari`** → dibiarkan apa adanya sebagai teks,
+`@if` tetap aktif, dan isi cabang `else` ikut tercetak. Bukan masalah data, bukan masalah
+perangkat — murni salah tulis direktif.
+
+**Perbaikan.** Isi cabang `else` dipindah ke echo Blade sehingga karakter setelah `@else`
+bukan huruf:
+`…@else{{ 'Dari perangkat MONITOR satu tangki (perangkat ini pompa saja)' }}@endif &mdash; …`
+
+**Audit menyeluruh pola serupa** (semua `resources/views/**/*.blade.php`):
+- `@else(?!if)[A-Za-z]` → **1 temuan** (baris 209, sudah diperbaiki).
+- `@endif[A-Za-z]`, `@endforeach[A-Za-z]`, `@endforelse[A-Za-z]`, `@empty[A-Za-z]`,
+  `@endwhile[A-Za-z]`, `@endphp[A-Za-z]` → **0 temuan**.
+- `@endfor[A-Za-z]` → 34 "temuan" **palsu** (cocok dengan `endfor` di dalam `endforeach`).
+- `@endif&mdash;` / `@endif<` aman: direktifnya dibatasi karakter non-huruf sehingga tetap
+  dikompilasi benar.
+
+**Verifikasi deploy:** MD5 terpasang `41d5a377c3fd861f887e6f314502bc4f` (local = server),
+`view:clear` + `view:cache` OK, `elseDari` = 0 di sumber dan 0 di
+`storage/framework/views/*`; render baris asli (diambil dari berkas terpasang) dengan data
+nyata → **#2 MONITOR**: "Sensor ultrasonik pada perangkat ini (relay ikut logika AUTO)
+(Sensor Mbaran) — Bak Pamsimas Mbaran"; **#3 ACTUATOR**: "Dari perangkat MONITOR satu tangki
+(perangkat ini pompa saja) — Bak Pamsimas Mbaran"; literal `@else` tidak ada di keduanya.
+Cadangan view: `/tmp/backup-view-20261003-150920`.
+
+**Catatan gaya penulisan Blade (cegah terulang):** setelah direktif **tanpa argumen**
+(`@else`, `@endif`, `@endforeach`, `@empty`, `@endwhile`) selalu beri spasi/newline; jangan
+menyambungnya langsung ke kata (mis. `@elseDari`), karena akan dibaca sebagai direktif baru.
 - `applyAutoControl()` kini murni saran; interlock `source_ready` bawaan sistem lama
   (`source_ready == 0` ⇒ firmware lama mematikan pompa) belum dipulihkan: port ini masih
   mengirim `source_ready = 1` hardcode dan firmware Hybrid belum membacanya (butuh

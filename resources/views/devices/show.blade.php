@@ -206,7 +206,7 @@
                 <ul class="detail-list">
                     <li><span class="k">Nama Pompa</span><span class="v" id="val-pump-name">{{ $device->pump?->pump_name ?? 'N/A' }}</span></li>
                     <li><span class="k">Tangki</span><span class="v">{{ $device->tank?->tank_name ?? '-' }}</span></li>
-                    <li><span class="k">Sumber Level Air</span><span class="v" id="val-data-source">@if($device->device_type === 'MONITOR')Sensor ultrasonik pada perangkat ini (relay ikut logika AUTO){{ $device->sensor ? ' (' . $device->sensor->sensor_name . ')' : '' }}@elseDari perangkat MONITOR satu tangki (perangkat ini pompa saja)@endif &mdash; Bak {{ $device->tank?->tank_name ?? '-' }}</span></li>
+                    <li><span class="k">Sumber Level Air</span><span class="v" id="val-data-source">@if($device->device_type === 'MONITOR')Sensor ultrasonik pada perangkat ini (relay ikut logika AUTO){{ $device->sensor ? ' (' . $device->sensor->sensor_name . ')' : '' }}@else{{ 'Dari perangkat MONITOR satu tangki (perangkat ini pompa saja)' }}@endif &mdash; Bak {{ $device->tank?->tank_name ?? '-' }}</span></li>
                     <li><span class="k">Sinkron Offline</span><span class="v">{{ $device->last_offline_sync?->format('d-m-Y H:i:s') ?? '-' }}</span></li>
                 </ul>
             </div>
