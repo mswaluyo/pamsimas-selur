@@ -632,6 +632,7 @@ terkonversi → digeser sekali `+7 HOUR`: `minute_sensor_logs` 7.524 baris,
 `hourly_sensor_logs` 135 baris (4 tabel agregat lain kosong). UPDATE wajib
 `ORDER BY <kolom> DESC` karena PK `(device_id, timestamp)` — tanpa itu MySQL bentrok
 "Duplicate entry" saat memproses baris demi baris.
+
 **Verifikasi deploy (3 Okt 2026, semuanya lulus):** `config('app.timezone') = Asia/Jakarta`
 dan sesi MySQL `+07:00` dengan `now() = 20:38:25` selagi `date` server
 `13:38:25 UTC` (= beda tepat 7 jam); jalur yang sama dipakai view
