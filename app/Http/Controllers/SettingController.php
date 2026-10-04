@@ -315,7 +315,7 @@ class SettingController extends Controller
         return '<!doctype html><html lang="id"><head><meta charset="utf-8">'
             . '<style>*{box-sizing:border-box}html,body{margin:0;height:100%;overflow:hidden;background:#fff;'
             . "font-family:system-ui,-apple-system,'Segoe UI',sans-serif}"
-            . '#pv{display:block;height:100%;padding:4px;transform:scale(.5);transform-origin:center center}'
+            . '#pv{display:block;height:100%;padding:4px;transform:scale(.45);transform-origin:center center}'
             . '#pv>*{margin-left:auto;margin-right:auto}'
             . '#pv .gauge-title{font-size:11px;color:#64748b;text-align:center}'
             . $css . '</style></head><body><div id="pv">' . $html . '</div><script>'
@@ -327,7 +327,10 @@ class SettingController extends Controller
             . 'else if(p==="percentage"){if(el.classList.contains("tank-gauge-water")){el.style.height=v+"%";}else{el.style.width=v+"%";}'
             . 'el.style.backgroundColor=fill;}});'
             . 'var t=el0.querySelector(".value")||el0.querySelector(".tank-gauge-text")'
-            . '||el0.querySelector(".simple-bar-gauge-text");if(t){t.textContent=Math.round(v)+"%";}}'
+            . '||el0.querySelector(".simple-bar-gauge-text");'
+            // Hindari "65%%": bila ada "%" tepat setelah elemen nilai (teks atau <small>%</small>), tulis angkanya saja
+            . 'if(t){var n=Math.round(v);var nx=t.nextSibling;var xt=nx?String(nx.textContent||"").trim():"";'
+            . 't.textContent=(xt==="%"||xt.indexOf("%")!==-1)?String(n):n+"%";}}'
             . 'try{' . $js . '}catch(e){}'
             . 'try{if(typeof window.initGauge==="function"){window.initGauge(card);}}catch(e){}'
             . 'try{if(typeof window.updateGauge==="function"){window.updateGauge(card,' . $pct . ',"#22c55e");}'

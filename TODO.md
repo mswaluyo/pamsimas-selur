@@ -1716,3 +1716,34 @@ placeholder ter ganti, `sandbox="allow-scripts"`, peringatan DevExtreme tampil, 
 `/templates/{id}/activate` untuk 4 template non-aktif, badge `Aktif`, POST simpan **302** dan
 `active_template_id` tetap `three_quarter_gauge`, `/templates` tetap **302**.
 Screenshot 1280px: dua kolom rapi, 4 gauge ter-render benar, devextreme kosong + peringatan.
+
+### 7.35 — Halaman Tampilan: 1/3 vs 2/3, gauge di atas, tombol ikon (sesi #78–#80)
+Permintaan operator: *"tampilan 1/3 bagian, gauge 2/3, nama dan tombol aktifkan gauge cukup
+di bawah gauge, tombol tanpa label, cukup arah dan warna, tidak perlu deskripsi"*.
+
+- **Grid 1/3 : 2/3**: `lg:grid-cols-2` → `lg:grid-cols-3`; kolom Tampilan `lg:col-span-1`,
+  kolom Template Gauge `lg:col-span-2`.
+- **Kartu template disederhanakan**: `space-y-2` (satu baris) → `grid grid-cols-2 gap-3 xl:grid-cols-3`;
+  **pratinjau gauge di atas** (`h-28 w-full`), **nama + tombol di bawah**
+  (`mt-2 flex items-center justify-between`); **deskripsi dihapus** (`line-clamp-2` + blok
+  `description` tidak lagi dirender). Ikon peringatan `needs_library` tetap (via `title`).
+- **Tombol tanpa label teks**: `Aktifkan`/`Hapus` (ikon + teks, `flex-col`) → **ikon saja**
+  `h-8 w-8` (`fa-arrow-right` hijau = aktifkan, `fa-trash-can` merah = hapus) dengan
+  `title` + `aria-label` untuk aksesibilitas; badge `Aktif` dipertahankan.
+- **Bug "65%%" ditemukan saat inspeksi screenshot** (lumped di halaman detail, bukan cuma pratinjau):
+  `universalUpdateGauge()` menulis `Math.round(v) + '%'` ke `.value`, padahal template
+  `three_quarter_gauge` sudah punya `<span class="value">0</span><small>%</small>` → "65%%".
+  Diperbaiki di **dua sumber**: `devices/show.blade.php::universalUpdateGauge()` dan
+  `SettingController::previewDoc()` — bila elemen setelah `.value` berisi `%` (teks **atau**
+  elemen `<small>`), yang ditulis hanya angkanya. Skala pratinjau `scale(.5)` → `scale(.45)`
+  supaya gauge 3/4 tidak terpotong bawah.
+- **Insiden**: saat rebuild, `rm public/build/assets/app-*.css` (hash tidak berubah antar build)
+  ikut menghapus aset yang masih dirujuk manifest → dipulihkan, `css=200 js=200` ✔.
+
+**Verifikasi 28/28** (`vfy_tampilan.php`, decode 2x karena `srcdoc` di-escape ganda):
+1/3:2/3, label kolom, form tambah absen, gauge lebar penuh di atas, grid 2 kolom, tombol ikon
+`fa-arrow-right`, tidak ada `Aktifkan</button>`, `aria-label` ada, deskripsi absen,
+5 iframe = 5 template, semua punya `srcdoc`, placeholder ter ganti, `sandbox`, ikon peringatan,
+4 form `/templates/{id}/activate`, badge Aktif, `updateGauge(card,65,…)` + logika anti `65%%`,
+POST simpan **302** dan `active_template_id` tetap `three_quarter_gauge`, `/templates` **302**.
+Screenshot 1280px (zoom 4x) mengonfirmasi teks **`65%`** (bukan `65%%`). Backup `/tmp/backup-83` … `/tmp/backup-86`.

@@ -637,7 +637,14 @@
         const textElement = cardElement.querySelector('.value')
             || cardElement.querySelector('.tank-gauge-text')
             || cardElement.querySelector('.simple-bar-gauge-text');
-        if (textElement) textElement.textContent = Math.round(waterLevel) + '%';
+        if (textElement) {
+            // Hindari "65%%": bila ada "%" tepat setelah elemen nilai (teks atau <small>%</small>), tulis angkanya saja
+            const n = Math.round(waterLevel);
+            const next = textElement.nextSibling;
+            const nx = next ? String(next.textContent || '').trim() : '';
+            const pctAfter = nx === '%' || nx.indexOf('%') !== -1;
+            textElement.textContent = pctAfter ? String(n) : n + '%';
+        }
     }
 
     function paintGauge(card, pct) {
