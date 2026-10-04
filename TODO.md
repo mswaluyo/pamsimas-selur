@@ -1717,6 +1717,24 @@ placeholder ter ganti, `sandbox="allow-scripts"`, peringatan DevExtreme tampil, 
 `active_template_id` tetap `three_quarter_gauge`, `/templates` tetap **302**.
 Screenshot 1280px: dua kolom rapi, 4 gauge ter-render benar, devextreme kosong + peringatan.
 
+### 7.36 — Ganti tombol aktifkan jadi SLIDE ON/OFF (sesi #81)
+Permintaan operator: *"gunakan tombol slide on/off"*. Pada kartu template, badge `Aktif` +
+tombol panah `fa-arrow-right` (dan tetap tombol tong merah `fa-trash-can` untuk hapus) diganti:
+
+- **Template aktif** → *slide ON*: label `ON` (hijau) + rel `h-[18px] w-8 rounded-full bg-emerald-500`
+  dengan knob kanan (`ml-auto`), dibungkus `role="status"` + `title="… sedang aktif"`.
+  Sengaja **bukan** `<form>` — tidak boleh dimatikan, jadi tidak ada endpoint "deactivate".
+- **Template non-aktif** → *slide OFF*: `<form method="POST" action="{{ route('templates.activate',$t->id) }}">`
+  + `<button type="submit" class="… bg-slate-300 … hover:bg-slate-400">` knob kiri,
+  `title`/`aria-label` "Aktifkan {{ name }}".
+- Tombol hapus (`fa-trash-can`, kotak 32px merah) **tetap** agar tetap bisa hapus template non-core.
+
+**Verifikasi 36/36** — termasuk **uji klik nyata**: `POST /templates/{id}/activate` dengan token
+CSRF asli → **302** dan `active_template_id` (di DB berisi **nama** template, bukan id) berubah ke
+`conic_gauge`, lalu dikembalikan ke `three_quarter_gauge`. Slide ON menempel tepat di template
+aktif (dicek dengan regex terhadap nama aktif dari DB). Screenshot 1280px + zoom: OFF abu knob kiri,
+ON hijau knob kanan + teks "ON".
+
 ### 7.35 — Halaman Tampilan: 1/3 vs 2/3, gauge di atas, tombol ikon (sesi #78–#80)
 Permintaan operator: *"tampilan 1/3 bagian, gauge 2/3, nama dan tombol aktifkan gauge cukup
 di bawah gauge, tombol tanpa label, cukup arah dan warna, tidak perlu deskripsi"*.

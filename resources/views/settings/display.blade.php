@@ -67,13 +67,21 @@
                     </span>
                     @if($canTemplatesEdit)
                         @if($activeId === $t->name)
-                            <span class="shrink-0 rounded-full bg-sky-600 px-2 py-0.5 text-[10px] font-semibold text-white">Aktif</span>
+                            {{-- Slide ON: template ini sedang dipakai (tidak bisa dimatikan) --}}
+                            <span class="flex shrink-0 items-center gap-1.5" role="status"
+                                  title="{{ $t->name }} sedang aktif">
+                                <span class="text-[10px] font-semibold uppercase tracking-wide text-emerald-600">On</span>
+                                <span class="flex h-[18px] w-8 items-center rounded-full bg-emerald-500 p-0.5 shadow-sm">
+                                    <span class="ml-auto h-3.5 w-3.5 rounded-full bg-white shadow"></span>
+                                </span>
+                            </span>
                         @else
+                            {{-- Slide OFF: klik untuk mengaktifkan --}}
                             <form method="POST" action="{{ route('templates.activate', $t->id) }}" class="shrink-0">
                                 @csrf
-                                <button title="Aktifkan {{ $t->name }}" aria-label="Aktifkan {{ $t->name }}"
-                                        class="flex h-8 w-8 items-center justify-center rounded-lg bg-emerald-100 text-emerald-700 hover:bg-emerald-200">
-                                    <i class="fas fa-arrow-right"></i>
+                                <button type="submit" title="Aktifkan {{ $t->name }}" aria-label="Aktifkan {{ $t->name }}"
+                                        class="flex h-[18px] w-8 items-center rounded-full bg-slate-300 p-0.5 shadow-sm transition hover:bg-slate-400">
+                                    <span class="h-3.5 w-3.5 rounded-full bg-white shadow"></span>
                                 </button>
                             </form>
                             @unless($t->is_core)
