@@ -1543,7 +1543,7 @@ Perbaikan: perkecil ukuran elemen di ambang `≤480px` — **bukan** mengganti b
 | Daftar detail | .9rem | **.78rem** |
 | Ikon kartu statistik | 32px | **26px** |
 | Judul / nilai kartu | .58 / .8rem | **.5 / .7rem** |
-| Gauge | pad 12, min-height 360, kartu 320 | **pad 8/10, min-height 0, kartu 260** |
+| Gauge | pad 12, min-height 360, **isi max 320px** | **pad 8/10, min-height 0, isi penuh (stretch, tanpa max-width)** |
 | Kanvas grafik | 220px | **165px** |
 | Baris log | 85px, .8rem | **50px, .72rem** |
 | Daftar log maks | 400px | **320px** |
@@ -1566,3 +1566,34 @@ sehingga menimpa aturan P1–P6 (urutan sumber sama-sama menang, yang terakhir d
 **Cara tuning cepat:** ubah hanya nilai dalam blok `MODE RINGKAS HP` (≤480px) untuk halaman
 detail, atau blok `#app-header/#app-main/#app-footer` untuk seluruh aplikasi. Setelah ubah,
 `view:clear` + `view:cache` di server.
+
+### §7.30 Gauge: isi penuh & tinggi bebas (containers untuk komponen tambahan)
+
+**Kebutuhan operator:** *"buat agar isi dari container gauge bisa full, tambah panjang tidak
+masalah karena memang ada tambahan komponen"*. Kontainer `#gauge-container` sebelumnya membatasi
+isi: `align-items:center` + `min-height:450px` (dasar) dan anak dibatasi `max-width:320px`
+(dasar) / `260px` (mode ringkas). Akibatnya ruang kosong kiri-kanan dan tinggi terkunci.
+
+**Perubahan (3 baris, hanya di blok `MODE RINGKAS HP`, ≤480px):**
+```css
+#device-show-page #gauge-container { padding:8px 10px; min-height:0; align-items:stretch; }
+#device-show-page .gauge-card { max-width:none; }
+#device-show-page #gauge-container .info-block { margin:10px 0 0; max-width:none; }
+```
+- `align-items:stretch` (bukan `center`) → anak selebar kartu.
+- `min-height:0` → tinggi mengikuti isi, tidak dipaksa 360/450px.
+- `max-width:none` → tidak ada lagi batas lebar; komponen tambahan langsung punya ruang.
+
+Aturan dasar desktop (`max-width:320px`, `min-height:450px`) **tidak diubah** — hanya ditimpa
+pada ≤480px, jadi tablet & desktop tetap seperti semula.
+
+**Ukur nyata:**
+| Lebar | Lebar kartu gauge | Tinggi kontainer | Overflow |
+|---|---|---|---|
+| 393px | 260 → **353px (penuh)** | 317 → **454px** | tidak ada |
+| 430px | 260 → **390px (penuh)** | 317 → **454px** | tidak ada |
+| 481px | 320px (tetap) | 547px | tidak ada |
+| 600px | 320px (tetap) | 547px | tidak ada |
+
+Catatan: tinggi kontainer naik karena grafik gauge ikut melebar (skala ikut lebar) — ini wajar
+dan justru memberi ruang untuk komponen tambahan.

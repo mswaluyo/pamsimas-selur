@@ -234,9 +234,11 @@
     #device-show-page .stat-card-value { font-size: .7rem; }
     /* gauge */
     #device-show-page .controller-detail-grid { gap: 8px; margin-bottom: 8px; }
-    #device-show-page #gauge-container { padding: 8px 10px; min-height: 0; }
-    #device-show-page .gauge-card { max-width: 260px; }
-    #device-show-page #gauge-container .info-block { margin: 10px 0 0; max-width: 260px; }
+    /* Gauge: isi membebar penuh selebar kartu; tinggi bebas bertambah karena
+       ada komponen tambahan di dalamnya (tidak lagi dikunci max-width/min-height). */
+    #device-show-page #gauge-container { padding: 8px 10px; min-height: 0; align-items: stretch; }
+    #device-show-page .gauge-card { max-width: none; }
+    #device-show-page #gauge-container .info-block { margin: 10px 0 0; max-width: none; }
     .gauge-header-container { height: 22px; margin-bottom: 4px; }
     .pump-info-label { margin-top: 3px; font-size: .74rem; }
     .gauge-actions { margin-top: 6px; padding: 6px 8px; }
