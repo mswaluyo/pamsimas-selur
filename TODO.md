@@ -1467,3 +1467,54 @@ badge **ACTUATOR**, kontrol grafik menumpuk, log 2 baris dengan chip durasi ✔
 - **Catatan operasional:** perintah backup pertama gagal karena PowerShell menelan `$(date …)`
   (`mkdir: invalid option -- 'a'`) sehingga baseline dibuat ulang sesudahnya; versi sebelum perubahan
   tetap tersedia di git (commit `7cb9db5`).
+### 7.28 Tiga kartu statistik dihapus dari halaman detail perangkat (4 Okt 2026)
+
+**Permintaan operator.** Pada bagian `stat-cards-container` halaman detail perangkat, hapus kartu
+**Level Air**, **Status Pompa (24j)**, dan **Mode Operasi**.
+
+**Alasan (terlihat dari halaman):** ketiga nilai tersebut sudah tampil di tempat lain pada halaman
+yang sama — persentase level ada di gauge + grafik, status pompa ada di indikator LED/header gauge
+dan tombol pompa, mode kontrol ada di tombol **AUTO** pada kartu gauge — sehingga baris statistik
+cukup memuat informasi yang benar-benar terpisah.
+
+**Perubahan (`resources/views/devices/show.blade.php`, −31/+11 baris).**
+| Dihapus | Dipakai di |
+|---|---|
+| kartu **Level Air** (`stat-water-icon`, `stat-water-value`) | gauge (persentase) & grafik riwayat |
+| kartu **Status Pompa (24j)** (`stat-pump-icon`, `stat-pump-value`) | header gauge (LED) & tombol pompa |
+| kartu **Mode Operasi** (`stat-mode-value`) | tombol AUTO pada kartu gauge |
+
+Tersisa **4 kartu**: Konektivitas · Sinyal WiFi · Frekuensi Nyala · Durasi (24j). Penomoran
+komentar kartu (`{{-- n. … --}}`) disusun ulang 1–4 dan komentar kontainer/CTO CSS diperjelas.
+
+**Keamanan JS.** Semua pemanggilan `setText('stat-*')` sudah null-safe (`setText` memeriksa
+elemen ada/tidak) dan perubahan `className` dibungkus `if (wi)` / `if (pi)` / `if (ci)` ⇒
+menghapus elemen tersebut **tidak** membuat error JavaScript; `applyDeviceState()` hanya melompatinya.
+Keempat id yang tersisa (`stat-conn-*`, `stat-signal-value`, `stat-cycle-value`,
+`stat-duration-24h-value`) tetap ter-update live seperti sebelumnya.
+
+**Efek samping yang desirable.** Dengan 4 kartu, baris statistik **cukup muat satu baris pada
+semua lebar** sehingga scroll horizontal yang sebelumnya muncul di 481–600px (`566>441`) **hilang**,
+dan pada HP baris statistik kini **1 baris** (tinggi 88px) — bukan lagi 2 baris (185px).
+
+#### Verifikasi
+
+- **Struktural 44/44** (render `devices.show` perangkat #3 di server): hanya 4 `class="stat-card"`,
+  ketiga id yang dihapus tidak ada, 4 id live-update tersisa utuh, penjaga `if (wi)/if (pi)/if (ci)`
+  masih ada, semua aturan responsif §7.25–§7.27 & aturan desktop tetap, FA termuat, tanpa emoji.
+- **Pengukuran nyata (Chrome headless + CDP):**
+  | Lebar | Kartu statistik | Log | Gauge | Kanvas | Badge tipe |
+  |---|---|---|---|---|---|
+  | 430px | **390×88 (1 baris)**, kartu 94×82, tanpa scroll | 2 baris, pesan **251px** | 405/pad12 | 220 | ACTUATOR penuh |
+  | 480px | **440×88 (1 baris)** | 2 baris, pesan **301px** | 405/pad12 | 220 | penuh |
+  | 481px | 441×91 (**tanpa scroll**, sebelumnya 566>441) | 2 baris, pesan **286px** | 450/pad20 | 300 | ACT ringkas |
+  | 600px | 560×91 | 2 baris, pesan 301px | 450/pad20 | 300 | ACT |
+  Overflow halaman & daftar log: **tidak ada** di semua lebar ✔
+- **Screenshot 430px diperiksa visual**: 4 kartu dalam satu baris, gauge + badge ACTUATOR, kontrol
+  grafik satu baris, log 2 baris dengan chip durasi ✔
+- Deploy: MD5 `d65cb67dcaa0c2293680a571cbcb068e` **lokal = server**, `view:clear`+`view:cache` OK,
+  backup `/tmp/backup-72`.
+
+**Catatan:** data *Waktu Nyala* (uptime) tidak pernah tampil di kartu statistik sejak port awal —
+hanya di *Detail Konfigurasi* (`val-uptime`), sehingga penghapusan ini tidak menambah satu pun
+informasi yang hilang.

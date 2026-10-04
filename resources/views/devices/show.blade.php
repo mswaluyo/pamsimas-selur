@@ -11,8 +11,8 @@
 #device-show-page .page-header { display:flex; align-items:center; justify-content:space-between; gap:12px; flex-wrap:wrap; margin-bottom:20px; }
 #device-show-page .page-header h1 { font-size:1.35rem; font-weight:800; color:#2c3e50; }
 
-/* --- Statistik utama: SATU baris penuh (tanpa wrap; scroll horizontal hanya bila
-       layar sangat sempit) — mengikuti 7 kartu pada sistem lama --- */
+/* --- Statistik utama: SATU baris penuh tanpa wrap (4 kartu sejak §7.28; scroll horizontal
+       hanya bila layar sangat sempit, sedangkan ≤480px memakai tata letak 4 kolom P5) --- */
 #device-show-page .stat-cards-container {
     display:grid;
     grid-auto-flow:column;
@@ -217,33 +217,13 @@
         <a href="{{ route('devices.index') }}" class="btn btn-secondary"><i class="fas fa-arrow-left"></i> Kembali ke Daftar</a>
     </div>
 
-    {{-- Statistik Utama — SATU baris penuh; id elemen sama dengan sistem lama agar live update bekerja --}}
+    {{-- Statistik Utama — 4 kartu (Konektivitas · Sinyal WiFi · Frekuensi Nyala · Durasi 24j).
+         Kartu Level Air, Status Pompa (24j) dan Mode Operasi DIHAPUS atas permintaan operator
+         (4 Okt 2026, TODO §7.28) karena ketiganya sudah tampil di kartu gauge (indikator pompa,
+         tombol AUTO/ON-OFF, dan persentase level) serta grafik riwayat.
+         id elemen yang tersisa sama dengan sistem lama agar live update tetap bekerja. --}}
     <div class="stat-cards-container">
-        {{-- 0. Level Air --}}
-        <div class="stat-card">
-            <div id="stat-water-icon" class="stat-card-icon bg-gray"><i class="fas fa-tint"></i></div>
-            <div>
-                <div class="stat-card-title">Level Air</div>
-                <div id="stat-water-value" class="stat-card-value">{{ round($latestWaterPct) }}%</div>
-            </div>
-        </div>
-        {{-- 1. Status Pompa --}}
-        <div class="stat-card">
-            <div id="stat-pump-icon" class="stat-card-icon bg-gray"><i class="fas fa-power-off"></i></div>
-            <div>
-                <div class="stat-card-title">Status Pompa (24j)</div>
-                <div id="stat-pump-value" class="stat-card-value">{{ $device->isOnline() ? ($device->status ?: '-') : 'OFF' }}</div>
-            </div>
-        </div>
-        {{-- 2. Mode Operasi --}}
-        <div class="stat-card">
-            <div class="stat-card-icon bg-blue"><i class="fas fa-sliders-h"></i></div>
-            <div>
-                <div class="stat-card-title">Mode Operasi</div>
-                <div id="stat-mode-value" class="stat-card-value">{{ $device->control_mode }}</div>
-            </div>
-        </div>
-        {{-- 3. Konektivitas --}}
+        {{-- 1. Konektivitas --}}
         <div class="stat-card">
             <div id="stat-conn-icon" class="stat-card-icon {{ $device->isOnline() ? 'bg-green' : 'bg-gray' }}"><i class="fas fa-wifi"></i></div>
             <div>
@@ -251,7 +231,7 @@
                 <div id="stat-conn-value" class="stat-card-value">{{ $device->isOnline() ? 'Online' : 'Offline' }}</div>
             </div>
         </div>
-        {{-- 4. Sinyal WiFi --}}
+        {{-- 2. Sinyal WiFi --}}
         <div class="stat-card">
             <div class="stat-card-icon bg-orange"><i class="fas fa-wifi"></i></div>
             <div>
@@ -259,7 +239,7 @@
                 <div id="stat-signal-value" class="stat-card-value">{{ (int) ($device->rssi ?? 0) }} dBm</div>
             </div>
         </div>
-        {{-- 5. Frekuensi Nyala (24j) --}}
+        {{-- 3. Frekuensi Nyala (24j) --}}
         <div class="stat-card">
             <div class="stat-card-icon bg-orange"><i class="fas fa-sync"></i></div>
             <div>
@@ -267,7 +247,7 @@
                 <div id="stat-cycle-value" class="stat-card-value">{{ (int) ($pump24['cycle_count'] ?? 0) }}x</div>
             </div>
         </div>
-        {{-- 6. Durasi Nyala (24j) --}}
+        {{-- 4. Durasi Nyala (24j) --}}
         <div class="stat-card">
             <div class="stat-card-icon bg-blue"><i class="fas fa-stopwatch"></i></div>
             <div>
