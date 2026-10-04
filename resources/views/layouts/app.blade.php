@@ -30,6 +30,74 @@
             #app-main { padding: 10px; }
             #app-footer { padding: 7px 10px; font-size: .66rem; }
         }
+
+        /* ==== MODE RINGKAS GLOBAL (TODO §7.31) ====
+           audited 29 halaman: hanya halaman detail perangkat yang padat, 28 halaman
+           lain masih memakai ukuran default Tailwind (p-5/p-6, ikon 48px, angka 24px,
+           sel tabel py-3/14px) sehingga terlihat "membesar" di HP.
+          Semua aturan di bawah memakai prefiks #app-main supaya spesifikasinya
+           (1,1,0)–(1,2,0) mengalahkan utility class Tailwind (0,1,0) tanpa !important,
+           dan hanya berlaku <=480px sehingga tablet & desktop tidak berubah. */
+        @media (max-width:480px) {
+            /* Judul & subjudul seragam di semua halaman */
+            #app-main h1 { font-size: 1.05rem; line-height: 1.25; }
+            #app-main h2 { font-size: .95rem; line-height: 1.3; }
+            #app-main h3 { font-size: .88rem; }
+
+            /* Skala huruf: utility text-* diseragamkan agar tidak ada "lonjakan" antar halaman */
+            #app-main .text-2xl { font-size: 1.15rem; }
+            #app-main .text-xl { font-size: 1.05rem; }
+            #app-main .text-lg { font-size: .95rem; }
+            #app-main .text-sm { font-size: .8rem; }
+            #app-main .text-xs { font-size: .7rem; }
+
+            /* Kartu: p-5/p-6 (20–24px) terlalu longgar di layar sempit */
+            #app-main .p-6 { padding: 10px; }
+            #app-main .p-5 { padding: 10px; }
+            #app-main .p-4 { padding: 8px; }
+
+            /* Jarak antar kartu diseragamkan (dulu campur gap-4 dan gap-5) */
+            #app-main .gap-5 { gap: 8px; }
+            #app-main .gap-4 { gap: 8px; }
+            #app-main .gap-3 { gap: 6px; }
+
+            /* Kotak ikon seragam: h-12/w-12 (48px) & h-10/w-10 (40px) -> 34/32px,
+               sama dengan kartu statistik di halaman detail */
+            #app-main .h-12.w-12 { width: 34px; height: 34px; border-radius: 8px; font-size: 1rem; }
+            #app-main .h-10.w-10 { width: 32px; height: 32px; font-size: .95rem; }
+
+            /* Tombol & form: tinggi sentuh tetap >=30px tapi tidak berlebihan */
+            #app-main .px-4.py-2 { padding: 6px 10px; font-size: .78rem; }
+            #app-main .px-3.py-1 { padding: 5px 8px; font-size: .75rem; }
+            #app-main .py-2.px-3 { padding: 6px 8px; font-size: .78rem; }
+            #app-main input:not([type=checkbox]):not([type=radio]):not([type=file]),
+            #app-main select, #app-main textarea { font-size: .78rem; padding: 6px 8px; }
+            #app-main input[type=file] { font-size: .72rem; }
+
+            /* Tabel: padatkan sel & batasi tinggi jadi satu area gulir di dalam kartu,
+               supaya halaman log/pelanggan tidak jadi ribuan piksel di layar HP */
+            #app-main table { font-size: .78rem; }
+            #app-main th, #app-main td { padding: 6px 6px; }
+            #app-main thead th { font-size: .68rem; letter-spacing: .02em; }
+            #app-main .overflow-x-auto {
+                max-height: 340px;
+                overflow-y: auto;
+                -webkit-overflow-scrolling: touch;
+                overscroll-behavior: contain;
+            }
+
+            /* Kolom sekunder disembunyikan di HP (dipakai halaman log/pelanggan/tabel
+               yang kolomnya terlalu banyak; isi penuhnya tetap tersedia di tablet/desktop) */
+            #app-main .hide-mobile { display: none !important; }
+
+            /* Target sentuh: tombol kecil (px-2 py-1 / px-3 py-1.5) punya tinggi
+               di bawah 30px; diperluas minimal 30px agar nyaman ditekan di HP */
+            #app-main .px-2.py-1 { min-height: 30px; display: inline-flex; align-items: center; }
+            #app-main .px-3.py-1\.5 { min-height: 30px; display: inline-flex; align-items: center; }
+
+            /* Notifikasi & pesan agar tidak memakan layar */
+            #app-main [role=alert] { padding: 8px 10px; font-size: .78rem; }
+        }
     </style>
     @stack('styles')
 </head>

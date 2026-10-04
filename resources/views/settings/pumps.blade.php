@@ -10,7 +10,7 @@
                     <tr class="border-b text-left text-xs uppercase text-slate-500">
                         <th class="px-4 py-3">Nama</th>
                         <th class="px-4 py-3">Debit (L/s)</th>
-                        <th class="px-4 py-3">Daya</th>
+                        <th class="px-4 py-3 hide-mobile">Daya</th>
                         <th class="px-4 py-3">Durasi ON/OFF (dtk)</th>
                         <th class="px-4 py-3">Aksi</th>
                     </tr>
@@ -20,7 +20,7 @@
                     <tr class="border-b">
                         <td class="px-4 py-3 font-medium">{{ $p->pump_name }}</td>
                         <td class="px-4 py-3">{{ $p->flow_rate_lps }}</td>
-                        <td class="px-4 py-3">{{ $p->power_watt }} W @if($p->power_hp)({{ $p->power_hp }} HP)@endif</td>
+                        <td class="px-4 py-3 hide-mobile">{{ $p->power_watt }} W @if($p->power_hp)({{ $p->power_hp }} HP)@endif</td>
                         <td class="px-4 py-3 text-xs">{{ $p->on_duration_seconds }} / {{ $p->off_duration_seconds }}</td>
                         <td class="px-4 py-3">
                             <div class="flex gap-1">
@@ -28,7 +28,7 @@
                                         class="rounded bg-amber-100 px-2 py-1 text-xs text-amber-700 hover:bg-amber-200">Edit</button>
                                 <form method="POST" action="{{ route('settings.pumps') }}/{{ $p->id }}/delete" onsubmit="return confirm('Hapus pompa ini?')">
                                     @csrf
-                                    <button class="rounded bg-red-100 px-2 py-1 text-xs text-red-700 hover:bg-red-200">Hapus</button>
+                                    <button class="rounded bg-red-100 px-2 py-1 text-xs text-red-700 hover:bg-red-200"><i class="fas fa-trash-can mr-1"></i>Hapus</button>
                                 </form>
                             </div>
                         </td>

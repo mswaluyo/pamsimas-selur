@@ -16,20 +16,20 @@
         <thead>
             <tr class="border-b text-left text-xs uppercase text-slate-500">
                 <th class="px-4 py-3">Waktu</th>
-                <th class="px-4 py-3">Perangkat</th>
+                <th class="px-4 py-3 hide-mobile">Perangkat</th>
                 <th class="px-4 py-3">Level (cm)</th>
                 <th class="px-4 py-3">Persen</th>
-                <th class="px-4 py-3">RSSI</th>
+                <th class="px-4 py-3 hide-mobile">RSSI</th>
             </tr>
         </thead>
         <tbody>
             @forelse($logs as $log)
             <tr class="border-b hover:bg-slate-50">
                 <td class="px-4 py-3 text-xs">{{ $log->record_time->format('d-m-Y H:i:s') }}</td>
-                <td class="px-4 py-3 font-mono text-xs">{{ $log->device?->mac_address ?? '-' }}</td>
+                <td class="px-4 py-3 font-mono text-xs hide-mobile">{{ $log->device?->mac_address ?? '-' }}</td>
                 <td class="px-4 py-3">{{ $log->water_level }}</td>
                 <td class="px-4 py-3 font-semibold">{{ number_format($log->water_percentage, 1) }}%</td>
-                <td class="px-4 py-3">{{ $log->rssi }}</td>
+                <td class="px-4 py-3 text-slate-500 text-xs hide-mobile">{{ $log->rssi }}</td>
             </tr>
             @empty
             <tr><td colspan="5" class="px-4 py-8 text-center text-slate-400">Belum ada log.</td></tr>

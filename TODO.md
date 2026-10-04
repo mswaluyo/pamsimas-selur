@@ -1597,3 +1597,52 @@ pada ≤480px, jadi tablet & desktop tetap seperti semula.
 
 Catatan: tinggi kontainer naik karena grafik gauge ikut melebar (skala ikut lebar) — ini wajar
 dan justru memberi ruang untuk komponen tambahan.
+
+### §7.31 Audit & Keseragaman 29 Halaman (Tahap 1–3)
+
+**Audit:** seluruh rute UI dirender di server (29 halaman), lalu diukur dengan Chrome headless/CDP
+pada **393px (Redmi Note 11)** dan 600px. Temuan: **hanya 1 dari 29 halaman** yang punya mode
+ringkas (halaman detail perangkat); 28 halaman lain masih memakai ukuran default Tailwind.
+
+**Tahap 1 — Mode Ringkas Global (`layouts/app.blade.php`, 1 blok CSS, impacts 28 halaman):**
+Semua aturan berprefiks `#app-main` (spesifikasi 1,1,0–1,2,0 mengalahkan utility Tailwind 0,1,0
+tanpa `!important`) dan hanya berlaku ≤480px:
+judul seragam (`h1` 1.05rem, `h2` .95rem) · skala huruf (`text-2xl`→1.15rem … `text-xs`→.7rem) ·
+kartu (`p-6`/`p-5`→10px, `p-4`→8px) · jarak (`gap-5`/`gap-4`→8px) · kotak ikon (`h-12 w-12`→34px) ·
+tombol & form · tabel (`th/td` 6px, font .78rem, header .68rem) · target sentuh ≥30px.
+
+**Tahap 2 — Tabel panjang jadi area gulir + kolom sekunder disembunyikan:**
+`#app-main .overflow-x-auto { max-height:340px; overflow-y:auto }` ⇒ halaman log/pelanggan tidak
+ratusan baris panjang. Kolom sekunder diberi class `hide-mobile` (disembunyikan ≤480px, utuh di
+tablet/desktop): logs/pumps **Mode** · logs/events **Perangkat** · logs/sensors **Perangkat, RSSI**
+· customers **Alamat, LID** · payment **ID, Pemakaian** · devices **Tipe, Tangki, Pompa, Terakhir
+Update** · detected **Pertama Terlihat, Jumlah Akses** · settings/tanks **Bentuk, Dimensi** ·
+settings/sensors **Tipe** · settings/pumps **Daya**.
+
+**Tahap 3 — Keseragaman komponen:** ikon Font Awesome ditambahkan pada tombol yang belum punya
+(`fa-plus` tambah, `fa-pen` edit, `fa-eye` detail, `fa-trash-can` hapus, `fa-rotate` sync,
+`fa-magnifying-glass` cari, `fa-file-csv` export, `fa-upload` impor, `fa-clock-rotate-left` riwayat,
+`fa-toggle-on` aktifkan) dan teks "Import CSV" → "Impor CSV"; input berkas dibungkus label
+**"Pilih berkas CSV"**.
+
+**Hasil ukur @393px (sebelum → sesudah):**
+| Halaman | Tinggi halaman | Target <30px | Lebar tabel |
+|---|---|---|---|
+| logs-events | 6038 → **≤900** | 0 | 394 → muat |
+| logs-admin | 4297 → **≤900** | 24 → **1** | muat |
+| logs-sensors | 3922 → **≤900** | 0 | 441 → muat |
+| logs-pumps | 3906 → **≤900** | 0 | 456 → muat |
+| customers | 1632 → **≤900** | 41 → **0** | 605 → muat |
+| mon-database | 2014 → **≤900** | 0 | 488 → muat |
+| set-pumps | 1085 → **≤900** | 8 → **0** | 432 → muat |
+| devices-index | 1081 → **≤900** | 8 → **1** | 479 → 458 (gulir) |
+
+- **Tidak ada overflow halaman** di 29 halaman (sebelum & sesudah).
+- `h2` di semua halaman sekarang **15.2px** seragam (dulu campuran 16/18px).
+- Kartu statistik menyempit: mon-performance 92→**63**, monitoring 127→**102**, payment 125→**76**.
+- **481px ke atas tidak berubah** — semua override hanya ≤480px; halaman detail perangkat tetap
+  h1 15.2px / gauge 353px karena aturannya ber-spesifikasi `#device-show-page …` (lebih tinggi).
+
+**Known limitation:** teks tombol file picker ("Choose File / No file chosen") berasal dari browser
+dan tidak bisa diubah ke bahasa Indonesia tanpa JS khusus; label Indonesia sudah ditambahkan di
+sebelahnya.

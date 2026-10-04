@@ -13,9 +13,9 @@
             <tr class="border-b text-left text-xs uppercase text-slate-500">
                 <th class="px-4 py-3">MAC Address</th>
                 <th class="px-4 py-3">Status</th>
-                <th class="px-4 py-3">Pertama Terlihat</th>
+                <th class="px-4 py-3 hide-mobile">Pertama Terlihat</th>
                 <th class="px-4 py-3">Terakhir Terlihat</th>
-                <th class="px-4 py-3">Jumlah Akses</th>
+                <th class="px-4 py-3 hide-mobile">Jumlah Akses</th>
                 <th class="px-4 py-3">Aksi</th>
             </tr>
         </thead>
@@ -29,9 +29,9 @@
                         {{ $online ? 'Online' : 'Offline' }}
                     </span>
                 </td>
-                <td class="px-4 py-3 text-xs">{{ $d->first_seen?->format('d-m-Y H:i') ?? '-' }}</td>
+                <td class="px-4 py-3 text-xs hide-mobile">{{ $d->first_seen?->format('d-m-Y H:i') ?? '-' }}</td>
                 <td class="px-4 py-3 text-xs">{{ $d->last_seen?->format('d-m-Y H:i') ?? '-' }}</td>
-                <td class="px-4 py-3">{{ $d->hits }}</td>
+                <td class="px-4 py-3 hide-mobile">{{ $d->hits }}</td>
                 <td class="px-4 py-3">
                     <div class="flex gap-1">
                         <a href="{{ route('devices.create', ['mac' => $d->mac_address]) }}"

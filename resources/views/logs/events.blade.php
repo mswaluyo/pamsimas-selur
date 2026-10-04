@@ -16,7 +16,7 @@
         <thead>
             <tr class="border-b text-left text-xs uppercase text-slate-500">
                 <th class="px-4 py-3">Waktu</th>
-                <th class="px-4 py-3">Perangkat</th>
+                <th class="px-4 py-3 hide-mobile">Perangkat</th>
                 <th class="px-4 py-3">Tipe</th>
                 <th class="px-4 py-3">Pesan</th>
             </tr>
@@ -25,7 +25,7 @@
             @forelse($logs as $log)
             <tr class="border-b hover:bg-slate-50">
                 <td class="px-4 py-3 text-xs">{{ $log->event_time->format('d-m-Y H:i:s') }}</td>
-                <td class="px-4 py-3 font-mono text-xs">{{ $log->device?->mac_address ?? '-' }}</td>
+                <td class="px-4 py-3 font-mono text-xs hide-mobile">{{ $log->device?->mac_address ?? '-' }}</td>
                 <td class="px-4 py-3"><span class="rounded-full bg-slate-100 px-2 py-0.5 text-xs">{{ $log->event_type }}</span></td>
                 <td class="px-4 py-3">{{ $log->message }}</td>
             </tr>

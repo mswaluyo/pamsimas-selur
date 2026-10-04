@@ -8,7 +8,7 @@
         @csrf
         <input type="text" name="name" required placeholder="Nama template baru" aria-label="Nama template baru" class="rounded-lg border border-slate-300 px-3 py-2 text-sm">
         <input type="text" name="description" placeholder="Deskripsi" aria-label="Deskripsi template" class="rounded-lg border border-slate-300 px-3 py-2 text-sm">
-        <button class="rounded-lg bg-sky-600 px-4 py-2 text-sm font-semibold text-white hover:bg-sky-700">+ Tambah</button>
+        <button class="rounded-lg bg-sky-600 px-4 py-2 text-sm font-semibold text-white hover:bg-sky-700"><i class="fas fa-plus mr-1"></i>Tambah Template</button>
     </form>
 </div>
 
@@ -26,13 +26,13 @@
             @unless($activeId === $t->name)
             <form method="POST" action="{{ route('templates.activate', $t->id) }}">
                 @csrf
-                <button class="rounded bg-emerald-100 px-3 py-1.5 text-xs font-semibold text-emerald-700 hover:bg-emerald-200">Aktifkan</button>
+                <button class="rounded bg-emerald-100 px-3 py-1.5 text-xs font-semibold text-emerald-700 hover:bg-emerald-200"><i class="fas fa-toggle-on mr-1"></i>Aktifkan</button>
             </form>
             @endunless
             @unless($t->is_core)
             <form method="POST" action="{{ route('templates.destroy', $t->id) }}" onsubmit="return confirm('Hapus template?')">
                 @csrf
-                <button class="rounded bg-red-100 px-3 py-1.5 text-xs font-semibold text-red-700 hover:bg-red-200">Hapus</button>
+                <button class="rounded bg-red-100 px-3 py-1.5 text-xs font-semibold text-red-700 hover:bg-red-200"><i class="fas fa-trash-can mr-1"></i>Hapus</button>
             </form>
             @endunless
         </div>

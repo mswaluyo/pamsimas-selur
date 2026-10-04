@@ -9,7 +9,7 @@
                 <thead>
                     <tr class="border-b text-left text-xs uppercase text-slate-500">
                         <th class="px-4 py-3">Nama</th>
-                        <th class="px-4 py-3">Tipe</th>
+                        <th class="px-4 py-3 hide-mobile">Tipe</th>
                         <th class="px-4 py-3">Jarak Penuh (cm)</th>
                         <th class="px-4 py-3">Trigger (%)</th>
                         <th class="px-4 py-3">Aksi</th>
@@ -19,7 +19,7 @@
                     @forelse($sensors as $s)
                     <tr class="border-b">
                         <td class="px-4 py-3 font-medium">{{ $s->sensor_name }}</td>
-                        <td class="px-4 py-3">{{ $s->sensor_type }}</td>
+                        <td class="px-4 py-3 hide-mobile">{{ $s->sensor_type }}</td>
                         <td class="px-4 py-3">{{ $s->full_tank_distance }}</td>
                         <td class="px-4 py-3">{{ $s->trigger_percentage }}%</td>
                         <td class="px-4 py-3">
@@ -28,7 +28,7 @@
                                         class="rounded bg-amber-100 px-2 py-1 text-xs text-amber-700 hover:bg-amber-200">Edit</button>
                                 <form method="POST" action="{{ route('settings.sensors') }}/{{ $s->id }}/delete" onsubmit="return confirm('Hapus sensor ini?')">
                                     @csrf
-                                    <button class="rounded bg-red-100 px-2 py-1 text-xs text-red-700 hover:bg-red-200">Hapus</button>
+                                    <button class="rounded bg-red-100 px-2 py-1 text-xs text-red-700 hover:bg-red-200"><i class="fas fa-trash-can mr-1"></i>Hapus</button>
                                 </form>
                             </div>
                         </td>

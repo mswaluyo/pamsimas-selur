@@ -17,10 +17,10 @@
     <table class="w-full text-sm">
         <thead>
             <tr class="border-b text-left text-xs uppercase text-slate-500">
-                <th class="px-4 py-3">ID</th>
+                <th class="px-4 py-3 hide-mobile">ID</th>
                 <th class="px-4 py-3">Nama</th>
                 <th class="px-4 py-3">Periode</th>
-                <th class="px-4 py-3">Pemakaian</th>
+                <th class="px-4 py-3 hide-mobile">Pemakaian</th>
                 <th class="px-4 py-3">Total</th>
                 <th class="px-4 py-3">Status</th>
                 <th class="px-4 py-3">Aksi</th>
@@ -29,10 +29,10 @@
         <tbody>
             @forelse($invoices as $inv)
             <tr class="border-b hover:bg-slate-50">
-                <td class="px-4 py-3 font-mono text-xs">{{ $inv->customer_id }}</td>
+                <td class="px-4 py-3 font-mono text-xs hide-mobile">{{ $inv->customer_id }}</td>
                 <td class="px-4 py-3">{{ $inv->name }}</td>
                 <td class="px-4 py-3">{{ $inv->period }}</td>
-                <td class="px-4 py-3">{{ $inv->water_usage }} m³</td>
+                <td class="px-4 py-3 hide-mobile">{{ $inv->water_usage }} m³</td>
                 <td class="px-4 py-3 font-semibold">Rp {{ number_format((float) $inv->total_bill, 0, ',', '.') }}</td>
                 <td class="px-4 py-3">
                     <span class="rounded-full px-2 py-0.5 text-xs font-semibold {{ $inv->status_bayar === 'LUNAS' ? 'bg-emerald-100 text-emerald-700' : 'bg-red-100 text-red-700' }}">{{ $inv->status_bayar }}</span>

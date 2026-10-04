@@ -9,8 +9,8 @@
                 <thead>
                     <tr class="border-b text-left text-xs uppercase text-slate-500">
                         <th class="px-4 py-3">Nama Tangki</th>
-                        <th class="px-4 py-3">Bentuk</th>
-                        <th class="px-4 py-3">Dimensi</th>
+                        <th class="px-4 py-3 hide-mobile">Bentuk</th>
+                        <th class="px-4 py-3 hide-mobile">Dimensi</th>
                         <th class="px-4 py-3">Tinggi (cm)</th>
                         <th class="px-4 py-3">Dipakai Perangkat</th>
                         <th class="px-4 py-3">Aksi</th>
@@ -20,8 +20,8 @@
                     @forelse($tanks as $t)
                     <tr class="border-b">
                         <td class="px-4 py-3 font-medium">{{ $t->tank_name }}</td>
-                        <td class="px-4 py-3">{{ ucfirst($t->tank_shape) }}</td>
-                        <td class="px-4 py-3 text-xs">
+                        <td class="px-4 py-3 hide-mobile">{{ ucfirst($t->tank_shape) }}</td>
+                        <td class="px-4 py-3 text-xs hide-mobile">
                             @if($t->tank_shape === 'kotak')
                                 {{ $t->rect_length ?? '-' }} × {{ $t->rect_width ?? '-' }} cm
                             @elseif($t->tank_shape === 'bulat')
@@ -38,7 +38,7 @@
                                         class="rounded bg-amber-100 px-2 py-1 text-xs text-amber-700 hover:bg-amber-200">Edit</button>
                                 <form method="POST" action="{{ route('settings.tanks') }}/{{ $t->id }}/delete" onsubmit="return confirm('Hapus tangki ini?')">
                                     @csrf
-                                    <button class="rounded bg-red-100 px-2 py-1 text-xs text-red-700 hover:bg-red-200">Hapus</button>
+                                    <button class="rounded bg-red-100 px-2 py-1 text-xs text-red-700 hover:bg-red-200"><i class="fas fa-trash-can mr-1"></i>Hapus</button>
                                 </form>
                             </div>
                         </td>
