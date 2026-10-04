@@ -13,6 +13,14 @@
     <style>
         /* Ikon navigasi: lebar tetap + rata tengah agar label menu sejajar */
         #sidebar nav a > i.fas, #user-menu a > i.fas, #user-menu button > i.fas { width: 1.15em; text-align: center; flex: none; }
+
+        /* Cegah halaman melebar di layar sempit (akar masalah, TODO §7.25).
+           Pembungkus `flex-1` (baris 88) dan <main> adalah flex item yang min-width-nya `auto`,
+           sehingga dipaksa selebar min-content anaknya — baris 7 kartu statistik = 566px, jadi
+           seluruh halaman jadi 606px dan muncul scroll horizontal di HP.
+           Dengan min-width:0 lebarnya mengikuti viewport; baris statistik tetap bisa di-scroll
+           sendiri karena sudah memakai overflow-x:auto. Desktop tidak terpengaruh. */
+        .flex.min-h-screen.flex-1, main { min-width: 0; }
     </style>
     @stack('styles')
 </head>

@@ -132,6 +132,43 @@
     #device-show-page .stat-card-value { font-size:1.25rem; }
     #device-show-page .controller-detail-grid { grid-template-columns:350px 1fr; }
 }
+
+/* ==========================================================================
+   RESPONSIF MOBILE (hasil analisa — TODO §7.25)
+   Lebar konten halaman = viewport − 106px (main p-5 40 + padding .card 40
+   + border .log-list 2 + padding .log-item 24).
+   ========================================================================== */
+
+/* P2: header kartu grafik menumpuk → judul, kontrol, lalu canvas.
+   Grid asli `1fr auto` tanpa media query membuat kontrol meluber / tombol
+   mengepak sembarangan di layar ≤767px. */
+@media (max-width:767px) {
+    #device-show-page .chart-card-container { grid-template-columns:1fr; }
+    #device-show-page .chart-controls-container { grid-column:1 / -1; grid-row:auto; }
+    #device-show-page .chart-controls-container .btn-group { flex-wrap:wrap; }
+    #device-show-page .chart-canvas-container { grid-column:1 / -1; }
+}
+
+/* P3: target sentuh (tombol rentang grafik & kontrol pompa) — semula ±26px,
+   kini ±36px; checkbox Auto diperbesar agar mudah ditekan. */
+@media (max-width:767px) {
+    #device-show-page .btn-sm { padding:9px 12px; font-size:.78rem; }
+    #device-show-page .gauge-actions .btn-action { padding:9px 14px; }
+    #device-show-page .auto-scale-wrapper input { width:18px; height:18px; }
+    #device-show-page .auto-scale-wrapper label { padding:9px 4px; }
+}
+
+/* P1: baris log jadi DUA baris agar pesan & chip durasi tetap terlihat.
+   Satu-laris butuh ≈384px (ikon 22 + waktu 128 + tipe 84 + 4 gap + chip ~110)
+   → meluber pada viewport <490px (semua HP). Dengan flex-wrap: baris-1 =
+   ikon + waktu + tipe, baris-2 = pesan + chip durasi (menyempit sendiri). */
+@media (max-width:640px) {
+    #device-show-page .log-item { flex-wrap:wrap; gap:6px 10px; padding:7px 10px; }
+    #device-show-page .log-time { flex:0 0 auto; font-size:.7rem; }
+    #device-show-page .log-type { flex:0 0 auto; font-size:.62rem; }
+    /* Chip dir sedikit dikecilkan agar pesan + chip tetap muat dalam baris kedua */
+    #device-show-page .log-dur { font-size:.62rem; padding:1px 6px; }
+}
 </style>
 @endpush
 

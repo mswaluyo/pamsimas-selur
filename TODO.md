@@ -1284,3 +1284,85 @@ halaman ini (halaman ini sebelumnya tidak punya blok style sendiri).
   `/login` **200**, `/` & `/monitoring` **302** (redirect login tanpa sesi), backup
   `/tmp/backup-mon-20261004-061835`.
 
+### 7.25 Tampilan mobile halaman detail perangkat: analisa → perbaikan P1–P3 (4 Okt 2026)
+
+**Permintaan.** (1) *"tolong analisa tampilan mobile pada detail device, jangan ubah dulu"* →
+(2) setelah analisa dikirim, *"baik kerjakan"* → scope yang dikerjakan: temuan **P1, P2, P3**
+(P4–P6 menunggu persetujuan, lihat "Sisa pekerjaan").
+
+#### Hasil analisa (perhitungan CSS, tanpa mengubah berkas)
+
+| Temuan | Fakta | Level |
+|---|---|---|
+| **P1** baris log meluber | lebar konten = `viewport - 106`; baris satu-liris butuh ~384px (ikon 22 + waktu 128 + tipe 84 + 4 gap + chip ~110) -> meluber saat **viewport <490px (semua HP)**; `.log-message` yang fleksibel (`min-width:0`) menyusut ke **0** lalu chip keluar tepi -> **pesan (§7.17) & durasi (§7.18) tak terlihat** | P1 |
+| **P2** header grafik | `.chart-card-container` = `grid-template-columns:1fr auto` **tanpa media query mobile** → kontrol meluber / label tombol mengepak | P2 |
+| **P3** target sentuh | `.btn-sm` & `.gauge-actions .btn-action` ≈26–30px (pedoman ≥44px) | P3 |
+| P4 boros ruang vertikal | `.card` padding 20px (backup mobile 12px), `#gauge-container` `min-height:450px`, judul halaman tidak disembunyikan | P4 (nanti) |
+| P5 pola kartu statistik | detail = 7 kartu scroll horizontal; dashboard sudah 4-kolom (§7.23); backup mobile = `repeat(4,1fr)` + judul disembunyikan | P5 (nanti) |
+| P6 tooltip | `title` tidak muncul di layar sentuh | P6 (nanti) |
+
+Yang sudah baik: viewport meta ada; `.controller-detail-grid` 1 kolom di mobile; header wrap; log-list
+scroll vertikal; `.gauge-card` max-width 320px; canvas width 100%.
+
+#### Temuan saat pengukuran nyata — **akar masalah yang tidak terlihat dari analisa statis**
+
+Chrome headless tersedia di-mesin, sehingga HTML **hasil render server** diukur nyata pada
+**360px** (lewat CDP `Emulation.setDeviceMetricsOverride`; `--window-size` dipaksa minimum 500px,
+jadi emulasi CDP dipakai). Hasilnya: **halaman ini sebenarnya 606px lebar** dan menghasilkan
+scroll horizontal **seluruh halaman**. Penyebabnya:
+
+```
+body > div.flex.min-h-screen (345) > div.flex.min-h-screen.flex-1.flex-col (606) > main (606)
+```
+Pembungkus `flex-1` **dan** `<main>` adalah *flex item* dengan `min-width:auto` → dipaksa selebar
+**min-content** anaknya, yaitu **baris 7 kartu statistik = 566px** (+ padding `main` 40px = 606px).
+Bukti: sesudah `min-width:0` disuntikkan langsung dari konsol, overflow halaman hilang total
+(`606>360` → `NO`), dan baris statistik pun berganti jadi **scroll internal** (`566>305`).
+
+#### Perubahan (2 view)
+
+1. `resources/views/layouts/app.blade.php` — **akar masalah**:
+   `.flex.min-h-screen.flex-1, main { min-width: 0; }` (+ komentar penjelas). Baris statistik tetap
+   bisa di-scroll sendiri karena sudah memakai `overflow-x:auto`; **desktop tidak terpengaruh**.
+2. `resources/views/devices/show.blade.php` — tiga blok baru di blok `<style>`:
+   - **P1** `@media (max-width:640px)`: `.log-item { flex-wrap:wrap; gap:6px 10px; padding:7px 10px }`,
+     `.log-time { flex:0 0 auto; font-size:.7rem }`, `.log-type { flex:0 0 auto; font-size:.62rem }`,
+     `.log-dur { font-size:.62rem; padding:1px 6px }` → baris jadi **2 baris**: (ikon+waktu+tipe) /
+     (pesan + chip durasi).
+   - **P2** `@media (max-width:767px)`: `.chart-card-container { grid-template-columns:1fr }`,
+     `.chart-controls-container { grid-column:1 / -1; grid-row:auto }`, `.btn-group { flex-wrap:wrap }`,
+     `.chart-canvas-container { grid-column:1 / -1 }`.
+   - **P3** `@media (max-width:767px)`: `.btn-sm { padding:9px 12px; font-size:.78rem }`,
+     `.gauge-actions .btn-action { padding:9px 14px }`, `.auto-scale-wrapper input { 18px }`,
+     label padding 9px. Aturan dasar desktop (waktu 128px, tipe 84px, grid `1fr auto`) **dipertahankan**.
+
+#### Verifikasi
+
+- **Struktural 23/23** (render `devices.show` perangkat #3 di server): ketiga blok media ada,
+  aturan desktop tetap utuh, chip durasi & badge MON/ACT tetap ada, FA 6.4.2 termuat, tanpa emoji.
+- **Pengukuran nyata @360px (A/B, HTML asli hasil render server, Chrome headless + CDP):**
+  | Metrik | Sebelum (hanya perbaikan layout) | Sesudah (P1–P3 + layout) |
+  |---|---|---|
+  | Overflow halaman | 736>360 (tanpa fix layout) → `NO` (dengan fix layout) | **`NO`** |
+  | Overflow daftar log | **388>248** (scroll horizontal) | **`NO`** |
+  | Lebar pesan log | **0px (tidak terlihat)** | **228px** |
+  | Chip durasi | **di luar area** (`NO 423>305`) | **terlihat** |
+  | Tinggi baris log | 35px (1 baris) | 62–85px (2 baris) |
+  | Tinggi tombol grafik | 48px (label wrap) | **39px** |
+  | Baris statistik | melebar bersama halaman | **scroll internal** `566>305` |
+  | Emulasi HP (`mobile:true`) | viewport melebar **606px** | viewport tepat **360px** |
+- **Screenshot 360px diperiksa visual**: kartu statistik 1 baris (scroll), kontrol grafik menumpuk
+  rapi (Live/1 Jam/6 Jam/24 Jam + Auto), dan tiap entri log menampilkan waktu + tipe + **pesan +
+  chip durasi** ("mati 00:30:02"). "Template gauge belum tersedia." & "Library grafik … tidak
+  dapat dimuat." muncul karena harness uji menghidrasi `<template>`/Chart.js tanpa CDN — bukan cacat
+  produksi.
+- Deploy: MD5 `01916939b9350979b982cd6b5bce1571` (layout) & `46ecdbafc3777398b7e8692145a753ca`
+  (detail) — **lokal = server**, `view:clear`+`view:cache` OK, backup
+  `/tmp/backup-resp-20261004-071731` (hanya detail) & `/tmp/backup-resp2-20261004-073521` (dua berkas).
+
+#### Sisa pekerjaan (menunggu persetujuan)
+
+- **P4** `.card { padding:12–14px }` + `#gauge-container { min-height:~360px }` di mobile; opsional
+  sembunyikan `h1` seperti backup.
+- **P5** kartu statistik: tetap scroll (konsisten dengan §7.23 via 4 kolom) atau ikut pola backup.
+- **P6** tampilkan teks `MONITOR`/`ACTUATOR` di mobile agar tidak bergantung pada `title`.
