@@ -11,19 +11,16 @@
             <i class="fas fa-tint text-sky-600"></i> Tampilan
         </h2>
         <p class="mb-4 text-sm text-slate-500">Ambang &amp; warna gauge.</p>
-        {{-- Tiap baris: input AMBANG (kiri, lebar) + input WARNA (kanan, swatch kecil).
-             Label ditulis pendek karena kolom warna sempit; nama panjang ada di bawah
-             (baris "Pratinjau") sebagai penjelas. --}}
+        {{-- Tiap baris: input angka (kiri, lebar, tanpa label) + input warna (kanan, swatch kecil)
+             dengan label singkat Rendah/Sedang/Aman. Nilai default mengikuti
+             IndicatorSetting::getSettings() (30 / #e74c3c, 70 / #f39c12, #27ae60). --}}
         <form method="POST" action="{{ route('settings.display') }}" class="space-y-2">
             @csrf
             <div class="space-y-2">
                 <div class="grid grid-cols-[1fr_64px] items-end gap-2">
-                    <div>
-                        <label for="f-low" class="mb-1 block text-xs font-medium text-slate-600">Ambang Rendah (%)</label>
-                        <input id="f-low" type="number" name="threshold_low" required min="0" max="100"
-                               value="{{ $settings['threshold_low'] }}"
-                               class="h-10 w-full rounded-lg border border-slate-300 px-2 text-center text-sm">
-                    </div>
+                    <input type="number" name="threshold_low" required min="0" max="100"
+                           value="{{ $settings['threshold_low'] }}" aria-label="Ambang rendah (%)" title="Ambang rendah (%)"
+                           class="h-10 w-full rounded-lg border border-slate-300 px-2 text-center text-sm">
                     <div>
                         <label for="c-low" class="mb-1 block text-xs font-medium text-slate-600">Rendah</label>
                         <input id="c-low" type="color" name="color_low" value="{{ $settings['color_low'] }}"
@@ -32,12 +29,9 @@
                     </div>
                 </div>
                 <div class="grid grid-cols-[1fr_64px] items-end gap-2">
-                    <div>
-                        <label for="f-mid" class="mb-1 block text-xs font-medium text-slate-600">Ambang Sedang (%)</label>
-                        <input id="f-mid" type="number" name="threshold_medium" required min="0" max="100"
-                               value="{{ $settings['threshold_medium'] }}"
-                               class="h-10 w-full rounded-lg border border-slate-300 px-2 text-center text-sm">
-                    </div>
+                    <input type="number" name="threshold_medium" required min="0" max="100"
+                           value="{{ $settings['threshold_medium'] }}" aria-label="Ambang sedang (%)" title="Ambang sedang (%)"
+                           class="h-10 w-full rounded-lg border border-slate-300 px-2 text-center text-sm">
                     <div>
                         <label for="c-mid" class="mb-1 block text-xs font-medium text-slate-600">Sedang</label>
                         <input id="c-mid" type="color" name="color_medium" value="{{ $settings['color_medium'] }}"
@@ -46,7 +40,7 @@
                     </div>
                 </div>
                 <div class="grid grid-cols-[1fr_64px] items-end gap-2">
-                    <div class="pb-1 text-right text-[11px] leading-tight text-slate-400">diatas<br>ambang sedang</div>
+                    <div aria-hidden="true"></div>
                     <div>
                         <label for="c-high" class="mb-1 block text-xs font-medium text-slate-600">Aman</label>
                         <input id="c-high" type="color" name="color_high" value="{{ $settings['color_high'] }}"
@@ -61,9 +55,20 @@
                 <span class="inline-flex items-center gap-1"><span id="sw-mid" class="inline-block h-3.5 w-3.5 rounded" style="background: {{ $settings['color_medium'] }}"></span> sedang</span>
                 <span class="inline-flex items-center gap-1"><span id="sw-high" class="inline-block h-3.5 w-3.5 rounded" style="background: {{ $settings['color_high'] }}"></span> aman</span>
             </div>
-            <button class="mt-3 inline-flex items-center gap-1 rounded-lg bg-sky-600 px-4 py-2 text-sm font-semibold text-white hover:bg-sky-700"><i class="fas fa-floppy-disk"></i>Simpan</button>
+            {{-- Default di kiri, Simpan di ujung kanan --}}
+            <div class="mt-3 flex items-center justify-between gap-2">
+                <button type="button" id="btn-default"
+                        class="inline-flex items-center gap-1 rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm font-medium text-slate-600 hover:bg-slate-50">
+                    <i class="fas fa-rotate-left"></i>Default
+                </button>
+                <button type="submit" class="inline-flex items-center gap-1 rounded-lg bg-sky-600 px-4 py-2 text-sm font-semibold text-white hover:bg-sky-700">
+                    <i class="fas fa-floppy-disk"></i>Simpan
+                </button>
+            </div>
         </form>
         <script>
+            // Nilai default = IndicatorSetting::getSettings() (30 / #e74c3c, 70 / #f39c12, #27ae60)
+            const GAUGE_DEFAULTS = { threshold_low: 30, color_low: '#e74c3c', threshold_medium: 70, color_medium: '#f39c12', color_high: '#27ae60' };
             // Pratinjau warna ikut berubah begitu operator memilih warna (tanpa reload)
             document.querySelectorAll('input[type="color"][data-sw]').forEach(function (el) {
                 el.addEventListener('input', function () {
@@ -71,6 +76,20 @@
                     if (sw) sw.style.background = el.value;
                 });
             });
+            // Tombol Default: kembalikan form ke nilai bawaan (perlu klik Simpan untuk menerapkan)
+            const btnDefault = document.getElementById('btn-default');
+            if (btnDefault) {
+                btnDefault.addEventListener('click', function () {
+                    const form = btnDefault.closest('form');
+                    Object.keys(GAUGE_DEFAULTS).forEach(function (name) {
+                        const input = form.querySelector('[name="' + name + '"]');
+                        if (!input) return;
+                        input.value = GAUGE_DEFAULTS[name];
+                        const sw = input.dataset ? document.getElementById(input.dataset.sw) : null;
+                        if (sw) sw.style.background = input.value;
+                    });
+                });
+            }
         </script>
     </div>
 {{-- ================= KANAN (2/3): TEMPLATE GAUGE ================= --}}

@@ -1717,6 +1717,42 @@ placeholder ter ganti, `sandbox="allow-scripts"`, peringatan DevExtreme tampil, 
 `active_template_id` tetap `three_quarter_gauge`, `/templates` tetap **302**.
 Screenshot 1280px: dua kolom rapi, 4 gauge ter-render benar, devextreme kosong + peringatan.
 
+### 7.40 — Form: label cukup Rendah/Sedang/Aman + tombol Default (kiri) & Simpan (kanan) (sesi #84)
+Permintaan operator: *"label cukup rendah, sedang, aman. tengah form angka tanpa label, kanan warna.
+tambah dafault di sebelah kiri simpan, simpan taruh paling kanan (rata kanan)"*.
+
+- **Label panjang dihapus.** Dua `<label>` "Ambang Rendah (%)" / "Ambang Sedang (%)" dibuang;
+  input angka sekarang **tanpa label** (dengan `aria-label` + `title` agar tetap &
+  ada tooltip). Label yang tersisa hanya **Rendah / Sedang / Aman** di atas kolom warna.
+- Baris 3 ("Aman") kolom kiri jadi `<div aria-hidden="true">` (kosong); teks
+  *"diatas ambang sedang"*** dihapus** sesuai permintaan.
+- **Tombol Default** (`#btn-default`, `type="button"`, ikon `fa-rotate-left`) di **kiri**, **Simpan**
+  (`type="submit"`) di **ujung kanan** lewat wrapper `flex items-center justify-between gap-2`.
+  Default bekerja **di sisi klien** lewat `GAUGE_DEFAULTS` yang nilainya dicocokkan dengan
+  `IndicatorSetting::getSettings()` (30 / #e74c3c, 70 / #f39c12, #27ae60) — **tidak** menyentuh
+  database sampai operator menekan Simpan (tidak ada endpoint "reset").
+
+**Bug sintaks yang ketahuan hanya lewat uji klik (penting):** blok `if (btnDefault) { … }` ditutup
+dengan **`});`** (pola `addEventListener`) sehingga **seluruh blok `<script>` gagal parse**
+(`SyntaxError: Unexpected token ')'`) — efeknya bukan hanya tombol Default mati, tapi juga
+**pratinjau warna live ikut mati** (script-nya satu blok). Diperbaiki menjadi `}`.
+Pemeriksaan struktural 31/31 **tetap lulus** saat bug ini ada — bukti bahwa cek markup tidak cukup;
+karena itu ditambahkan **(a) validasi sintaks JS** (`new Function(js)` via Node) dan
+**(b) uji interaksi CDP** yang benar-benar mengubah nilai lalu klik Default.
+
+**Uji interaksi CDP (Chrome headless) — SEBELUM fix vs SESUDAH fix:**
+|Langkah | Sebelum (bug) | Sesudah (fixed) |
+|---|---|---|
+| awal | 30 / 70 / #e74c3c / #fff700 / #27ae60 | sama |
+| diubah | low=**99**, cHigh=**#000000**, swLow=**rgb(18,52,86)** | sama |
+| klik **Default** | **tidak berubah** (99 / #000000) | **30 / #f39c12 / #27ae60**, swLow kembali **rgb(231,76,60)** ✔ |
+
+Struktural **31/31** (label hanya Rendah/Sedang/Aman; 2 `input[number]` tanpa `<label>` tapi punya
+`aria-label`+`title`; keterangan "diatas" hilang; baris Aman kolom kiri kosong; Default `type="button"`
+sebelum Simpan `type="submit"`; `justify-between`; `GAUGE_DEFAULTS` cocok dengan default model;
+POST simpan 302 & dikembalikan; slide ON/OFF utuh) + **sintaks JS OK** + **uji klik Default**.
+Backup `/tmp/backup-95`, `/tmp/backup-96`. Aset build tidak berubah (`app-KYeKJeyF.css`).
+
 ### 7.39 — Form Ambang/Warna: angka di kiri, swatch warna di kanan (sesi #83)
 Permintaan operator: *"input angka taruh disebelah kiri warna saja, label sesuaikan"*.
 Pada §7.38 label berada di kiri dan input di kanan (5 baris terpisah). Sekarang jadi **3 baris**
