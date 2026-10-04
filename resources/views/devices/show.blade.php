@@ -540,6 +540,48 @@
 
 
     /* ------------------------- GAUGE (template aktif) ------------------------- */
+    /* ------------------------- PUSTAKA GAUGE (ondemand) ------------------------- */
+    /* Template gauge boleh butuh pustaka luar (mis. DevExtreme + jQuery).
+       Pustaka hanya diambil dari CDN bila template yang aktif memang memakainya,
+       jadi halaman dengan template lain (mayoritas) tidak menambah beban apa pun.
+       Catatan lisensi: DevExtreme (DevExpress) produk komersial — usage komersial
+       memerlukan lisensi resmi; bukan resmi/nonprofit mendapat versi gratis. */
+    const GAUGE_LIB = {
+        jquery: 'https://cdn.jsdelivr.net/npm/jquery@3.7.1/dist/jquery.min.js',
+        dxCss: 'https://cdn.jsdelivr.net/npm/devextreme@22.2.6/dist/css/dx.light.css',
+        dxJs: 'https://cdn.jsdelivr.net/npm/devextreme@22.2.6/dist/js/dx.all.min.js'
+    };
+    const DX_AVAILABLE = /\bdx[A-Z]\w*|\$\s*\(/.test((TPL && TPL.js_code) || '');
+
+    function loadStyleOnce(href, id) {
+        if (document.getElementById(id)) return;
+        const l = document.createElement('link');
+        l.id = id; l.rel = 'stylesheet'; l.href = href;
+        document.head.appendChild(l);
+    }
+    function loadScriptOnce(src, id) {
+        return new Promise(function (resolve, reject) {
+            if (document.getElementById(id)) { resolve(); return; }
+            const s = document.createElement('script');
+            s.id = id; s.src = src; s.async = false;
+            s.onload = resolve;
+            s.onerror = function () { reject(new Error('Gagal memuat ' + src)); };
+            document.head.appendChild(s);
+        });
+    }
+    /** Muat pustaka yang dibutuhkan template aktif (dilewati bila tidak perlu). */
+    function ensureGaugeLibraries() {
+        if (!DX_AVAILABLE) return Promise.resolve(true);
+        loadStyleOnce(GAUGE_LIB.dxCss, 'gauge-lib-dx-css');
+        return loadScriptOnce(GAUGE_LIB.jquery, 'gauge-lib-jquery')
+            .then(function () { return loadScriptOnce(GAUGE_LIB.dxJs, 'gauge-lib-dx-js'); })
+            .then(function () { return true; })
+            .catch(function (e) {
+                console.error(e);
+                return false;
+            });
+    }
+
     function injectTemplateAssets() {
         if (!TPL) return;
         if (TPL.css_code && !document.getElementById('gauge-template-css')) {
@@ -988,10 +1030,22 @@
     })();
 
     /* ------------------------------ INISIALISASI ------------------------------ */
-    injectTemplateAssets();
-    const gaugeCard = $('gauge-card-' + DEVICE_ID);
-    renderGaugeCardStructure(gaugeCard);
-    if (gaugeCard) paintGauge(gaugeCard, Math.max(0, Math.min(100, Number(CFG.initialPct) || 0)));
+    /* Pustaka luar (bila perlu) dimuat dulu, baru js_code template dieksekusi —
+       template DevExtreme memanggil $(...) & dxCircularGauge saat init. */
+    ensureGaugeLibraries().then(function (libOk) {
+        injectTemplateAssets();
+        const gaugeCard = $('gauge-card-' + DEVICE_ID);
+        renderGaugeCardStructure(gaugeCard);
+        if (gaugeCard) {
+            if (!libOk && DX_AVAILABLE) {
+                // Pustaka gagal dimuat (mis. tanpa internet) — beri tahu, jangan tampilkan kotak kosong
+                gaugeCard.insertAdjacentHTML('beforeend',
+                    '<p style="text-align:center;color:#b45309;font-size:.78rem;margin-top:6px">'
+                    + 'Gauge DevExtreme tidak dapat dimuat. Periksa koneksi internet.</p>');
+            }
+            paintGauge(gaugeCard, Math.max(0, Math.min(100, Number(CFG.initialPct) || 0)));
+        }
+    });
 
     // Badge timer durasi (count-up): hijau saat ON, abu saat OFF — diperbarui tiap detik
     function updatePumpTimerBadge() {

@@ -1717,6 +1717,48 @@ placeholder ter ganti, `sandbox="allow-scripts"`, peringatan DevExtreme tampil, 
 `active_template_id` tetap `three_quarter_gauge`, `/templates` tetap **302**.
 Screenshot 1280px: dua kolom rapi, 4 gauge ter-render benar, devextreme kosong + peringatan.
 
+### 7.37 — Perbaiki `devextreme_circular` (pemuatan pustaka ondemand)
+Operator bertanya: *"apakah devextreme_circular bisa diperbaiki?"* — **bisa**, dengan memuat
+DevExtreme + jQuery dari CDN secara **ondemand**.
+
+**Riset paket DevExtreme di npm (hasil nyata diuji ke CDN):**
+- `dist/js/dx.all.min.js` **hanya ada di v22.2.6**; v23.2.6 / v24.2.5 / v26.1.5 → **404**
+  (paket baru diubah ke ESM/CJS tanpa bundel UMD).
+- `bundles/dx.all.js` di v24.2.5 hanya berkas stub 284 byte (untuk devextreme-angular).
+- Ukuran v22.2.6: JS **5.347.186 B (gzip 1.267.643)**, `dx.light.css` 863.867 B (gzip 108.208),
+  jQuery 3.7.1 87.533 B (gzip 30.280).
+- ⚠️ **Lisensi**: DevExtreme (DevExpress) produk **komersial**; gratis hanya untuk nonprofit/
+  pendidikan, usage komersial butuh lisensi resmi.
+
+**Perubahan:**
+1. `devices/show.blade.php`: blok baru `PUSTAKA GAUGE (ondemand)` —
+   `GAUGE_LIB` (URL CDN), `loadStyleOnce()`, `loadScriptOnce()` (id `gauge-lib-*` agar sekali muat),
+   dan `ensureGaugeLibraries()` yang **langsung `resolve(true)` bila `js_code` tidak cocok
+   `/\bdx[A-Z]\w*|\$\s*\(/`** → 4 template lain tidak tambah beban apa pun.
+2. Inisialisasi diubah jadi `ensureGaugeLibraries().then(...)` dengan urutan
+   **pustaka → `injectTemplateAssets()` → `renderGaugeCardStructure()` → `paintGauge()`**
+   (sebelumnya `js_code` dieksekusi sebelum pustaka ada, jadi `$(...)`/`dxCircularGauge` undefined).
+   Bila CDN gagal → pesan *"Gauge DevExtreme tidak dapat dimuat. Periksa koneksi internet."*
+   (bukan kotak kosong).
+3. `SettingController::previewDoc()`: variabel `$libTags` menyisipkan `<link>`+2 `<script src>`
+   ke `<head>` pratinjau **hanya untuk template ber-pustaka**; `<script src>` bersifat blocking
+   sehingga script utama otomatis menunggu. Ditambah CSS khusus pratinjau
+   `#pv div[id^="dx-gauge-"]{height:150px!important;max-width:150px;…}` karena tinggi 200px
+   pada template membuat gauge terpotong di iframe kecil.
+4. `settings/display.blade.php`: ikon segitiga kuning "tidak bisa tampil" diganti
+   **`fa-cloud-download`** (biru) + title "…diambil dari CDN saat gauge ini dipakai".
+
+**Verifikasi 52/52** (struktur) + **uji nyata CDP di Chrome headless**:
+- Pratinjau `devextreme_circular` benar-benar **ter-render**: skala 0–100%, range merah/oranye/hijau,
+  jarum di 65% (zoom 5×).
+- Halaman detail `/devices/show/2` dengan template diaktifkan sementara:
+  `jQuery=function`, `$.fn.dxCircularGauge=function`, `instance=true`, `svg di gauge=1`,
+  tinggi gauge **200px**, lebar **310px = lebar kartu (penuh)**, `pageOverflow=false`,
+  ketiga tag pustaka (`gauge-lib-jquery/dx-css/dx-js`) terpasang.
+- Sisa 4 template: pratinjau **tanpa** CDN sama sekali (ondemand terbukti).
+- `active_template_id` dikembalikan ke `three_quarter_gauge` setelah pengujian.
+- Backup `/tmp/backup-88`, `/tmp/backup-89`.
+
 ### 7.36 — Ganti tombol aktifkan jadi SLIDE ON/OFF (sesi #81)
 Permintaan operator: *"gunakan tombol slide on/off"*. Pada kartu template, badge `Aktif` +
 tombol panah `fa-arrow-right` (dan tetap tombol tong merah `fa-trash-can` untuk hapus) diganti:

@@ -61,8 +61,8 @@
                     <span class="flex min-w-0 items-center gap-1 text-xs font-semibold">
                         <span class="truncate">{{ $t->name }}</span>
                         @if($t->needs_library)
-                            <i class="fas fa-triangle-exclamation shrink-0 text-amber-500"
-                               title="Butuh DevExtreme + jQuery yang belum tersedia di aplikasi"></i>
+                            <i class="fas fa-cloud-download shrink-0 text-sky-500"
+                               title="Memakai pustaka luar (DevExtreme + jQuery) yang diambil dari CDN saat gauge ini dipakai — perlu koneksi internet"></i>
                         @endif
                     </span>
                     @if($canTemplatesEdit)
