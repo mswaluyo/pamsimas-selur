@@ -154,7 +154,7 @@
             {!! $navItem(route('settings.sensors'), request()->routeIs('settings.sensors'), '<i class="fas fa-satellite-dish"></i> Sensor') !!}
             {!! $navItem(route('settings.tariff'), request()->routeIs('settings.tariff'), '<i class="fas fa-hand-holding-usd"></i> Tarif') !!}
             {!! $navItem(route('settings.display'), request()->routeIs('settings.display'), '<i class="fas fa-palette"></i> Tampilan') !!}
-            {!! $navItem(route('templates.index'), request()->routeIs('templates.*'), '<i class="fas fa-magic"></i> Template Gauge') !!}
+            {{-- Template gauge digabung ke halaman Tampilan (menu "Template Gauge" dihapus) --}}
 
             {!! $navSection('Riwayat') !!}
             {!! $navItem(route('logs.pumps'), request()->routeIs('logs.pumps'), '<i class="fas fa-history"></i> Log Pompa') !!}

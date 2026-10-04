@@ -16,11 +16,9 @@ class TemplateController extends Controller
 
     public function index()
     {
-        $this->check();
-        return view('templates.index', [
-            'templates' => GaugeTemplate::all(),
-            'activeId' => IndicatorSetting::getSettings()['active_template_id'] ?? 'tank_gauge',
-        ]);
+        // Template gauge kini digabung ke halaman "Tampilan" (menu: Tampilan).
+        // Rute lama /templates dipertahankan sebagai pengalih agar tautan lama tidak rusak.
+        return redirect()->route('settings.display');
     }
 
     public function store(Request $request)

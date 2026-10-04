@@ -1646,3 +1646,31 @@ settings/sensors **Tipe** · settings/pumps **Daya**.
 **Known limitation:** teks tombol file picker ("Choose File / No file chosen") berasal dari browser
 dan tidak bisa diubah ke bahasa Indonesia tanpa JS khusus; label Indonesia sudah ditambahkan di
 sebelahnya.
+
+
+
+### §7.32 Gabung "Pengaturan Tampilan" + "Template Gauge" → menu **Tampilan**
+
+**Permintaan operator:** gabungkan pengaturan tampilan dan template gauge menjadi **satu halaman**
+dengan menu **"Tampilan"**.
+
+**Perubahan:**
+| Aspek | Sebelum | Sesudah |
+|---|---|---|
+| Menu sidebar | "Tampilan" + "Template Gauge" | **"Tampilan"** saja |
+| Judul halaman | "Tampilan & Indikator" | **"Tampilan"** |
+| Halaman template | `/templates` (`templates/index.blade.php`) | **bagian 2 di `/settings/display`** |
+| Rute `/templates` | halaman template | **302 → `/settings/display`** (tautan lama tidak rusak) |
+| Select "Template Aktif" | ada di form indikator | **dihapus** → pakai tombol **Aktifkan** di kartu template |
+
+- `SettingController::display()` kini mengirim `activeId`, `canTemplates`, `canTemplatesEdit`
+  (mengikuti modul `templates` di `Permission::MATRIX`, jadi Operator/Administrator tetap sama).
+- `updateDisplay()`: `active_template_id` jadi **nullable** dan di-`unset` bila kosong ⇒ menyimpan
+  indikator **tidak lagi menimpa template aktif** (sebelumnya field itu `required`).
+- `TemplateController::index()` → redirect; `store/activate/destroy` tetap dipakai (form di halaman
+  baru ini masih POST ke rute yang sama). View `templates/index.blade.php` dihapus karena isinya
+  sekarang ditulis di `settings/display.blade.php`.
+
+**Verifikasi 14/14** (`/settings/display` 200 memuat kedua bagian & satu entri menu; `/templates`
+302 → `/settings/display`; POST dengan token CSRF asli → 302 + pesan "Pengaturan tampilan disimpan";
+`active_template_id` tetap `three_quarter_gauge` setelah disimpan).

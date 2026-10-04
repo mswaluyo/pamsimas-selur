@@ -276,23 +276,36 @@ class SettingController extends Controller
     public function display()
     {
         $this->check();
+        $role = session('user.role', 'Viewer');
+        $templates = \App\Models\GaugeTemplate::all();
         return view('settings.display', [
             'settings' => IndicatorSetting::getSettings(),
-            'templates' => \App\Models\GaugeTemplate::all(),
+            'templates' => $templates,
+            // Template gauge digabung ke halaman ini (menu "Tampilan"), jadi hak aksesnya
+            // mengikuti modul 'templates' agar Operator/Administrator tetap sama seperti sebelumnya.
+            'activeId' => IndicatorSetting::getSettings()['active_template_id'] ?? 'tank_gauge',
+            'canTemplates' => \App\Support\Permission::can($role, 'templates', 'read'),
+            'canTemplatesEdit' => \App\Support\Permission::can($role, 'templates', 'update'),
         ]);
     }
 
     public function updateDisplay(Request $request)
     {
         $this->check('update');
-        IndicatorSetting::query()->first()->update($request->validate([
+        $data = $request->validate([
             'threshold_low' => 'required|integer|min:0|max:100',
             'color_low' => 'required|string|size:7',
             'threshold_medium' => 'required|integer|min:0|max:100',
             'color_medium' => 'required|string|size:7',
             'color_high' => 'required|string|size:7',
-            'active_template_id' => 'required|string|max:50',
-        ]));
+            // Template aktif sekarang dipilih lewat tombol "Aktifkan" di halaman yang sama,
+            // jadi field ini opsional & tidak boleh menimpa nilai lama bila tidak dikirim.
+            'active_template_id' => 'nullable|string|max:50',
+        ]);
+        if (empty($data['active_template_id'])) {
+            unset($data['active_template_id']);
+        }
+        IndicatorSetting::query()->first()->update($data);
         return back()->with('success', 'Pengaturan tampilan disimpan.');
     }
 }
