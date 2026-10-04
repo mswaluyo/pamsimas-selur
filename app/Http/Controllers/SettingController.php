@@ -277,16 +277,69 @@ class SettingController extends Controller
     {
         $this->check();
         $role = session('user.role', 'Viewer');
-        $templates = \App\Models\GaugeTemplate::all();
+        $templates = \App\Models\GaugeTemplate::all()->map(function ($t) {
+            // Pratinjau tiap template dibangun sebagai dokumen mandiri (iframe srcdoc) supaya
+            // CSS antar template tidak saling menimpa, sama seperti cara halaman gauge memakainya.
+            $t->preview_srcdoc = $this->previewDoc($t);
+            $t->needs_library = $this->needsLibrary($t);
+            return $t;
+        });
         return view('settings.display', [
             'settings' => IndicatorSetting::getSettings(),
             'templates' => $templates,
-            // Template gauge digabung ke halaman ini (menu "Tampilan"), jadi hak aksesnya
+            // Template aktif dipilih lewat tombol "Aktifkan" di halaman ini, jadi hak aksesnya
             // mengikuti modul 'templates' agar Operator/Administrator tetap sama seperti sebelumnya.
             'activeId' => IndicatorSetting::getSettings()['active_template_id'] ?? 'tank_gauge',
             'canTemplates' => \App\Support\Permission::can($role, 'templates', 'read'),
             'canTemplatesEdit' => \App\Support\Permission::can($role, 'templates', 'update'),
+            'previewPercent' => 65,
         ]);
+    }
+
+    /** Dokumen HTML mandiri untuk pratinjau gauge (dipakai di iframe srcdoc). */
+    private function previewDoc($t): string
+    {
+        $html = (string) $t->html_code;
+        foreach ([['TANK_NAME', 'Bak Contoh'], ['PUMP_NAME', 'Pompa Contoh']] as [$k, $v]) {
+            $html = preg_replace('/{{\s*' . $k . '\s*}}/i', $v, $html);
+        }
+        $html = preg_replace('/{{\s*DEVICE[ _-]*ID\s*}}/i', '0', $html);
+        $html = trim($html) !== ''
+            ? $html
+            : '<p style="color:#94a3b8;font-size:11px;text-align:center">Template ini belum memiliki kode HTML.</p>';
+
+        $pct = 65;
+        $css = (string) $t->css_code;
+        $js = (string) $t->js_code;
+
+        return '<!doctype html><html lang="id"><head><meta charset="utf-8">'
+            . '<style>*{box-sizing:border-box}html,body{margin:0;height:100%;overflow:hidden;background:#fff;'
+            . "font-family:system-ui,-apple-system,'Segoe UI',sans-serif}"
+            . '#pv{display:block;height:100%;padding:4px;transform:scale(.5);transform-origin:center center}'
+            . '#pv>*{margin-left:auto;margin-right:auto}'
+            . '#pv .gauge-title{font-size:11px;color:#64748b;text-align:center}'
+            . $css . '</style></head><body><div id="pv">' . $html . '</div><script>'
+            . '(function(){var card=document.getElementById("pv");'
+            // Fallback universal: salinan persis universalUpdateGauge() di devices/show.blade.php
+            . 'function universalUpdateGauge(el0,v,fill){el0.querySelectorAll("[data-update-style]").forEach(function(el){'
+            . 'var p=el.dataset.updateStyle;'
+            . 'if(p==="degrees"){el.style.setProperty("--percentage",(v*2.7)+"deg");el.style.setProperty("--fill-color",fill);}'
+            . 'else if(p==="percentage"){if(el.classList.contains("tank-gauge-water")){el.style.height=v+"%";}else{el.style.width=v+"%";}'
+            . 'el.style.backgroundColor=fill;}});'
+            . 'var t=el0.querySelector(".value")||el0.querySelector(".tank-gauge-text")'
+            . '||el0.querySelector(".simple-bar-gauge-text");if(t){t.textContent=Math.round(v)+"%";}}'
+            . 'try{' . $js . '}catch(e){}'
+            . 'try{if(typeof window.initGauge==="function"){window.initGauge(card);}}catch(e){}'
+            . 'try{if(typeof window.updateGauge==="function"){window.updateGauge(card,' . $pct . ',"#22c55e");}'
+            . 'else{universalUpdateGauge(card,' . $pct . ',"#22c55e");}}catch(e){universalUpdateGauge(card,' . $pct . ',"#22c55e");}'
+            . 'universalUpdateGauge(card,' . $pct . ',"#22c55e");'
+            . '})();</script></body></html>';
+    }
+
+    /** Deteksi template yang butuh pustaka luar (mis. DevExtreme + jQuery). */
+    private function needsLibrary($t): bool
+    {
+        return (bool) preg_match('/\bdx[A-Z]\w*|\$\s*\(/', (string) $t->js_code);
     }
 
     public function updateDisplay(Request $request)

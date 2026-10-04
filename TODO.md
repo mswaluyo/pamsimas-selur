@@ -1674,3 +1674,45 @@ dengan menu **"Tampilan"**.
 **Verifikasi 14/14** (`/settings/display` 200 memuat kedua bagian & satu entri menu; `/templates`
 302 → `/settings/display`; POST dengan token CSRF asli → 302 + pesan "Pengaturan tampilan disimpan";
 `active_template_id` tetap `three_quarter_gauge` setelah disimpan).
+
+### §7.34 Tampilan: 2 kolom + pratinjau gauge (bukan tambah template)
+
+**Permintaan operator:** *"buat pengaturan tampilan sebelah kiri, template gauge sebelah kanan saja,
+buat lebih simpel dan perbaiki preview template gauge, serta tidak perlu penambahan template"*.
+
+**Tata letak & kesederhanaan:**
+- `grid grid-cols-1 lg:grid-cols-2` → **Tampilan (kiri)** & **Template Gauge** (kanan).
+- **Form penambahan template dihapus** (nama/deskripsi/tombol Tambah) — sesuai permintaan.
+- Kartu disederhanakan: 1 baris per template = `iframe pratinjau 96px` + nama + badge `Aktif`
+  + tombol `Aktifkan`/`Hapus` (Hapus hanya untuk template non-`is_core`; saat ini semua template
+  bawaan ⇒ tombol Hapus memang tidak muncul).
+- Deskripsi disembunyikan bila identik dengan nama (menghindari teks dobel).
+
+**Pratinjau gauge (perbaikan):**
+- Dibuat: `SettingController::previewDoc()` membangun **dokumen HTML mandiri per template** yang
+  dirender di **`<iframe srcdoc sandbox="allow-scripts">`** ⇒ CSS antar template tidak saling
+  menimpa (sebelumnya tidak ada pratinjau sama sekali, kartu hanya menampilkan nama).
+- Placeholder `{{ TANK_NAME }}` / `{{ PUMP_NAME }}` / `{{ DEVICE_ID }}` diganti
+  (`Bak Contoh`, `Pompa Contoh`, `0`) sebelum dirender.
+- Alur render disamakan dengan `universalUpdateGauge()` di `devices/show.blade.php`:
+  `js_code` → `initGauge(card)` → `updateGauge(card, 65, #22c55e)` → fallback universal
+  (`data-update-style="degrees"` & `"percentage"`, plus teks `.value` / `.tank-gauge-text` /
+  `.simple-bar-gauge-text`). Nilai pratinjau **65%**.
+- Wrapper pratinjau memakai **alur block** (`#pv{display:block}` + `margin auto`), bukan flex —
+  flex membuat `simple_bar_gauge` (tinggi tetap, lebar isi) menyusut jadi garis tipis.
+  Skala `transform:scale(.5)` supaya gauge besar (`three_quarter_gauge`, tangki 150px) tidak terpotong.
+- `needsLibrary()` menandai template yang butuh pustaka luar (`dx*`/`$(`) — **`devextreme_circular`
+  tidak bisa tampil** karena aplikasi tidak memuat DevExtreme/jQuery (hanya Chart.js); kartu
+  menampilkan peringatan kuning, bukan kotak kosong tanpa penjelasan.
+
+**Catatan build CSS:** kelas baru (`lg:grid-cols-2`, `h-24 w-24`, `line-clamp-2`, `space-y-2`)
+harus di-*build* Vite; server tidak punya Node ⇒ build dijalankan **di lokal**
+(`npm run build`) lalu `public/build/{manifest.json,assets/*}` diunggah. Aset hasil build
+diabaikan Git (`.gitignore: /public/build`). Saat menyalin aset, **jangan** pakai wildcard
+`rm app-*.js` ( sempat menghapus `app-DMsN-rLE.js` yang dirujuk manifest; sudah dipulihkan).
+
+**Verifikasi 17/17**: dua kolom, form tambah absen, 5 iframe = 5 template, semua punya `srcdoc`,
+placeholder ter ganti, `sandbox="allow-scripts"`, peringatan DevExtreme tampil, form
+`/templates/{id}/activate` untuk 4 template non-aktif, badge `Aktif`, POST simpan **302** dan
+`active_template_id` tetap `three_quarter_gauge`, `/templates` tetap **302**.
+Screenshot 1280px: dua kolom rapi, 4 gauge ter-render benar, devextreme kosong + peringatan.
