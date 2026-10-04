@@ -11,41 +11,48 @@
             <i class="fas fa-tint text-sky-600"></i> Tampilan
         </h2>
         <p class="mb-4 text-sm text-slate-500">Ambang &amp; warna gauge.</p>
-        {{-- Baris seragam: label di kiri, input di kanan dengan lebar & tinggi sama
-             (input[type=color] punya gaya bawaan browser yang berbeda dari input angka,
-             karena itu dikunci lewat kelasseragam + appear-none). --}}
+        {{-- Tiap baris: input AMBANG (kiri, lebar) + input WARNA (kanan, swatch kecil).
+             Label ditulis pendek karena kolom warna sempit; nama panjang ada di bawah
+             (baris "Pratinjau") sebagai penjelas. --}}
         <form method="POST" action="{{ route('settings.display') }}" class="space-y-2">
             @csrf
             <div class="space-y-2">
-                <div class="grid grid-cols-[1fr_84px] items-center gap-2">
-                    <label for="f-low" class="text-sm">Ambang Rendah (%)</label>
-                    <input id="f-low" type="number" name="threshold_low" required min="0" max="100"
-                           value="{{ $settings['threshold_low'] }}"
-                           class="h-9 w-full rounded-lg border border-slate-300 px-2 text-center text-sm">
+                <div class="grid grid-cols-[1fr_64px] items-end gap-2">
+                    <div>
+                        <label for="f-low" class="mb-1 block text-xs font-medium text-slate-600">Ambang Rendah (%)</label>
+                        <input id="f-low" type="number" name="threshold_low" required min="0" max="100"
+                               value="{{ $settings['threshold_low'] }}"
+                               class="h-10 w-full rounded-lg border border-slate-300 px-2 text-center text-sm">
+                    </div>
+                    <div>
+                        <label for="c-low" class="mb-1 block text-xs font-medium text-slate-600">Rendah</label>
+                        <input id="c-low" type="color" name="color_low" value="{{ $settings['color_low'] }}"
+                               data-sw="sw-low"
+                               class="h-10 w-full cursor-pointer rounded-lg border border-slate-300 bg-white p-1">
+                    </div>
                 </div>
-                <div class="grid grid-cols-[1fr_84px] items-center gap-2">
-                    <label for="c-low" class="text-sm">Warna Rendah</label>
-                    <input id="c-low" type="color" name="color_low" value="{{ $settings['color_low'] }}"
-                           data-sw="sw-low"
-                           class="h-9 w-full cursor-pointer rounded-lg border border-slate-300 bg-white p-1">
+                <div class="grid grid-cols-[1fr_64px] items-end gap-2">
+                    <div>
+                        <label for="f-mid" class="mb-1 block text-xs font-medium text-slate-600">Ambang Sedang (%)</label>
+                        <input id="f-mid" type="number" name="threshold_medium" required min="0" max="100"
+                               value="{{ $settings['threshold_medium'] }}"
+                               class="h-10 w-full rounded-lg border border-slate-300 px-2 text-center text-sm">
+                    </div>
+                    <div>
+                        <label for="c-mid" class="mb-1 block text-xs font-medium text-slate-600">Sedang</label>
+                        <input id="c-mid" type="color" name="color_medium" value="{{ $settings['color_medium'] }}"
+                               data-sw="sw-mid"
+                               class="h-10 w-full cursor-pointer rounded-lg border border-slate-300 bg-white p-1">
+                    </div>
                 </div>
-                <div class="grid grid-cols-[1fr_84px] items-center gap-2">
-                    <label for="f-mid" class="text-sm">Ambang Sedang (%)</label>
-                    <input id="f-mid" type="number" name="threshold_medium" required min="0" max="100"
-                           value="{{ $settings['threshold_medium'] }}"
-                           class="h-9 w-full rounded-lg border border-slate-300 px-2 text-center text-sm">
-                </div>
-                <div class="grid grid-cols-[1fr_84px] items-center gap-2">
-                    <label for="c-mid" class="text-sm">Warna Sedang</label>
-                    <input id="c-mid" type="color" name="color_medium" value="{{ $settings['color_medium'] }}"
-                           data-sw="sw-mid"
-                           class="h-9 w-full cursor-pointer rounded-lg border border-slate-300 bg-white p-1">
-                </div>
-                <div class="grid grid-cols-[1fr_84px] items-center gap-2">
-                    <label for="c-high" class="text-sm">Warna Aman</label>
-                    <input id="c-high" type="color" name="color_high" value="{{ $settings['color_high'] }}"
-                           data-sw="sw-high"
-                           class="h-9 w-full cursor-pointer rounded-lg border border-slate-300 bg-white p-1">
+                <div class="grid grid-cols-[1fr_64px] items-end gap-2">
+                    <div class="pb-1 text-right text-[11px] leading-tight text-slate-400">diatas<br>ambang sedang</div>
+                    <div>
+                        <label for="c-high" class="mb-1 block text-xs font-medium text-slate-600">Aman</label>
+                        <input id="c-high" type="color" name="color_high" value="{{ $settings['color_high'] }}"
+                               data-sw="sw-high"
+                               class="h-10 w-full cursor-pointer rounded-lg border border-slate-300 bg-white p-1">
+                    </div>
                 </div>
             </div>
             <div class="mt-3 flex flex-wrap items-center gap-x-3 gap-y-1 rounded-lg bg-slate-50 px-3 py-2 text-[11px] text-slate-600">

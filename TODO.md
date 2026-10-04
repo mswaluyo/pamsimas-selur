@@ -1717,6 +1717,34 @@ placeholder ter ganti, `sandbox="allow-scripts"`, peringatan DevExtreme tampil, 
 `active_template_id` tetap `three_quarter_gauge`, `/templates` tetap **302**.
 Screenshot 1280px: dua kolom rapi, 4 gauge ter-render benar, devextreme kosong + peringatan.
 
+### 7.39 — Form Ambang/Warna: angka di kiri, swatch warna di kanan (sesi #83)
+Permintaan operator: *"input angka taruh disebelah kiri warna saja, label sesuaikan"*.
+Pada §7.38 label berada di kiri dan input di kanan (5 baris terpisah). Sekarang jadi **3 baris**
+dengan `grid grid-cols-[1fr_64px] items-end gap-2` — tiap baris: **input angka di kiri (lebar)** +
+**swatch warna di kanan (64px)**.
+
+- **Label disesuaikan**: kolom angka (lebar) memakai label lengkap **"Ambang Rendah (%)"** &
+  **"Ambang Sedang (%)"**; kolom warna yang sempit memakai label pendek **"Rendah" / "Sedang" / "Aman"**.
+  Penjelasan panjang tersedia di baris **Pratinjau** (rendah/sedang/aman) + pada baris ketiga
+  keterangan *"diatas ambang sedang"* di kolom kiri (karena baris "Aman" tidak punya angka).
+- Tinggi input disamakan lagi ke **`h-10`** (sebelumnya `h-9`) karena `items-end` +
+  label di atas kedua kolom; warna tetap `bg-white p-1 cursor-pointer`.
+- `id` + `<label for>` tetap dipakai (fokus lewat klik label).
+
+**Masalah yang ketahuan saat verifikasi:** kelas arbitrary `grid-cols-[1fr_64px]` **belum ada** di
+aset CSS hasil build sebelumnya (yang ter-build masih `1fr_84px`), sehingga grid **tidak berlaku** dan
+layout jatuh ke blok biasa — terlihat di screenshot (masih susun label-kiri). **Fixed**: `npm run build`
+lokal → **`app-b-iL2xkg.css` → `app-KYeKJeyF.css`** (JS tetap `app-DMsN-rLE.js`), diverifikasi
+`.grid-cols-\[1fr_64px\]{grid-template-columns:1fr 64px}` **ada** di CSS, `css=200 js=200` ✔,
+lalu screenshot 1280px mengonfirmasi baris benar-benar angka-kiri + warna-kanan.
+
+**Verifikasi 34/34**: 4 template, 0 template butuh pustaka, ketiga berkas bersih DevExtreme/CDN,
+**3 baris `grid-cols-[1fr_64px]`**, grid 84px lama hilang, 2 `input[type=number]` + 3 `input[type=color]`,
+urutan **angka → warna** di baris 1 & 2 (dicek regex), baris 3 warna "Aman" + keterangan,
+label angka lengkap & label warna pendek ketiganya ada, 3 `label for` + 3 id + 3 swatch, pratinjau live,
+**POST simpan 302** (25/#f1c40f tersimpan lalu dikembalikan), slide ON/OFF utuh.
+Backup `/tmp/backup-92`, `/tmp/backup-94`, `/tmp/backup-93-assets`.
+
 ### 7.38 — Hapus `devextreme_circular` + rapikan form Ambang/Warna (sesi #82)
 Operator: *"hilangkan saja devextreme_circular dan perbaiki tampilan terutama setting warna tidak
 sebaris"*.
