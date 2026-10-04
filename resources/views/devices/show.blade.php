@@ -21,7 +21,7 @@
     margin-bottom:20px;
     overflow-x:auto;
 }
-@media (max-width:767px) { #device-show-page .stat-cards-container { padding-bottom:6px; } }
+@media (max-width:480px) { #device-show-page .stat-cards-container { padding-bottom:6px; } }
 #device-show-page .stat-card { display:flex; flex-direction:column; align-items:center; justify-content:center; text-align:center; gap:4px; min-width:0; background:#fff; border-radius:12px; box-shadow:0 4px 15px rgba(0,0,0,.05); padding:10px 6px; }
 #device-show-page .stat-card > div { min-width:0; max-width:100%; }
 #device-show-page .stat-card-icon { width:34px; height:34px; border-radius:8px; display:flex; align-items:center; justify-content:center; font-size:.95rem; color:#fff; flex:none; }
@@ -137,15 +137,17 @@
 }
 
 /* ==========================================================================
-   RESPONSIF MOBILE (hasil analisa — TODO §7.25)
+   RESPONSIF MOBILE/HP — ambang 480px (lihat TODO §7.27):
+   ≤480px memakai tata letak ringkas; 481px ke atas mendapat ruang lebih lega.
+   (hasil analisa awal — TODO §7.25)
    Lebar konten halaman = viewport − 106px (main p-5 40 + padding .card 40
    + border .log-list 2 + padding .log-item 24).
    ========================================================================== */
 
 /* P2: header kartu grafik menumpuk → judul, kontrol, lalu canvas.
    Grid asli `1fr auto` tanpa media query membuat kontrol meluber / tombol
-   mengepak sembarangan di layar ≤767px. */
-@media (max-width:767px) {
+   mengepak sembarangan di layar ≤480px. */
+@media (max-width:480px) {
     #device-show-page .chart-card-container { grid-template-columns:1fr; }
     #device-show-page .chart-controls-container { grid-column:1 / -1; grid-row:auto; }
     #device-show-page .chart-controls-container .btn-group { flex-wrap:wrap; }
@@ -154,7 +156,7 @@
 
 /* P3: target sentuh (tombol rentang grafik & kontrol pompa) — semula ±26px,
    kini ±36px; checkbox Auto diperbesar agar mudah ditekan. */
-@media (max-width:767px) {
+@media (max-width:480px) {
     #device-show-page .btn-sm { padding:9px 12px; font-size:.78rem; }
     #device-show-page .gauge-actions .btn-action { padding:9px 14px; }
     #device-show-page .auto-scale-wrapper input { width:18px; height:18px; }
@@ -164,7 +166,7 @@
 /* P4: ruang vertikal lebih hemat di layar kecil — padding kartu & gauge dikecilkan
    (backup memakai 12px), tinggi kanvas dikurangi, judul halaman diperkecil
    (tidak disembunyikan agar konteks perangkat tetap terlihat). */
-@media (max-width:767px) {
+@media (max-width:480px) {
     #device-show-page .card { padding: 12px; }
     #device-show-page .card + .card { margin-top: 12px; }
     #device-show-page .controller-detail-grid { gap: 12px; margin-bottom: 12px; }
@@ -177,7 +179,7 @@
 /* P5: kartu statistik dibungkus 4 per baris (selaras dengan dashboard §7.23) — 7 kartu
    menjadi 2 baris TANPA scroll horizontal; judul tetap tampil (clamp 2 baris).
    P6: di layar kecil tampil tipe penuh (MONITOR/ACTUATOR), label pendek disembunyikan. */
-@media (max-width:767px) {
+@media (max-width:480px) {
     #device-show-page .stat-cards-container {
         grid-auto-flow: row;
         grid-template-columns: repeat(4, minmax(0, 1fr));
@@ -193,9 +195,11 @@
 }
 
 /* P1: baris log jadi DUA baris agar pesan & chip durasi tetap terlihat.
-   Satu-laris butuh ≈384px (ikon 22 + waktu 128 + tipe 84 + 4 gap + chip ~110)
-   → meluber pada viewport <490px (semua HP). Dengan flex-wrap: baris-1 =
-   ikon + waktu + tipe, baris-2 = pesan + chip durasi (menyempit sendiri). */
+   Pengecualian ambang: P1 memakai 640px (bukan 480px) karena baris satu-laris butuh
+   ≈384px (ikon 22 + waktu 128 + tipe 84 + 4 gap + chip ~110) sedangkan lebar konten
+   = viewport − 106px. Pengukuran nyata (Chrome headless/CDP) menunjukkan pada
+   481–540px pesan menyusut ke ~0px, jadi tata letak 2-baris tetap dipakai sampai 640px.
+   Dengan flex-wrap: baris-1 = ikon + waktu + tipe, baris-2 = pesan + chip durasi. */
 @media (max-width:640px) {
     #device-show-page .log-item { flex-wrap:wrap; gap:6px 10px; padding:7px 10px; }
     #device-show-page .log-time { flex:0 0 auto; font-size:.7rem; }

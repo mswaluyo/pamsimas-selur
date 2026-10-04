@@ -1429,3 +1429,41 @@ Scope: hanya badge gauge di halaman detail (halaman dashboard & `/monitoring` te
 **Catatan operasional.** Pengukuran memakai Chrome headless + CDP `Emulation.setDeviceMetricsOverride`
 (`--window-size` dipaksa minimum 500px). Skrip uji ada di luar repo (`%TEMP%\tmpcss`: `build_probe.js`,
 `cdp_measure.js`) dan dihapus setelah dipakai; tidak ada dependensi npm yang ditambahkan.
+### 7.27 Ambang "tampilan HP" digeser ke 480px (4 Okt 2026)
+
+**Permintaan operator.** *"coba buat 480 untuk tampilan hp agar lebih luas"* — ambang media query
+responsif dipindahkan ke **480px**: layar **≤480px** memakai tata letak ringkas (HP), sedangkan
+**481px ke atas** kembali ke tata letak lega (kartu lebih besar, gauge 450px, kanvas 300px,
+judul 21.6px, baris log satu baris) sehingga layar yang lebih lebar terasa lebih lapang.
+
+#### Perubahan (`resources/views/devices/show.blade.php`)
+
+| Blok | Sebelum | Sesudah |
+|---|---|---|
+| P2 header grafik, P3 target sentuh, P4 ruang vertikal, P5 kartu statistik, P6 badge tipe | `@media (max-width:767px)` | **`max-width:480px`** |
+| P1 baris log 2-baris | `@media (max-width:640px)` | **tetap `640px`** (lihat pengecualian di bawah) |
+| `.stat-cards-container` padding-bottom (aturan lama) | 767px | 480px |
+| `min-width:768px` & `min-width:1200px` (peningkatan desktop) | — | **tidak diubah** |
+
+**Pengecualian berbasis data untuk P1 (log tetap 640px).** Pengukuran nyata pada lebar tepat
+481px menunjukkan **pesan log menyusut ke `0px`**: satu-laris butuh ≈384px (ikon 22 + waktu 128 +
+tipe 84 + 4 gap + chip ~110) sedangkan lebar konten hanya 375px (`481 − 106`). Karena itu aturan
+dua baris untuk log **dipertahankan sampai 640px**, sementara blok lain memakai 480px.
+
+#### Verifikasi — 38/38 struktural + pengukuran nyata (Chrome headless/CDP, HTML hasil render server)
+
+| Lebar | Tata letak | Overflow halaman | Log | Kartu statistik | Gauge | Kanvas | Badge tipe |
+|---|---|---|---|---|---|---|---|
+| **430px** (HP) | mobile | **tidak ada** | 2 baris, pesan **246px** | 2 baris **tanpa scroll** (390×185) | 405px / pad 12px | 220px | **ACTUATOR** penuh |
+| **480px** | mobile | tidak ada | 2 baris, pesan **296px** | 440×175 tanpa scroll | 405 / 12 | 220 | penuh |
+| **481px** | **lega** | tidak ada | 2 baris, pesan **281px** | 1 baris scroll (566>441) | 450 / 20 | 300 | **ACT** ringkas |
+| **600px** | lega | tidak ada | 2 baris, pesan **301px** | 566>560 | 450 / 20 | 300 | ACT |
+
+Screenshot 430px diperiksa visual: 7 kartu statistik (masih 7 saat ini — lihat §7.28), gauge +
+badge **ACTUATOR**, kontrol grafik menumpuk, log 2 baris dengan chip durasi ✔
+
+- Deploy: MD5 `00ea06b8817d1b315a2998e11259a6ac` **lokal = server**, `view:clear`+`view:cache` OK.
+- Backup: `/tmp/backup-480-20261004-080000` (baseline) & `/tmp/backup-480b` (sebelum pengecualian P1).
+- **Catatan operasional:** perintah backup pertama gagal karena PowerShell menelan `$(date …)`
+  (`mkdir: invalid option -- 'a'`) sehingga baseline dibuat ulang sesudahnya; versi sebelum perubahan
+  tetap tersedia di git (commit `7cb9db5`).
