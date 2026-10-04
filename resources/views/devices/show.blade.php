@@ -207,6 +207,56 @@
     /* Chip dir sedikit dikecilkan agar pesan + chip tetap muat dalam baris kedua */
     #device-show-page .log-dur { font-size:.62rem; padding:1px 6px; }
 }
+
+/* ==== MODE RINGKAS HP (≤480px, TODO §7.29) ====
+   Untuk Redmi Note 11 (393px) & HP sekelas: ikon, tulisan, dan jarak diperkecil
+   supaya elemen tidak terlihat "membesar" dan lebih banyak konten muat per layar.
+   Ditumpuk di akhir blok agar menimpa aturan P1–P6 di atas (spesifikasi sama). */
+@media (max-width:480px) {
+    /* header halaman */
+    #device-show-page .page-header { margin-bottom: 8px; gap: 6px; }
+    #device-show-page .page-header h1 { font-size: .95rem; }
+    #device-show-page .btn { padding: 6px 10px; font-size: .78rem; }
+    /* kartu & judul kartu */
+    #device-show-page .card { padding: 9px 10px; border-radius: 10px; }
+    #device-show-page .card + .card { margin-top: 8px; }
+    #device-show-page .card h2 { font-size: .92rem; margin-bottom: 8px; }
+    /* daftar detail */
+    #device-show-page .detail-list { font-size: .78rem; }
+    #device-show-page .detail-list li { padding: 6px 0; gap: 6px; }
+    #device-show-page .info-block-title { font-size: .66rem; margin-bottom: 4px; }
+    #device-show-page .info-block { margin-bottom: 10px; }
+    /* kartu statistik */
+    #device-show-page .stat-cards-container { gap: 4px; }
+    #device-show-page .stat-card { padding: 6px 3px; border-radius: 10px; }
+    #device-show-page .stat-card-icon { width: 26px; height: 26px; border-radius: 7px; font-size: .72rem; }
+    #device-show-page .stat-card-title { font-size: .5rem; line-height: 1.1; }
+    #device-show-page .stat-card-value { font-size: .7rem; }
+    /* gauge */
+    #device-show-page .controller-detail-grid { gap: 8px; margin-bottom: 8px; }
+    #device-show-page #gauge-container { padding: 8px 10px; min-height: 0; }
+    #device-show-page .gauge-card { max-width: 260px; }
+    #device-show-page #gauge-container .info-block { margin: 10px 0 0; max-width: 260px; }
+    .gauge-header-container { height: 22px; margin-bottom: 4px; }
+    .pump-info-label { margin-top: 3px; font-size: .74rem; }
+    .gauge-actions { margin-top: 6px; padding: 6px 8px; }
+    .btn-action { padding: 6px 10px; font-size: .72rem; }
+    .gauge-mac { margin-top: 3px; font-size: .6rem; }
+    .device-type-badge { font-size: .52rem; padding: 0 4px; }
+    .pump-duration-badge { font-size: .62rem; padding: 1px 6px; }
+    /* grafik */
+    #device-show-page .chart-canvas-container { height: 165px; padding-top: 8px; }
+    #device-show-page .chart-title { font-size: .92rem; }
+    #device-show-page .btn-sm { padding: 6px 9px; font-size: .7rem; }
+    #device-show-page .auto-scale-wrapper label { padding: 5px 2px; font-size: .72rem; }
+    /* log */
+    #device-show-page .log-item { padding: 5px 8px; gap: 4px 8px; font-size: .72rem; }
+    #device-show-page .log-icon-wrapper { width: 18px; height: 18px; font-size: .6rem; }
+    #device-show-page .log-time { font-size: .62rem; }
+    #device-show-page .log-type { font-size: .56rem; }
+    #device-show-page .log-dur { font-size: .56rem; padding: 0 5px; }
+    #device-show-page .log-list { max-height: 320px; }
+}
 </style>
 @endpush
 

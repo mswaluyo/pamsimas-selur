@@ -21,6 +21,15 @@
            Dengan min-width:0 lebarnya mengikuti viewport; baris statistik tetap bisa di-scroll
            sendiri karena sudah memakai overflow-x:auto. Desktop tidak terpengaruh. */
         .flex.min-h-screen.flex-1, main { min-width: 0; }
+
+        /* Mode ringkas untuk HP (TODO §7.29) — mis. Redmi Note 11 & HP 5,5–6,7":
+           kerangka (topbar, jarak luar, footer) diperkecil supaya konten tidak terasa
+           "membesar" dan layar yang sempit terisi lebih efektif. */
+        @media (max-width:480px) {
+            #app-header { height: 48px; padding-left: 10px; padding-right: 10px; }
+            #app-main { padding: 10px; }
+            #app-footer { padding: 7px 10px; font-size: .66rem; }
+        }
     </style>
     @stack('styles')
 </head>
@@ -94,7 +103,7 @@
     </aside>
 <!-- MAIN -->
     <div class="flex min-h-screen flex-1 flex-col md:ml-64">
-        <header class="sticky top-0 z-20 flex h-16 items-center justify-between border-b border-slate-200 bg-white/90 px-5 backdrop-blur">
+        <header id="app-header" class="sticky top-0 z-20 flex h-16 items-center justify-between border-b border-slate-200 bg-white/90 px-5 backdrop-blur">
             <div class="flex items-center gap-3">
                 <button id="sidebar-toggle" class="rounded-lg p-2 hover:bg-slate-100 md:hidden" aria-label="Menu"><i class="fas fa-bars"></i></button>
                 <div>
@@ -139,7 +148,7 @@
                 </div>
             </div>
         </header>
-<main class="flex-1 p-5">
+<main id="app-main" class="flex-1 p-5">
             @if (session('success'))
                 <div data-toast role="alert" class="mb-4 flex items-center gap-2 rounded-xl border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-800 shadow-sm">
                     <i class="fas fa-check-circle"></i><span>{{ session('success') }}</span>
@@ -153,7 +162,7 @@
             @yield('content')
         </main>
 
-        <footer class="border-t border-slate-200 bg-white px-5 py-3 text-center text-xs text-slate-500">
+        <footer id="app-footer" class="border-t border-slate-200 bg-white px-5 py-3 text-center text-xs text-slate-500">
             PAMSIMAS DESA SELUR © {{ date('Y') }} — Sistem Manajemen Air Desa
         </footer>
     </div>

@@ -1518,3 +1518,51 @@ dan pada HP baris statistik kini **1 baris** (tinggi 88px) — bukan lagi 2 bari
 **Catatan:** data *Waktu Nyala* (uptime) tidak pernah tampil di kartu statistik sejak port awal —
 hanya di *Detail Konfigurasi* (`val-uptime`), sehingga penghapusan ini tidak menambah satu pun
 informasi yang hilang.
+
+### §7.29 Mode Ringkas HP (Redmi Note 11) — "terlalu besar & boros"
+
+**Keluhan operator:** di HP (Redmi Note 11, lebar CSS **393px** di DPR 2,75) tampilan web
+terasa **membesar**: ikon & tulisan besar, banyak ruang kosong, layar sempit tapi isinya sedikit.
+Perbaikan: perkecil ukuran elemen di ambang `≤480px` — **bukan** mengganti breakpoint.
+
+**Lapis 1 — kerangka aplikasi (`layouts/app.blade.php`, impacts semua halaman):**
+| Aspek | Sebelum | Sesudah |
+|---|---|---|
+| `#app-header` tinggi | 64px | **48px** |
+| `#app-main` padding | 20px | **10px** |
+| `#app-footer` | 12px 20px, .75rem | **7px 10px, .66rem** |
+
+`id` baru dipakai agar spesifikasi mengalahkan utility class Tailwind
+(`#app-main { padding: 10px }` > `.p-5`).
+
+**Lapis 2 — isi halaman detail (`devices/show.blade.php`):**
+| Unsur | Sebelum | Sesudah |
+|---|---|---|
+| Padding kartu | 12px | **9px 10px** |
+| `h1` / judul kartu | 1.05rem | **.95 / .92rem** |
+| Daftar detail | .9rem | **.78rem** |
+| Ikon kartu statistik | 32px | **26px** |
+| Judul / nilai kartu | .58 / .8rem | **.5 / .7rem** |
+| Gauge | pad 12, min-height 360, kartu 320 | **pad 8/10, min-height 0, kartu 260** |
+| Kanvas grafik | 220px | **165px** |
+| Baris log | 85px, .8rem | **50px, .72rem** |
+| Daftar log maks | 400px | **320px** |
+
+Blok `MODE RINGKAS HP` diletakkan **paling akhir** `<style>` dengan spesifikasi yang sama
+sehingga menimpa aturan P1–P6 (urutan sumber sama-sama menang, yang terakhir ditulis).
+
+**Hasil ukur nyata Chrome headless/CDP (A/B, varian sebelum vs sesudah):**
+| Lebar | Tinggi halaman | Gauge | Kanvas | Kartu statistik | Baris log | Ikon | h1 |
+|---|---|---|---|---|---|---|---|
+| **393px** | **2187 → 1701px (−22%)** | 405 → **317** | 220 → **165** | 353×99 → **373×74** | 85 → **50** | 32 → **26** | 16.8 → **15.2** |
+| 430px | 2176 → **1672px** | 405 → **317** | 220 → **165** | 390×88 → **410×74** | 62 → **50** | 32 → **26** | 15.2 |
+| 481px | 2394 → 2394 (tetap) | 450 | 300 | 441×91 | 62 | 34 | 21.6 |
+| 600px | 2324 → 2324 (tetap) | 450 | 300 | 560×91 | 60 | 34 | 21.6 |
+
+- Overflow halaman & daftar log: **tidak ada** di semua lebar.
+- Pesan log pada 393px tetap **253px** (aman, tidak menyusut).
+- **481px ke atas identik** ⇒ tablet & desktop tidak berubah sama sekali.
+
+**Cara tuning cepat:** ubah hanya nilai dalam blok `MODE RINGKAS HP` (≤480px) untuk halaman
+detail, atau blok `#app-header/#app-main/#app-footer` untuk seluruh aplikasi. Setelah ubah,
+`view:clear` + `view:cache` di server.
