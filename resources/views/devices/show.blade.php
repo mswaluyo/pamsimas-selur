@@ -96,6 +96,9 @@
 .device-type-badge { font-size:.62rem; font-weight:700; letter-spacing:.04em; border-radius:4px; padding:1px 5px; border:1px solid transparent; font-family:ui-monospace,SFMono-Regular,Menlo,monospace; flex:none; }
 .device-type-badge.is-mon { background:#eef2ff; color:#4338ca; border-color:#c7d2fe; }
 .device-type-badge.is-act { background:#fff7ed; color:#c2410c; border-color:#fed7aa; }
+/* P6: tipe penuh (MONITOR/ACTUATOR) hanya ditampilkan di layar kecil — di layar lebar
+   label pendek MON/ACT tetap dipakai supaya kartu gauge tidak melebar. */
+.device-type-badge .dtype-full { display:none; }
 .signal-indicator { font-size:.75rem; font-weight:700; color:#7f8c8d; }
 .pump-info-label { display:flex; align-items:center; justify-content:center; gap:8px; margin-top:6px; font-size:.85rem; color:#34495e; }
 /* Ikon kipas pompa memakai Font Awesome (tema backup) — berputar dgn .fa-spin bawaan FA */
@@ -156,6 +159,37 @@
     #device-show-page .gauge-actions .btn-action { padding:9px 14px; }
     #device-show-page .auto-scale-wrapper input { width:18px; height:18px; }
     #device-show-page .auto-scale-wrapper label { padding:9px 4px; }
+}
+
+/* P4: ruang vertikal lebih hemat di layar kecil — padding kartu & gauge dikecilkan
+   (backup memakai 12px), tinggi kanvas dikurangi, judul halaman diperkecil
+   (tidak disembunyikan agar konteks perangkat tetap terlihat). */
+@media (max-width:767px) {
+    #device-show-page .card { padding: 12px; }
+    #device-show-page .card + .card { margin-top: 12px; }
+    #device-show-page .controller-detail-grid { gap: 12px; margin-bottom: 12px; }
+    #device-show-page #gauge-container { padding: 12px; min-height: 360px; }
+    #device-show-page .chart-canvas-container { height: 220px; }
+    #device-show-page .page-header { margin-bottom: 12px; }
+    #device-show-page .page-header h1 { font-size: 1.05rem; }
+}
+
+/* P5: kartu statistik dibungkus 4 per baris (selaras dengan dashboard §7.23) — 7 kartu
+   menjadi 2 baris TANPA scroll horizontal; judul tetap tampil (clamp 2 baris).
+   P6: di layar kecil tampil tipe penuh (MONITOR/ACTUATOR), label pendek disembunyikan. */
+@media (max-width:767px) {
+    #device-show-page .stat-cards-container {
+        grid-auto-flow: row;
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+        gap: 5px;
+        overflow-x: visible;
+    }
+    #device-show-page .stat-card { padding: 8px 4px; }
+    #device-show-page .stat-card-icon { width: 32px; height: 32px; font-size: .85rem; }
+    #device-show-page .stat-card-title { font-size: .58rem; }
+    #device-show-page .stat-card-value { font-size: .8rem; }
+    #device-show-page .device-type-badge .dtype-short { display: none; }
+    #device-show-page .device-type-badge .dtype-full { display: inline; }
 }
 
 /* P1: baris log jadi DUA baris agar pesan & chip durasi tetap terlihat.
@@ -490,14 +524,16 @@
      */
     function deviceTypeInfo(type) {
         const t = String(type || '').toUpperCase();
-        if (t === 'MONITOR') return { label: 'MON', cls: 'is-mon', title: 'Tipe perangkat: MONITOR — sensor + pompa (fungsi ganda)' };
-        if (t === 'ACTUATOR') return { label: 'ACT', cls: 'is-act', title: 'Tipe perangkat: ACTUATOR — pompa saja (tanpa baca sensor)' };
+        if (t === 'MONITOR') return { label: 'MON', full: 'MONITOR', cls: 'is-mon', title: 'Tipe perangkat: MONITOR — sensor + pompa (fungsi ganda)' };
+        if (t === 'ACTUATOR') return { label: 'ACT', full: 'ACTUATOR', cls: 'is-act', title: 'Tipe perangkat: ACTUATOR — pompa saja (tanpa baca sensor)' };
         return null;
     }
     function deviceTypeBadgeHtml(type) {
         const info = deviceTypeInfo(type);
         if (!info) return '';
-        return '<span class="device-type-badge ' + info.cls + '" data-device-type title="' + info.title + '">' + info.label + '</span>';
+        return '<span class="device-type-badge ' + info.cls + '" data-device-type title="' + info.title + '">'
+            + '<span class="dtype-short">' + info.label + '</span>'
+            + '<span class="dtype-full">' + info.full + '</span></span>';
     }
 
     /**

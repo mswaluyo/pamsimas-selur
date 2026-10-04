@@ -1366,3 +1366,66 @@ Bukti: sesudah `min-width:0` disuntikkan langsung dari konsol, overflow halaman 
   sembunyikan `h1` seperti backup.
 - **P5** kartu statistik: tetap scroll (konsisten dengan §7.23 via 4 kolom) atau ikut pola backup.
 - **P6** tampilkan teks `MONITOR`/`ACTUATOR` di mobile agar tidak bergantung pada `title`.
+### 7.26 P4–P6 responsif mobile diterapkan (4 Okt 2026)
+
+**Permintaan.** *"terapkan rencana perubahan"* → melanjutkan item yang menunggu persetujuan di §7.25:
+**P4** (ruang vertikal), **P5** (pola kartu statistik), **P6** (tipe perangkat terbaca tanpa tooltip).
+Semua perubahan **hanya di `resources/views/devices/show.blade.php`** (P1–P3 + akar masalah sudah
+selesai di §7.25) — **tidak ada perubahan controller, API, atau DB**.
+
+#### P4 — ruang vertikal lebih hemat (`@media (max-width:767px)`)
+| Aturan | Sebelum | Sesudah |
+|---|---|---|
+| `.card` padding | 20px | **12px** (ikut backup `responsive.css:49`) |
+| `.card + .card` margin-top | 20px | 12px |
+| `.controller-detail-grid` gap | 20px | 12px |
+| `#gauge-container` padding / tinggi min | 20px / **450px** | 12px / **360px** |
+| `.chart-canvas-container` tinggi | 300px | **220px** |
+| `.page-header h1` | 1.35rem | **1.05rem** |
+
+Judul halaman **diperkecil, tidak disembunyikan** (backup menyembunyikannya di `responsive.css:45`)
+supaya konteks perangkat ("Detail Perangkat — Pompa Kendall") tetap terbaca di HP.
+
+#### P5 — kartu statistik: 7 kartu jadi 2 baris tanpa scroll
+`@media (max-width:767px)`: `grid-auto-flow:row` + `grid-template-columns:repeat(4, minmax(0,1fr))` +
+`gap:5px` + `overflow-x:visible`, kartu `padding:8px 4px`, ikon 32px, judul .58rem, nilai .8rem.
+Ini **selaras dengan dashboard** (§7.23, 4 kartu per baris) dan menghilangkan scroll horizontal
+yang sebelumnya wajib di baris statistik. Judul kartu **tetap tampil** (clamp 2 baris) — informasi
+label (Level Air, Status Pompa, Mode Operasi, …) dianggap lebih berguna daripada badge angka ala backup.
+
+#### P6 — tipe perangkat tampil penuh di layar sentuh
+`deviceTypeInfo()` kini mengembalikan `full` (`MONITOR`/`ACTUATOR`) dan `deviceTypeBadgeHtml()`
+merender **dua label**: `<span class="dtype-short">MON</span><span class="dtype-full">MONITOR</span>`.
+CSS dasar `.dtype-full { display:none }`; pada `@media (max-width:767px)` keduanya ditukar
+(`.dtype-short{display:none}`, `.dtype-full{display:inline}`) → **HP menampilkan "MONITOR"/"ACTUATOR"**
+(terbaca tanpa harus tekan-tahan `title`), desktop tetap ringkas **MON/ACT** seperti §7.19.
+Scope: hanya badge gauge di halaman detail (halaman dashboard & `/monitoring` tetap MON/ACT).
+
+#### Verifikasi
+
+- **Struktural 36/36** (render `devices.show` perangkat #3 di server): blok P4/P5/P6 lengkap,
+  aturan dasar desktop utuh, chip durasi & badge tipe tetap ada, FA 6.4.2, tanpa emoji.
+- **Pengukuran nyata @360 & @320px** (Chrome headless + CDP, HTML asli hasil render server; A/B
+  hanya P4–P6 yang dibedakan, P1–P3 dipertahankan di kedua varian):
+  | Metrik | Tanpa P4–P6 | Dengan P4–P6 |
+  |---|---|---|
+  | Overflow halaman | `NO` | `NO` |
+  | Kartu statistik | scroll `566>320`, 320×108 (**1 baris**) | **`NO`**, 320×196 (**2 baris**) |
+  | Ukuran kartu | 74×102 | **76×93** (ikon 34→32px, padding 10/6→8/4) |
+  | `#gauge-container` | 450px, padding 20px | **360px**, padding 12px |
+  | Kanvas | 300px | **220px** |
+  | `h1` | 21.6px | **16.8px** |
+  | Log (tetap dari §7.25) | 2 baris, pesan 258px | 2 baris, pesan **274px** @360 / **234px** @320 |
+  @320px: tanpa overflow sama sekali (stat 280×196, kartu 66×93) ✔
+- **Desktop 1280px identik sebelum/sesudah** (padding 14/10, ikon 36, gauge 589, kanvas 300,
+  h1 21.6px, tombol 30px) ⇒ P4–P6 benar-benar hanya memengaruhi layar kecil ✔
+- **P6 terukur langsung**: `dtype short=none full=inline` pada 360/320px, dan
+  `short=inline full=none` pada 1280px ✔
+- **Screenshot 360px diperiksa visual**: 7 kartu statistik dalam 2 baris, badge **ACTUATOR** terbaca,
+  tombol AUTO/ON lebih besar, kartu lebih ringkas, log 2 baris + chip durasi ("mati 00:30:02").
+- Deploy: MD5 `7dc170ba11c875998e7709e4119622f9` (**lokal = server**), `view:clear`+`view:cache` OK,
+  backup `/tmp/backup-p456-20261004-074900`.
+
+**Catatan operasional.** Pengukuran memakai Chrome headless + CDP `Emulation.setDeviceMetricsOverride`
+(`--window-size` dipaksa minimum 500px). Skrip uji ada di luar repo (`%TEMP%\tmpcss`: `build_probe.js`,
+`cdp_measure.js`) dan dihapus setelah dipakai; tidak ada dependensi npm yang ditambahkan.
