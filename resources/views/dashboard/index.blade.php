@@ -4,18 +4,18 @@
 
 @section('content')
 <!-- Kartu statistik -->
-<div class="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
+<div class="stat-grid">
     @foreach([
         ['Perangkat Online', $stats['online_devices'] . ' / ' . $stats['total_devices'], 'fa-wifi', 'bg-green'],
         ['Total Tangki', $stats['total_tanks'], 'fa-database', 'bg-orange'],
         ['Tagihan Belum Bayar', $stats['invoices_ready_to_pay'], 'fa-money-bill-wave', 'bg-blue'],
         ['Meter Menunggu Validasi', $stats['meter_pending_validation'], 'fa-file-invoice-dollar', 'bg-purple'],
     ] as $card)
-    <div class="group flex items-center gap-4 rounded-xl bg-white p-5 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md">
+    <div class="group stat-tile-card flex items-center gap-4 rounded-xl bg-white p-5 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md" title="{{ $card[0] }}">
         <span class="stat-tile {{ $card[3] }}"><i class="fas {{ $card[2] }}"></i></span>
         <div>
-            <p class="text-sm font-medium text-slate-500">{{ $card[0] }}</p>
-            <p class="text-3xl font-bold text-slate-900">{{ $card[1] }}</p>
+            <p class="stat-card-title text-sm font-medium text-slate-500">{{ $card[0] }}</p>
+            <p class="stat-card-value text-3xl font-bold text-slate-900">{{ $card[1] }}</p>
         </div>
     </div>
     @endforeach
@@ -96,6 +96,17 @@
 .stat-tile.bg-red { background:#e74c3c; }
 .stat-tile.bg-purple { background:#6f42c1; }
 .group:hover .stat-tile { transform:scale(1.05); }
+/* ==== Grid kartu statistik: selalu 4 kolom dalam SATU baris (backup_pamsimas dashboard.css) ==== */
+.stat-grid { display:grid; grid-template-columns:repeat(4, 1fr); gap:16px; }
+/* ==== Mobile (<768px): 4 ikon tetap 1 baris — judul disembunyikan, kartu & ikon dirapatkan
+      (backup_pamsimas/public/css/responsive.css:45,57-60) ==== */
+@media (max-width:767px) {
+    .stat-grid { gap:5px; }
+    .stat-tile-card { flex-direction:column; gap:4px; padding:8px 4px; text-align:center; align-items:center; }
+    .stat-tile-card .stat-tile { width:35px; height:35px; font-size:16px; }
+    .stat-tile-card .stat-card-title { display:none; }
+    .stat-tile-card .stat-card-value { font-size:.78rem; line-height:1.15; }
+}
 @keyframes pumpPulse { 0%,100% { opacity:1; } 50% { opacity:.4; } }
 @keyframes fanSpin { to { transform:rotate(360deg); } }
 </style>

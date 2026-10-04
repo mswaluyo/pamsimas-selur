@@ -1211,3 +1211,43 @@ Tailwind baru (lihat §10) supaya warnanya dijamin tampil.
 memakai nomor baris yang sudah usang setelah §7.20 ditambahkan — blok §7.21 (baris 1105–1141 waktu
 itu) dipindahkan ke akhir berkas sehingga urutan §7.18 → §7.21 kembali benar.
 
+### 7.23 Mobile: 4 kartu statistik dashboard jadi SATU baris (4 Okt 2026)
+
+**Permintaan operator.** *"Pada tampilan mobile buat agar menjadi 1 baris (4 icon)."*
+
+**Sebelum.** `<div class="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">` → di ponsel
+menjadi **4 baris bertumpuk** (satu kartu per baris), tiap kartu lebar penuh.
+
+**Sesudah — mengikuti pola backup** (`backup_pamsimas/public/css/responsive.css:45,57-60` yang
+memang menyusun kartu statistiknya **4-dalam-1-baris** di layar kecil):
+1. Grid diganti **`.stat-grid`** = `grid-template-columns:repeat(4, 1fr)` (**selalu 4 kolom**,
+   `gap` 16px) → di lebar berapa pun urutannya tetap 1 baris × 4 kartu (backup memakai pola sama:
+   `dashboard.css:4` `repeat(5,1fr)` untuk desktop, `repeat(4,1fr)` di layar kecil).
+2. Di `@media (max-width:767px)` (breakpoint yang dipakai backup, `dashboard.css:25`):
+   - `gap` 5px; kartu jadi `flex-direction:column` + `padding:8px 4px` (dirapatkan, rata tengah),
+   - ikon dikecilkan ke **35px / font 16px** (persis `responsive.css:59`),
+   - **judul disembunyikan** (`display:none` — persis `responsive.css:45`), nilai tetap tampil
+     (font `.78rem`) → **4 ikon + 4 angka muat dalam satu baris**,
+   - label judul tetap tersedia lewat atribut **`title`** pada kartu (tooltip / tekan-tahan).
+3. Kartu diberi class `stat-tile-card`, judul/nilai diberi class `stat-card-title`/
+   `stat-card-value` (nama mengikuti kelas backup) sebagai sasaran CSS — sengaja **bukan** kelas
+   Tailwind baru (lihat §10), semua aturan CSS ditulis sendiri di `@push('styles')`.
+
+**Verifikasi — 19/19 lulus** (render `dashboard.index` di server dengan data nyata):
+- `.stat-grid` 1×, class grid lama (`grid-cols-1 … sm:grid-cols-2 …`) **0**, CSS
+  `grid-template-columns:repeat(4, 1fr)` ada;
+- media query `@media (max-width:767px)` ada dengan isi lengkap: `flex-direction:column`,
+  `width:35px; height:35px; font-size:16px;`, `.stat-card-title { display:none;`,
+  `.stat-grid { gap:5px;`;
+- markup: 4× `stat-tile-card`, 4× `stat-card-title`, 4× `stat-card-value`, dan 4× atribut `title`
+  (Perangkat Online, Total Tangki, Tagihan Belum Bayar, Meter Menunggu Validasi);
+- regresi #66 tetap utuh: hijau+`fa-wifi`, oranye+`fa-database`, biru+`fa-money-bill-wave`,
+  ungu+`fa-file-invoice-dollar`; Font Awesome 6.4.2 tetap dimuat; halaman tanpa emoji;
+- MD5 `8fdd5be2f6ac2e69240f212d4e305b4b` (**lokal = server**), `view:clear`+`view:cache` OK,
+  `/login` **200** & `/` **302**, backup `/tmp/backup-mobile-20261004-060824`.
+- 3 asersi awal gagal murni **typo pada skrip uji** (lupa `;` sebelum `}` saat mencocokkan string
+  CSS) — setelah skrip dikoreksi → lulus semuanya.
+
+**Ruang lingkup.** Hanya kartu statistik dashboard; tampilan ≥768px tidak berubah selain kini
+semuanya berbentuk 4 kolom dalam satu baris (sebelumnya 2 kolom di rentang 640–1279px).
+
