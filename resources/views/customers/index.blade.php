@@ -10,7 +10,7 @@
     <div class="flex gap-2">
         <form method="POST" action="{{ route('customers.broadcast') }}" onsubmit="return confirm('Kirim permintaan foto meteran ke semua pelanggan yang belum lapor?')">
             @csrf
-            <button class="rounded-lg bg-emerald-600 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-700">📣 Minta Foto dari Warga</button>
+            <button class="rounded-lg bg-emerald-600 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-700"><i class="fas fa-bullhorn"></i> Minta Foto dari Warga</button>
         </form>
         <a href="{{ route('customers.broadcast-history') }}" class="rounded-lg bg-slate-200 px-4 py-2 text-sm font-semibold hover:bg-slate-300">Riwayat Broadcast</a>
         <a href="{{ route('customers.export') }}" class="rounded-lg bg-slate-200 px-4 py-2 text-sm font-semibold hover:bg-slate-300">Export CSV</a>
@@ -57,7 +57,7 @@
 </div>
 
 <div class="mt-4 rounded-xl bg-slate-100 p-4 text-xs text-slate-600">
-    💡 <strong>Info:</strong> Setelah pelanggan didaftarkan, warga wajib mengirim pesan <code class="rounded bg-white px-1">AKTIVASI-{ID}</code> ke nomor server agar fitur kirim foto meteran aktif (LID WhatsApp akan tersambung otomatis).
+    <i class="fas fa-info-circle"></i> <strong>Info:</strong> Setelah pelanggan didaftarkan, warga wajib mengirim pesan <code class="rounded bg-white px-1">AKTIVASI-{ID}</code> ke nomor server agar fitur kirim foto meteran aktif (LID WhatsApp akan tersambung otomatis).
     <form method="POST" action="{{ route('customers.import') }}" enctype="multipart/form-data" class="mt-2 flex items-center gap-2">
         @csrf
         <input type="file" name="file" accept=".csv,.txt" required class="text-xs">

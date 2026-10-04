@@ -7,6 +7,13 @@
     <link rel="icon" href="/favicon.ico" type="image/x-icon">
     <title>@yield('title', 'Dashboard') — PAMSIMAS SELUR</title>
     @vite(['resources/css/app.css', 'resources/js/app.js'])
+    {{-- Font Awesome 6.4.2 — tema ikon sama dengan sistem lama
+         (backup_pamsimas/app/Views/layouts/main.php:34) --}}
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
+    <style>
+        /* Ikon navigasi: lebar tetap + rata tengah agar label menu sejajar */
+        #sidebar nav a > i.fas, #user-menu a > i.fas, #user-menu button > i.fas { width: 1.15em; text-align: center; flex: none; }
+    </style>
     @stack('styles')
 </head>
 <body class="bg-slate-100 font-sans text-slate-800 antialiased">
@@ -37,41 +44,41 @@
             @endphp
 
             {!! $navSection('Utama') !!}
-            {!! $navItem(route('dashboard'), request()->routeIs('dashboard'), '📊 Dashboard') !!}
+            {!! $navItem(route('dashboard'), request()->routeIs('dashboard'), '<i class="fas fa-tachometer-alt"></i> Dashboard') !!}
 
             @if(in_array($r, ['Administrator','Operator']))
             {!! $navSection('Manajemen IoT') !!}
-            {!! $navItem(route('devices.index'), request()->routeIs('devices.index', 'devices.show', 'devices.edit'), '📡 Perangkat') !!}
-            {!! $navItem(route('devices.detected'), request()->routeIs('devices.detected', 'devices.create'), '🔎 Perangkat Terdeteksi', ($detectedCount ?? 0) > 0 ? $detectedCount : null) !!}
-            {!! $navItem(route('monitoring.overview'), request()->routeIs('monitoring.*'), '🖥️ Monitoring') !!}
+            {!! $navItem(route('devices.index'), request()->routeIs('devices.index', 'devices.show', 'devices.edit'), '<i class="fas fa-microchip"></i> Perangkat') !!}
+            {!! $navItem(route('devices.detected'), request()->routeIs('devices.detected', 'devices.create'), '<i class="fas fa-search"></i> Perangkat Terdeteksi', ($detectedCount ?? 0) > 0 ? $detectedCount : null) !!}
+            {!! $navItem(route('monitoring.overview'), request()->routeIs('monitoring.*'), '<i class="fas fa-server"></i> Monitoring') !!}
             @endif
 
             @if(in_array($r, ['Administrator','Operator','Kasir']))
             {!! $navSection('Layanan Warga') !!}
-            {!! $navItem(route('meter.index'), request()->routeIs('meter.*'), '🔍 Kasir Meter') !!}
-            {!! $navItem(route('payment.index'), request()->routeIs('payment.*'), '💰 Pembayaran') !!}
-            {!! $navItem(route('customers.index'), request()->routeIs('customers.*'), '👥 Pelanggan') !!}
+            {!! $navItem(route('meter.index'), request()->routeIs('meter.*'), '<i class="fas fa-file-invoice-dollar"></i> Kasir Meter') !!}
+            {!! $navItem(route('payment.index'), request()->routeIs('payment.*'), '<i class="fas fa-money-bill-wave"></i> Pembayaran') !!}
+            {!! $navItem(route('customers.index'), request()->routeIs('customers.*'), '<i class="fas fa-address-book"></i> Pelanggan') !!}
             @endif
 
             @if(in_array($r, ['Administrator','Operator']))
             {!! $navSection('Pengaturan') !!}
-            {!! $navItem(route('settings.tanks'), request()->routeIs('settings.tanks'), '🛢️ Tangki') !!}
-            {!! $navItem(route('settings.pumps'), request()->routeIs('settings.pumps'), '⚙️ Pompa') !!}
-            {!! $navItem(route('settings.sensors'), request()->routeIs('settings.sensors'), '📶 Sensor') !!}
-            {!! $navItem(route('settings.tariff'), request()->routeIs('settings.tariff'), '💵 Tarif') !!}
-            {!! $navItem(route('settings.display'), request()->routeIs('settings.display'), '🎨 Tampilan') !!}
-            {!! $navItem(route('templates.index'), request()->routeIs('templates.*'), '🧩 Template Gauge') !!}
+            {!! $navItem(route('settings.tanks'), request()->routeIs('settings.tanks'), '<i class="fas fa-database"></i> Tangki') !!}
+            {!! $navItem(route('settings.pumps'), request()->routeIs('settings.pumps'), '<i class="fas fa-fan"></i> Pompa') !!}
+            {!! $navItem(route('settings.sensors'), request()->routeIs('settings.sensors'), '<i class="fas fa-satellite-dish"></i> Sensor') !!}
+            {!! $navItem(route('settings.tariff'), request()->routeIs('settings.tariff'), '<i class="fas fa-hand-holding-usd"></i> Tarif') !!}
+            {!! $navItem(route('settings.display'), request()->routeIs('settings.display'), '<i class="fas fa-palette"></i> Tampilan') !!}
+            {!! $navItem(route('templates.index'), request()->routeIs('templates.*'), '<i class="fas fa-magic"></i> Template Gauge') !!}
 
             {!! $navSection('Riwayat') !!}
-            {!! $navItem(route('logs.pumps'), request()->routeIs('logs.pumps'), '📜 Log Pompa') !!}
-            {!! $navItem(route('logs.sensors'), request()->routeIs('logs.sensors'), '📈 Log Sensor') !!}
-            {!! $navItem(route('logs.events'), request()->routeIs('logs.events'), '🔔 Log Event') !!}
-            {!! $navItem(route('logs.admin'), request()->routeIs('logs.admin'), '🗂️ Log Admin') !!}
+            {!! $navItem(route('logs.pumps'), request()->routeIs('logs.pumps'), '<i class="fas fa-history"></i> Log Pompa') !!}
+            {!! $navItem(route('logs.sensors'), request()->routeIs('logs.sensors'), '<i class="fas fa-chart-line"></i> Log Sensor') !!}
+            {!! $navItem(route('logs.events'), request()->routeIs('logs.events'), '<i class="fas fa-list-check"></i> Log Event') !!}
+            {!! $navItem(route('logs.admin'), request()->routeIs('logs.admin'), '<i class="fas fa-shield-alt"></i> Log Admin') !!}
             @endif
 
             @if($r === 'Administrator')
             {!! $navSection('Sistem') !!}
-            {!! $navItem('/users', request()->is('users*'), '👤 Pengguna') !!}
+            {!! $navItem('/users', request()->is('users*'), '<i class="fas fa-users-cog"></i> Pengguna') !!}
             @endif
         </nav>
     </aside>
@@ -79,7 +86,7 @@
     <div class="flex min-h-screen flex-1 flex-col md:ml-64">
         <header class="sticky top-0 z-20 flex h-16 items-center justify-between border-b border-slate-200 bg-white/90 px-5 backdrop-blur">
             <div class="flex items-center gap-3">
-                <button id="sidebar-toggle" class="rounded-lg p-2 hover:bg-slate-100 md:hidden" aria-label="Menu">☰</button>
+                <button id="sidebar-toggle" class="rounded-lg p-2 hover:bg-slate-100 md:hidden" aria-label="Menu"><i class="fas fa-bars"></i></button>
                 <div>
                     <h1 class="text-lg font-bold">@yield('title')</h1>
                     <p class="text-[11px] text-slate-400">@yield('subtitle')</p>
@@ -113,11 +120,11 @@
                         <p class="text-xs text-slate-500">{{ session('user.role') }}</p>
                     </div>
                     @if($r === 'Administrator')
-                    <a href="/users" class="block px-4 py-2 text-sm hover:bg-slate-50">👤 Kelola Pengguna</a>
+                    <a href="/users" class="block px-4 py-2 text-sm hover:bg-slate-50"><i class="fas fa-users-cog"></i> Kelola Pengguna</a>
                     @endif
                     <form method="POST" action="{{ route('logout') }}">
                         @csrf
-                        <button type="submit" class="w-full px-4 py-2 text-left text-sm text-red-600 hover:bg-red-50">🚪 Keluar</button>
+                        <button type="submit" class="w-full px-4 py-2 text-left text-sm text-red-600 hover:bg-red-50"><i class="fas fa-sign-out-alt"></i> Keluar</button>
                     </form>
                 </div>
             </div>
@@ -125,12 +132,12 @@
 <main class="flex-1 p-5">
             @if (session('success'))
                 <div data-toast role="alert" class="mb-4 flex items-center gap-2 rounded-xl border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-800 shadow-sm">
-                    <span class="text-lg">✅</span><span>{{ session('success') }}</span>
+                    <i class="fas fa-check-circle"></i><span>{{ session('success') }}</span>
                 </div>
             @endif
             @if (session('error'))
                 <div data-toast role="alert" class="mb-4 flex items-center gap-2 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800 shadow-sm">
-                    <span class="text-lg">⚠️</span><span>{{ session('error') }}</span>
+                    <i class="fas fa-exclamation-triangle"></i><span>{{ session('error') }}</span>
                 </div>
             @endif
             @yield('content')

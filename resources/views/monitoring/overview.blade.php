@@ -4,15 +4,15 @@
 @section('content')
 <div class="mb-4 grid grid-cols-1 gap-5 lg:grid-cols-2">
     <a href="{{ route('monitoring.system') }}" class="rounded-xl bg-white p-6 shadow transition hover:shadow-lg">
-        <h2 class="text-lg font-bold">🖥️ Sistem</h2>
+        <h2 class="text-lg font-bold"><i class="fas fa-server"></i> Sistem</h2>
         <p class="mt-1 text-sm text-slate-500">Info PHP, Laravel, memori, disk, dan timezone.</p>
     </a>
     <a href="{{ route('monitoring.database') }}" class="rounded-xl bg-white p-6 shadow transition hover:shadow-lg">
-        <h2 class="text-lg font-bold">🗄️ Database</h2>
+        <h2 class="text-lg font-bold"><i class="fas fa-database"></i> Database</h2>
         <p class="mt-1 text-sm text-slate-500">Ukuran tabel & jumlah baris pada database terkait.</p>
     </a>
     <a href="{{ route('monitoring.performance') }}" class="rounded-xl bg-white p-6 shadow transition hover:shadow-lg">
-        <h2 class="text-lg font-bold">⚡ Performa</h2>
+        <h2 class="text-lg font-bold"><i class="fas fa-tachometer-alt"></i> Performa</h2>
         <p class="mt-1 text-sm text-slate-500">Latensi query & aktivitas log 24 jam terakhir.</p>
     </a>
 </div>

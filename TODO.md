@@ -1074,6 +1074,64 @@ pemeriksaan (4 di antaranya negatif, memastikan `>MON.<`/`>ACT.<` memang tidak a
 berkas lokal **dan** salinan hasil unduhan server; pratinjau header nyata kini `>MON</span>` (#2)
 dan `>ACT</span>` (#3).
 
+### 7.20 Ikon seluruh aplikasi dikonversi ke tema **Font Awesome 6.4.2** (seperti backup) (4 Okt 2026)
+
+**Permintaan operator.** *"Ubah ikon-ikonnya menjadi tema seperti backup."* Sistem lama
+(`backup_pamsimas`) memakai **Font Awesome** (`<i class="fas fa-...">`), sedangkan port Laravel ini
+masih memakai **emoji** (📡 🛢️ 💧 ⚙️ …) sehingga tampilan tidak satu tema.
+
+**Tema & rujukan.** Ditambahkan CDN yang sama dengan `backup_pamsimas/app/Views/layouts/main.php:34`
+→ `https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css`, lalu **78 emoji**
+di **10 berkas view** diganti ikon FA yang **diambil dari kosakata ikon backup**:
+
+| Lokasi | Emoji | Ikon FA (rujukan backup) |
+|---|---|---|
+| nav Dashboard / Perangkat / Terdeteksi / Monitoring | 📊 📡 🔎 🖥️ | `fa-tachometer-alt` (`sidebar.php:16`), `fa-microchip` (`:62`), `fa-search` (`:56`), `fa-server` (`:155`) |
+| nav Kasir Meter / Pembayaran / Pelanggan / Tarif | 🔍 💰 👥 💵 | `fa-file-invoice-dollar` (`:33`), `fa-money-bill-wave` (`:27`), `fa-address-book` (`:45`), `fa-hand-holding-usd` (`:39`) |
+| nav Tangki / Pompa / Sensor / Tampilan / Template Gauge | 🛢️ ⚙️ 📶 🎨 🧩 | `fa-database` & `fa-fan` (`dashboard/index.php:26,35`), `fa-satellite-dish` (`show.php:98`), `fa-palette`, `fa-magic` |
+| nav Log Pompa / Sensor / Event / Admin + Pengguna + Keluar + ☰ | 📜 📈 🔔 🗂️ 👤 🚪 ☰ | `fa-history` (`sidebar.php:131`), `fa-chart-line` (`:125`), `fa-list-check`, `fa-shield-alt`, `fa-users-cog`, `fa-sign-out-alt` (`:164`), `fa-bars` |
+| toast sukses / gagal | ✅ ⚠️ | `fa-check-circle` / `fa-exclamation-triangle` (pola `app-core.js:37`) |
+| kartu statistik dashboard | 📡 🛢️ 💰 🔍 | `fa-wifi` / `fa-database` / `fa-money-bill-wave` / `fa-file-invoice-dollar` (`dashboard/index.php:17,26`) |
+| kartu statistik **detail** | 💧 ⚙️ 🎛️ 📶 📡 🔄 ⏱️ | `fa-tint`, `fa-power-off`, `fa-sliders-h`, `fa-wifi`, `fa-wifi`, `fa-sync`, `fa-stopwatch` (`devices/show.php:11-59`) |
+| judul section detail | ⚙️ 📈 🕓 | `fa-cogs` / `fa-chart-line` / `fa-history` (`show.php:131`) |
+| ikon log kejadian | ℹ️ 📶 📴 ⚡ ⏻ | `fa-info-circle`, `fa-wifi`, `fa-unlink`, `fa-bolt`, `fa-power-off` (`show.php:137-141`) |
+| kipas pompa (CSS `conic-gradient`) | `.fan-icon` | `<i class="fas fa-fan" data-fan>` + kelas **`.fa-spin`** (`dashboard-live.js:531-539`) |
+| kasir & meter: tab, tombol massal, hapus, badge status | 1️⃣2️⃣3️⃣ ✅ 🗑 🎉 ✔ ⏳ ✖ | `fa-list-check`, `fa-keyboard`, `fa-table`, `fa-check-double`, `fa-trash`, `fa-check-circle`, `fa-check`, `fa-hourglass-half`, `fa-times` |
+| pelanggan / pembayaran / tarif | 📣 💡 ✓ → | `fa-bullhorn`, `fa-info-circle`, `fa-check`, `fa-arrow-right` |
+
+**Titik implementasi penting.**
+1. Ikon disimpan sebagai **nama kelas** lalu dirender di luar `{{ }}` (`<i class="fas {{ $x }}"></i>`)
+   supaya **tidak di-escape** Blade — sama seperti backup (`show.php:137-141`).
+2. CSS pendukung memakai aturan biasa (bukan kelas Tailwind baru, lihat §10):
+   `#sidebar nav a > i.fas { width:1.15em; text-align:center; flex:none; }` agar label menu tetap
+   sejajar; `.pump-info-label i[data-fan]` + `.fa-spin` menggantikan `@keyframes fanSpin`.
+3. **Sengaja tidak diubah** (bukan ikon): `→` pada teks/komentar ("kartu → halaman detail"),
+   `⌀` (simbol diameter di `settings/tanks`), `m³`, `±`, `×`, `·`, `—`.
+
+**Verifikasi.**
+- **Lokal**: uji-kering dulu (semua 78 pola cocok) sebelum eksekusi; pindai ulang seluruh view →
+  karakter non-ASCII tersisa hanya `—`(49) `→`(13) `³` `·` `©` `±` `×` `⌀` = **0 emoji ikon**;
+  cek sintaks semua blok JS (6 berkas, 9 blok, Blade dijadikan placeholder) **valid**;
+  harness badge gauge lama tetap **37/37** (tidak ada regresi).
+- **Server**: MD5 **10/10 MATCH** (contoh: `d5a7e6c89ffc3e211acbaf8405441537` layout,
+  `a29de28e3c8b24e9361407f1f07c1e51` detail, `f7313ca18deb0a9f05f3510f8938b314` meter);
+  `view:clear` + `view:cache` OK; **60 ikon `<i class="fas`** di view terkompilasi & **0 emoji**.
+  Verifier PHP: render **sidebar dengan sesi `role=Administrator`** → **21 ikon nav** (semua menu
+  di atas ada), render **halaman detail #3 dengan data nyata** → 13 ikon kartu/judul/log + kipas
+  `fa-fan`/`fa-spin` + chip durasi §7.18 tetap ada, **45/46** lulus.
+- **Uji pemetaan ikon log** (5 kejadian disuntikkan ke tampilan, tanpa mengubah data DB) →
+  **7/7 lulus**: `tersambung→fa-wifi`, `terputus→fa-unlink`, `boot→fa-bolt`, `nyala/mati→fa-power-off`.
+- Backup: `/tmp/backup-fa-20261004-053714` (10 berkas).
+
+**Temuan sampingan.**
+- Satu "kegagalan" awal (`fa-bolt` tidak muncul) bukan bug: **20 log terakhir #3 tidak memuat
+  kejadian boot** → diverifikasi dengan menyuntikkan contoh kejadian (lihat di atas).
+- Cabang log `nyala`/`mati` hanya memicu bila **pesan** memuat kata itu; pesan nyata firmware/server
+  memakai **"Pompa ON/OFF (AUTO)"** sehingga ikonnya jatuh ke `fa-info-circle` — **perilaku lama
+  yang sudah ada sebelum konversi ini** (sebelumnya juga jatuh ke emoji ℹ️); tidak diubah di tugas ini.
+- Checker sintaks awal memberi positif palsu karena blok `<script>` memuat penanda `@verbatim`
+  → ditangani dengan membuang penanda tersebut sebelum diperiksa.
+
 
 
 

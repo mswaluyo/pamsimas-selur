@@ -31,14 +31,14 @@
                         <td class="px-4 py-3">
                             @if ($h->old_water_price !== null && abs($h->old_water_price - $h->water_price) >= 0.005)
                                 <span class="text-slate-400 line-through">{{ number_format($h->old_water_price, 0, ',', '.') }}</span>
-                                <span class="mx-1 text-slate-400">→</span>
+                                <span class="mx-1 text-slate-400"><i class="fas fa-arrow-right"></i></span>
                             @endif
                             <span class="font-semibold">{{ number_format($h->water_price, 0, ',', '.') }}</span>
                         </td>
                         <td class="px-4 py-3">
                             @if ($h->old_admin_fee !== null && abs($h->old_admin_fee - $h->admin_fee) >= 0.005)
                                 <span class="text-slate-400 line-through">{{ number_format($h->old_admin_fee, 0, ',', '.') }}</span>
-                                <span class="mx-1 text-slate-400">→</span>
+                                <span class="mx-1 text-slate-400"><i class="fas fa-arrow-right"></i></span>
                             @endif
                             <span class="font-semibold">{{ number_format($h->admin_fee, 0, ',', '.') }}</span>
                         </td>

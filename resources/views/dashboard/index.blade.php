@@ -6,13 +6,13 @@
 <!-- Kartu statistik -->
 <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
     @foreach([
-        ['Perangkat Online', $stats['online_devices'] . ' / ' . $stats['total_devices'], '📡', 'from-sky-500 to-cyan-600'],
-        ['Total Tangki', $stats['total_tanks'], '🛢️', 'from-violet-500 to-purple-600'],
-        ['Tagihan Belum Bayar', $stats['invoices_ready_to_pay'], '💰', 'from-amber-500 to-orange-600'],
-        ['Meter Menunggu Validasi', $stats['meter_pending_validation'], '🔍', 'from-emerald-500 to-teal-600'],
+        ['Perangkat Online', $stats['online_devices'] . ' / ' . $stats['total_devices'], 'fa-wifi', 'from-sky-500 to-cyan-600'],
+        ['Total Tangki', $stats['total_tanks'], 'fa-database', 'from-violet-500 to-purple-600'],
+        ['Tagihan Belum Bayar', $stats['invoices_ready_to_pay'], 'fa-money-bill-wave', 'from-amber-500 to-orange-600'],
+        ['Meter Menunggu Validasi', $stats['meter_pending_validation'], 'fa-file-invoice-dollar', 'from-emerald-500 to-teal-600'],
     ] as $card)
     <div class="group flex items-center gap-4 rounded-xl bg-white p-5 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md">
-        <span class="flex h-14 w-14 items-center justify-center rounded-2xl bg-gradient-to-br {{ $card[3] }} text-2xl shadow transition group-hover:scale-105">{{ $card[2] }}</span>
+        <span class="flex h-14 w-14 items-center justify-center rounded-2xl bg-gradient-to-br {{ $card[3] }} text-2xl shadow transition group-hover:scale-105"><i class="fas {{ $card[2] }}"></i></span>
         <div>
             <p class="text-sm font-medium text-slate-500">{{ $card[0] }}</p>
             <p class="text-3xl font-bold text-slate-900">{{ $card[1] }}</p>
@@ -63,8 +63,9 @@
 .signal-indicator .bars i.on { background:#22c55e; }
 .signal-indicator.is-weak .bars i.on { background:#f59e0b; }
 .pump-info-label { display:flex; align-items:center; justify-content:center; gap:6px; margin-top:8px; font-size:.85rem; font-weight:700; color:#34495e; }
-.pump-info-label .fan-icon { width:12px; height:12px; border-radius:50%; background:conic-gradient(#94a3b8 0 25%, #e2e8f0 0 50%, #94a3b8 0 75%, #e2e8f0 0); display:inline-block; flex:none; }
-.pump-info-label .fan-icon.spin { background:conic-gradient(#16a34a 0 25%, #bbf7d0 0 50%, #16a34a 0 75%, #bbf7d0 0); animation:fanSpin 1.2s linear infinite; }
+/* Ikon kipas pompa memakai Font Awesome (tema backup) — berputar dgn .fa-spin bawaan FA */
+.pump-info-label i[data-fan] { font-size:.72rem; color:#94a3b8; flex:none; }
+.pump-info-label i[data-fan].fa-spin { color:#16a34a; }
 .gauge-actions { display:flex; justify-content:space-between; align-items:center; gap:8px; width:100%; margin-top:10px; padding:8px 12px; border-top:1px solid #e0e0e0; border-radius:4px; background:#f9f9f9; }
 .btn-action { padding:5px 10px; font-size:.8rem; font-weight:700; border-radius:5px; border:1px solid #ccc; background:#fff; color:#34495e; cursor:pointer; transition:all .2s; }
 .btn-action:hover:not(:disabled) { background-color:#e2e6ea; }
@@ -275,7 +276,7 @@ function ensureSlots(devices) {
             // Tanpa template: tetap tampilkan identitas bak di atas gauge bawaan
             html = `<div class="gauge-title">${d.tank_name || '-'}</div>` + fallbackSvg(i);
         }
-        html += `<div class="pump-info-label" data-pump-label><span class="fan-icon" data-fan></span><span data-pump-label-text>${d.pump_name || 'Tanpa Pompa'}</span></div>`
+        html += `<div class="pump-info-label" data-pump-label><i class="fas fa-fan" data-fan></i><span data-pump-label-text>${d.pump_name || 'Tanpa Pompa'}</span></div>`
         // Indikator online + sinyal di atas, tombol mode & pompa di bawah, MAC paling bawah.
         html = cardHeader(d) + html
             + `<div class="gauge-actions">`
@@ -325,7 +326,7 @@ function updateSlot(slot, idx, dev, pct, color) {
         const txt = pumpLabel.querySelector('[data-pump-label-text]');
         if (txt) txt.textContent = dev.pump_name || 'Tanpa Pompa';
         const fan = pumpLabel.querySelector('[data-fan]');
-        if (fan) fan.classList.toggle('spin', dev.status === 'ON' && dev.is_online);
+        if (fan) fan.classList.toggle('fa-spin', dev.status === 'ON' && dev.is_online);
         pumpLabel.style.color = dev.is_online ? '#34495e' : '#94a3b8';
     }
     // --- Footer: tombol mode (AUTO/MANUAL) & tombol pompa (ON/OFF) ---

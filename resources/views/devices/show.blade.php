@@ -98,8 +98,9 @@
 .device-type-badge.is-act { background:#fff7ed; color:#c2410c; border-color:#fed7aa; }
 .signal-indicator { font-size:.75rem; font-weight:700; color:#7f8c8d; }
 .pump-info-label { display:flex; align-items:center; justify-content:center; gap:8px; margin-top:6px; font-size:.85rem; color:#34495e; }
-.pump-info-label .fan-icon { width:12px; height:12px; border-radius:50%; background:conic-gradient(#94a3b8 0 25%, #e2e8f0 0 50%, #94a3b8 0 75%, #e2e8f0 0); display:inline-block; flex:none; }
-.pump-info-label .fan-icon.spin { background:conic-gradient(#16a34a 0 25%, #bbf7d0 0 50%, #16a34a 0 75%, #bbf7d0 0); animation:fanSpin 1.2s linear infinite; }
+/* Ikon kipas pompa memakai Font Awesome (tema backup) — berputar dgn .fa-spin bawaan FA */
+.pump-info-label i[data-fan] { font-size:.72rem; color:#94a3b8; flex:none; }
+.pump-info-label i[data-fan].fa-spin { color:#16a34a; }
 .gauge-actions { display:flex; justify-content:space-between; align-items:center; gap:8px; width:100%; margin-top:10px; padding:8px 12px; border-top:1px solid #e0e0e0; border-radius:4px; background:#f9f9f9; }
 .btn-action { padding:5px 10px; font-size:.8rem; font-weight:700; border-radius:5px; border:1px solid #ccc; background:#fff; color:#34495e; cursor:pointer; transition:all .2s; }
 .btn-action:hover:not(:disabled) { background-color:#e2e6ea; }
@@ -138,14 +139,14 @@
 <div id="device-show-page">
     <div class="page-header">
         <h1>Detail Perangkat — {{ $device->pump?->pump_name ?? $device->mac_address }}</h1>
-        <a href="{{ route('devices.index') }}" class="btn btn-secondary">← Kembali ke Daftar</a>
+        <a href="{{ route('devices.index') }}" class="btn btn-secondary"><i class="fas fa-arrow-left"></i> Kembali ke Daftar</a>
     </div>
 
     {{-- Statistik Utama — SATU baris penuh; id elemen sama dengan sistem lama agar live update bekerja --}}
     <div class="stat-cards-container">
         {{-- 0. Level Air --}}
         <div class="stat-card">
-            <div id="stat-water-icon" class="stat-card-icon bg-gray">💧</div>
+            <div id="stat-water-icon" class="stat-card-icon bg-gray"><i class="fas fa-tint"></i></div>
             <div>
                 <div class="stat-card-title">Level Air</div>
                 <div id="stat-water-value" class="stat-card-value">{{ round($latestWaterPct) }}%</div>
@@ -153,7 +154,7 @@
         </div>
         {{-- 1. Status Pompa --}}
         <div class="stat-card">
-            <div id="stat-pump-icon" class="stat-card-icon bg-gray">⚙️</div>
+            <div id="stat-pump-icon" class="stat-card-icon bg-gray"><i class="fas fa-power-off"></i></div>
             <div>
                 <div class="stat-card-title">Status Pompa (24j)</div>
                 <div id="stat-pump-value" class="stat-card-value">{{ $device->isOnline() ? ($device->status ?: '-') : 'OFF' }}</div>
@@ -161,7 +162,7 @@
         </div>
         {{-- 2. Mode Operasi --}}
         <div class="stat-card">
-            <div class="stat-card-icon bg-blue">🎛️</div>
+            <div class="stat-card-icon bg-blue"><i class="fas fa-sliders-h"></i></div>
             <div>
                 <div class="stat-card-title">Mode Operasi</div>
                 <div id="stat-mode-value" class="stat-card-value">{{ $device->control_mode }}</div>
@@ -169,7 +170,7 @@
         </div>
         {{-- 3. Konektivitas --}}
         <div class="stat-card">
-            <div id="stat-conn-icon" class="stat-card-icon {{ $device->isOnline() ? 'bg-green' : 'bg-gray' }}">📶</div>
+            <div id="stat-conn-icon" class="stat-card-icon {{ $device->isOnline() ? 'bg-green' : 'bg-gray' }}"><i class="fas fa-wifi"></i></div>
             <div>
                 <div class="stat-card-title">Konektivitas</div>
                 <div id="stat-conn-value" class="stat-card-value">{{ $device->isOnline() ? 'Online' : 'Offline' }}</div>
@@ -177,7 +178,7 @@
         </div>
         {{-- 4. Sinyal WiFi --}}
         <div class="stat-card">
-            <div class="stat-card-icon bg-orange">📡</div>
+            <div class="stat-card-icon bg-orange"><i class="fas fa-wifi"></i></div>
             <div>
                 <div class="stat-card-title">Sinyal WiFi</div>
                 <div id="stat-signal-value" class="stat-card-value">{{ (int) ($device->rssi ?? 0) }} dBm</div>
@@ -185,7 +186,7 @@
         </div>
         {{-- 5. Frekuensi Nyala (24j) --}}
         <div class="stat-card">
-            <div class="stat-card-icon bg-orange">🔄</div>
+            <div class="stat-card-icon bg-orange"><i class="fas fa-sync"></i></div>
             <div>
                 <div class="stat-card-title">Frekuensi Nyala</div>
                 <div id="stat-cycle-value" class="stat-card-value">{{ (int) ($pump24['cycle_count'] ?? 0) }}x</div>
@@ -193,7 +194,7 @@
         </div>
         {{-- 6. Durasi Nyala (24j) --}}
         <div class="stat-card">
-            <div class="stat-card-icon bg-blue">⏱️</div>
+            <div class="stat-card-icon bg-blue"><i class="fas fa-stopwatch"></i></div>
             <div>
                 <div class="stat-card-title">Durasi (24j)</div>
                 <div id="stat-duration-24h-value" class="stat-card-value">{{ $pump24['formatted'] ?? '00:00' }}</div>
@@ -235,7 +236,7 @@
 
         {{-- Kolom Kanan: Detail Konfigurasi --}}
         <div class="card">
-            <h2>⚙️ Detail Konfigurasi</h2>
+            <h2><i class="fas fa-cogs"></i> Detail Konfigurasi</h2>
 
             <div class="info-block">
                 <span class="info-block-title">Konfigurasi Teknis</span>
@@ -278,7 +279,7 @@
     {{-- Grafik Riwayat Level Air &amp; Pompa (full width) --}}
     <div class="card">
         <div class="chart-card-container">
-            <h2 class="chart-title">📈 Riwayat Level Air &amp; Pompa</h2>
+            <h2 class="chart-title"><i class="fas fa-chart-line"></i> Riwayat Level Air &amp; Pompa</h2>
             <div class="chart-controls-container">
                 <div class="btn-group">
                     <button type="button" class="btn btn-sm btn-secondary chart-btn" data-range="live">Live</button>
@@ -299,7 +300,7 @@
 
     {{-- Log Kejadian Terakhir --}}
     <div class="card log-container">
-        <h2>🕓 Log Kejadian Terakhir</h2>
+        <h2><i class="fas fa-history"></i> Log Kejadian Terakhir</h2>
         @php
             // Durasi nyala/mati tiap transisi pompa dihitung dari pump_logs (TANPA mengubah
             // database; kolom duration_seconds memang tidak pernah diisi). Dipetakan per waktu
@@ -317,15 +318,15 @@
                     $durKey = $log->event_time ? \Carbon\Carbon::parse($log->event_time)->format('Y-m-d H:i:s') : null;
                     $dur = ($log->event_type === 'Pump' && $durKey) ? ($pumpDurTime[$durKey] ?? null) : null;
                     $colorClass = '';
-                    $icon = 'ℹ️';
-                    if (str_contains($msg, 'tersambung')) { $colorClass = 'log-success'; $icon = '📶'; }
-                    elseif (str_contains($msg, 'terputus')) { $colorClass = 'log-warning'; $icon = '📴'; }
-                    elseif (str_contains($msg, 'boot')) { $colorClass = 'log-power'; $icon = '⚡'; }
-                    elseif (str_contains($msg, 'nyala')) { $colorClass = 'log-success'; $icon = '⏻'; }
-                    elseif (str_contains($msg, 'mati')) { $colorClass = 'log-warning'; $icon = '⏻'; }
+                    $icon = 'fa-info-circle';
+                    if (str_contains($msg, 'tersambung')) { $colorClass = 'log-success'; $icon = 'fa-wifi'; }
+                    elseif (str_contains($msg, 'terputus')) { $colorClass = 'log-warning'; $icon = 'fa-unlink'; }
+                    elseif (str_contains($msg, 'boot')) { $colorClass = 'log-power'; $icon = 'fa-bolt'; }
+                    elseif (str_contains($msg, 'nyala')) { $colorClass = 'log-success'; $icon = 'fa-power-off'; }
+                    elseif (str_contains($msg, 'mati')) { $colorClass = 'log-warning'; $icon = 'fa-power-off'; }
                 @endphp
                 <li class="log-item {{ $colorClass }}" title="{{ $log->event_type }} · {{ $log->message }}">
-                    <span class="log-icon-wrapper">{{ $icon }}</span>
+                    <span class="log-icon-wrapper"><i class="fas {{ $icon }}"></i></span>
                     <span class="log-time">{{ $log->event_time ? \Carbon\Carbon::parse($log->event_time)->format('d-m-Y H:i:s') : '-' }}</span>
                     <span class="log-type">{{ $log->event_type }}</span>
                     <span class="log-message">{{ $log->message }}</span>
@@ -489,7 +490,7 @@
 
         const info = document.createElement('div');
         info.className = 'pump-info-label';
-        info.innerHTML = '<span class="fan-icon" data-fan></span><span>' + (CFG.pumpName || 'Pompa') + '</span>';
+        info.innerHTML = '<i class="fas fa-fan" data-fan></i><span>' + (CFG.pumpName || 'Pompa') + '</span>';
         card.appendChild(info);
 
         const actions = document.createElement('div');
@@ -595,7 +596,7 @@
             }
 
             const fan = card.querySelector('[data-fan]');
-            if (fan) fan.className = 'fan-icon' + (isOn && online ? ' spin' : '');
+            if (fan) fan.className = 'fas fa-fan' + (isOn && online ? ' fa-spin' : '');
 
             const sig = card.querySelector('[data-signal]');
             if (sig) {

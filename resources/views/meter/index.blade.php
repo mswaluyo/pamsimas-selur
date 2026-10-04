@@ -3,9 +3,9 @@
 
 @section('content')
 <div class="mb-4 flex flex-wrap gap-2 border-b" id="meter-tabs">
-    <button data-tab="queue" class="rounded-t-lg border-b-2 border-sky-600 px-4 py-2 text-sm font-semibold">1️⃣ Antrean Validasi <span id="badge-pending" class="ml-1 rounded-full bg-sky-600 px-2 py-0.5 text-xs text-white">0</span></button>
-    <button data-tab="manual" class="rounded-t-lg border-b-2 border-transparent px-4 py-2 text-sm font-semibold hover:text-sky-600">2️⃣ Input Manual</button>
-    <button data-tab="report" class="rounded-t-lg border-b-2 border-transparent px-4 py-2 text-sm font-semibold hover:text-sky-600">3️⃣ Laporan Meter</button>
+    <button data-tab="queue" class="rounded-t-lg border-b-2 border-sky-600 px-4 py-2 text-sm font-semibold"><i class="fas fa-list-check"></i> Antrean Validasi <span id="badge-pending" class="ml-1 rounded-full bg-sky-600 px-2 py-0.5 text-xs text-white">0</span></button>
+    <button data-tab="manual" class="rounded-t-lg border-b-2 border-transparent px-4 py-2 text-sm font-semibold hover:text-sky-600"><i class="fas fa-keyboard"></i> Input Manual</button>
+    <button data-tab="report" class="rounded-t-lg border-b-2 border-transparent px-4 py-2 text-sm font-semibold hover:text-sky-600"><i class="fas fa-table"></i> Laporan Meter</button>
 </div>
 
 <!-- TAB 1: Antrean Validasi -->
@@ -13,7 +13,7 @@
     <div class="mb-4 flex items-center justify-between">
         <p class="text-sm text-slate-500">Foto meteran dari WhatsApp warga (OCR lokal). Klik <strong>Validasi</strong> untuk memeriksa & menyimpan.</p>
         <div class="flex gap-2">
-            <button id="btn-bulk" class="rounded-lg bg-emerald-600 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-700">✅ Validasi Massal (OCR)</button>
+            <button id="btn-bulk" class="rounded-lg bg-emerald-600 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-700"><i class="fas fa-check-double"></i> Validasi Massal (OCR)</button>
             <form method="POST" action="{{ route('meter.delete-all-pending') }}" onsubmit="return confirm('Hapus SEMUA antrean?')">
                 @csrf
                 <button class="rounded-lg bg-red-100 px-4 py-2 text-sm font-semibold text-red-700 hover:bg-red-200">Bersihkan Semua</button>
@@ -121,9 +121,9 @@ async function loadQueue() {
                 <div class="flex items-center gap-2">
                     <input type="number" step="0.01" min="0" value="${p.current_meter > 0 ? p.current_meter : ''}" placeholder="Angka meter" class="w-28 rounded-lg border border-slate-300 px-2 py-1.5 text-sm" data-angka>
                     <button onclick="validateOne('${p.session_id}', this)" class="rounded-lg bg-sky-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-sky-700">Validasi</button>
-                    <button onclick="deletePending('${p.session_id}')" class="rounded-lg bg-red-100 px-3 py-1.5 text-xs font-semibold text-red-700">🗑</button>
+                    <button onclick="deletePending('${p.session_id}')" class="rounded-lg bg-red-100 px-3 py-1.5 text-xs font-semibold text-red-700"><i class="fas fa-trash"></i></button>
                 </div>
-            </div>`).join('') || '<p class="col-span-full py-4 text-center text-slate-400">Antrean kosong. 🎉</p>';
+            </div>`).join('') || '<p class="col-span-full py-4 text-center text-slate-400">Antrean kosong. <i class="fas fa-check-circle"></i></p>';
     } catch (e) { console.error(e); }
 }
 
@@ -189,7 +189,7 @@ document.getElementById('btn-report')?.addEventListener('click', async () => {
     const none = rows.filter(r => r.report_status === 'NONE').length;
     document.getElementById('report-summary').innerHTML =
         `<span class="text-emerald-600 font-semibold">${done} selesai</span> · <span class="text-amber-600">${pend} pending</span> · <span class="text-red-600">${none} belum</span>`;
-    const badges = {DONE: ['bg-emerald-100 text-emerald-700', '✔ Selesai'], PENDING: ['bg-amber-100 text-amber-700', '⏳ Sudah Lapor'], NONE: ['bg-red-100 text-red-700', '✖ Belum Lapor']};
+    const badges = {DONE: ['bg-emerald-100 text-emerald-700', '<i class="fas fa-check"></i> Selesai'], PENDING: ['bg-amber-100 text-amber-700', '<i class="fas fa-hourglass-half"></i> Sudah Lapor'], NONE: ['bg-red-100 text-red-700', '<i class="fas fa-times"></i> Belum Lapor']};
     document.getElementById('report-body').innerHTML = rows.map(r => `
         <tr class="border-b hover:bg-slate-50">
             <td class="py-2">${r.name}</td>

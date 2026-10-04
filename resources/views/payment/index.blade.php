@@ -41,7 +41,7 @@
                     @if($inv->status_bayar === 'BELUM')
                     <button onclick="openPay({{ $inv->id }}, {{ (float) $inv->total_bill }})" class="rounded bg-sky-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-sky-700">Proses Pembayaran</button>
                     @else
-                    <span class="text-xs text-slate-400">✓</span>
+                    <span class="text-xs text-slate-400"><i class="fas fa-check"></i></span>
                     @endif
                 </td>
             </tr>
