@@ -1717,6 +1717,46 @@ placeholder ter ganti, `sandbox="allow-scripts"`, peringatan DevExtreme tampil, 
 `active_template_id` tetap `three_quarter_gauge`, `/templates` tetap **302**.
 Screenshot 1280px: dua kolom rapi, 4 gauge ter-render benar, devextreme kosong + peringatan.
 
+### 7.38 — Hapus `devextreme_circular` + rapikan form Ambang/Warna (sesi #82)
+Operator: *"hilangkan saja devextreme_circular dan perbaiki tampilan terutama setting warna tidak
+sebaris"*.
+
+**1. Hapus template DevExtreme** — alasannya: DevExtreme = produk komersial DevExpress (butuh
+lisensi) dan bobotnya 5,3 MB. Dihapus dari tabel `gauge_templates` (`is_core=1`, id 5) → tersisa
+**4 template**. Dijaga: bila `active_template_id` menunjuk template yang dihapus, dipindah ke
+`three_quarter_gauge` (terbukti: template aktif tetap `three_quarter_gauge`).
+
+**2. Bersihkan semua sisa kode pustaka luar** (jadi tidak ada kode mati & nol dependensi CDN):
+- `devices/show.blade.php`: blok `PUSTAKA GAUGE (ondemand)` (`GAUGE_LIB`, `loadStyleOnce()`,
+  `loadScriptOnce()`, `ensureGaugeLibraries()`) **dihapus**; init kembali sinkron
+  `injectTemplateAssets()` → `renderGaugeCardStructure()` → `paintGauge()`.
+- `SettingController`: `$libTags` pratinjau + CSS `#pv div[id^="dx-gauge-"]` + metode
+  `needsLibrary()` + atribut `needs_library` **dihapus**.
+- `settings/display.blade.php`: ikon `fa-cloud-download` **dihapus**.
+
+**3. Form Ambang & Warna jadi seragam.** Sebelumnya `grid-cols-2` dengan 5 field → "Warna Aman"
+sendirian di baris 2 dan kolom kanan **tidak lurus** dengan kolom kiri (itulah keluhan "tidak
+sebaris"); `input[type=color]` juga punya gaya bawaan browser berbeda dari `input[type=number]`.
+Sekarang **5 baris** `grid grid-cols-[1fr_84px] items-center gap-2` (label kiri | input kanan,
+tinggi **`h-9` seragam**):
+- input angka: `h-9 … px-2 text-center text-sm`;
+- input warna: `h-9 … bg-white p-1 cursor-pointer` (menyamakan **tinggi** dengan input angka);
+- tiap input punya `id` + `<label for>` (aksesibilitas, klik label = fokus input).
+- Baris **Pratinjau** dirapikan (`gap-x-3`, `text-[11px]`) supaya **tidak terpotong 2 baris**,
+  dan swatch sekarang **live**: `input[type=color][data-sw]` → event `input` → `sw.style.background`.
+- Tombol Simpan pakai `inline-flex items-center gap-1` (ikon & teks Center).
+
+**Build CSS**: kelas baru `grid-cols-[1fr_84px]`, `h-9`, `gap-x-3` → `npm run build` lokal,
+aset `app-KdRX66vB.css` → **`app-b-iL2xkg.css`** (JS tetap `app-DMsN-rLE.js`), `css=200 js=200` ✔.
+
+**Verifikasi 24/24**: 4 template, `devextreme_circular` tidak ada di DB maupun HTML, aktif masih
+valid, **0 template butuh pustaka**, ketiga berkas bersih dari `devextreme`/`jquery`/`needsLibrary`,
+init sinkron, 4 iframe, **5 baris `grid-cols-[1fr_84px]`**, semua `items-center`,
+2 `input[type=number]` + 3 `input[type=color]` (hitung pakai regex `<input[^>]*type=` agar selector
+JS tidak ikut terhitung), 3 `label for` + 3 id unik + 3 swatch, pratinjau live, **POST simpan 302**
+dengan nilai baru (25 / #f1c40f) tersimpan lalu dikembalikan, slide ON/OFF utuh (3 OFF + 1 ON di
+`three_quarter_gauge`). Backup `/tmp/backup-90`, `/tmp/backup-91`.
+
 ### 7.37 — Perbaiki `devextreme_circular` (pemuatan pustaka ondemand)
 Operator bertanya: *"apakah devextreme_circular bisa diperbaiki?"* — **bisa**, dengan memuat
 DevExtreme + jQuery dari CDN secara **ondemand**.

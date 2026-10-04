@@ -281,7 +281,6 @@ class SettingController extends Controller
             // Pratinjau tiap template dibangun sebagai dokumen mandiri (iframe srcdoc) supaya
             // CSS antar template tidak saling menimpa, sama seperti cara halaman gauge memakainya.
             $t->preview_srcdoc = $this->previewDoc($t);
-            $t->needs_library = $this->needsLibrary($t);
             return $t;
         });
         return view('settings.display', [
@@ -312,25 +311,12 @@ class SettingController extends Controller
         $css = (string) $t->css_code;
         $js = (string) $t->js_code;
 
-        // Template yang butuh pustaka luar (DevExtreme + jQuery) memerlukan CDN di dalam
-        // iframe pratinjau. Dimuat hanya untuk template tersebut (ondemand); karena berupa
-        // <script src> di dalam <head>, penanganannya memblokir sehingga script utama di
-        // bawah otomatis menunggu pustaka selesai dimuat.
-        $libTags = $this->needsLibrary($t)
-            ? '<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/devextreme@22.2.6/dist/css/dx.light.css">'
-                . '<script src="https://cdn.jsdelivr.net/npm/jquery@3.7.1/dist/jquery.min.js"></script>'
-                . '<script src="https://cdn.jsdelivr.net/npm/devextreme@22.2.6/dist/js/dx.all.min.js"></script>'
-            : '';
-
-        return '<!doctype html><html lang="id"><head><meta charset="utf-8">' . $libTags
+        return '<!doctype html><html lang="id"><head><meta charset="utf-8">'
             . '<style>*{box-sizing:border-box}html,body{margin:0;height:100%;overflow:hidden;background:#fff;'
             . "font-family:system-ui,-apple-system,'Segoe UI',sans-serif}"
             . '#pv{display:block;height:100%;padding:4px;transform:scale(.45);transform-origin:center center}'
             . '#pv>*{margin-left:auto;margin-right:auto}'
             . '#pv .gauge-title{font-size:11px;color:#64748b;text-align:center}'
-            // DevExtreme mengukur tinggi dari elemennya (200px di template), sehingga gauge
-            // terpotong di iframe pratinjau yang kecil — dikecilkan khusus untuk pratinjau.
-            . '#pv div[id^="dx-gauge-"]{height:150px!important;max-width:150px;margin-left:auto;margin-right:auto}'
             . $css . '</style></head><body><div id="pv">' . $html . '</div><script>'
             . '(function(){var card=document.getElementById("pv");'
             // Fallback universal: salinan persis universalUpdateGauge() di devices/show.blade.php
@@ -350,12 +336,6 @@ class SettingController extends Controller
             . 'else{universalUpdateGauge(card,' . $pct . ',"#22c55e");}}catch(e){universalUpdateGauge(card,' . $pct . ',"#22c55e");}'
             . 'universalUpdateGauge(card,' . $pct . ',"#22c55e");'
             . '})();</script></body></html>';
-    }
-
-    /** Deteksi template yang butuh pustaka luar (mis. DevExtreme + jQuery). */
-    private function needsLibrary($t): bool
-    {
-        return (bool) preg_match('/\bdx[A-Z]\w*|\$\s*\(/', (string) $t->js_code);
     }
 
     public function updateDisplay(Request $request)
