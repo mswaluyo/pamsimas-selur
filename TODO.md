@@ -1102,6 +1102,36 @@ di **10 berkas view** diganti ikon FA yang **diambil dari kosakata ikon backup**
 **Titik implementasi penting.**
 1. Ikon disimpan sebagai **nama kelas** lalu dirender di luar `{{ }}` (`<i class="fas {{ $x }}"></i>`)
    supaya **tidak di-escape** Blade — sama seperti backup (`show.php:137-141`).
+2. CSS pendukung memakai aturan biasa (bukan kelas Tailwind baru, lihat §10):
+   `#sidebar nav a > i.fas { width:1.15em; text-align:center; flex:none; }` agar label menu tetap
+   sejajar; `.pump-info-label i[data-fan]` + `.fa-spin` menggantikan `@keyframes fanSpin`.
+3. **Sengaja tidak diubah** (bukan ikon): `→` pada teks/komentar ("kartu → halaman detail"),
+   `⌀` (simbol diameter di `settings/tanks`), `m³`, `±`, `×`, `·`, `—`.
+
+**Verifikasi.**
+- **Lokal**: uji-kering dulu (semua 78 pola cocok) sebelum eksekusi; pindai ulang seluruh view →
+  karakter non-ASCII tersisa hanya `—`(49) `→`(13) `³` `·` `©` `±` `×` `⌀` = **0 emoji ikon**;
+  cek sintaks semua blok JS (6 berkas, 9 blok, Blade dijadikan placeholder) **valid**;
+  harness badge gauge lama tetap **37/37** (tidak ada regresi).
+- **Server**: MD5 **10/10 MATCH** (contoh: `d5a7e6c89ffc3e211acbaf8405441537` layout,
+  `a29de28e3c8b24e9361407f1f07c1e51` detail, `f7313ca18deb0a9f05f3510f8938b314` meter);
+  `view:clear` + `view:cache` OK; **60 ikon `<i class="fas`** di view terkompilasi & **0 emoji**.
+  Verifier PHP: render **sidebar dengan sesi `role=Administrator`** → **21 ikon nav** (semua menu
+  di atas ada), render **halaman detail #3 dengan data nyata** → 13 ikon kartu/judul/log + kipas
+  `fa-fan`/`fa-spin` + chip durasi §7.18 tetap ada, **45/46** lulus.
+- **Uji pemetaan ikon log** (5 kejadian disuntikkan ke tampilan, tanpa mengubah data DB) →
+  **7/7 lulus**: `tersambung→fa-wifi`, `terputus→fa-unlink`, `boot→fa-bolt`, `nyala/mati→fa-power-off`.
+- Backup: `/tmp/backup-fa-20261004-053714` (10 berkas).
+
+**Temuan sampingan.**
+- Satu "kegagalan" awal (`fa-bolt` tidak muncul) bukan bug: **20 log terakhir #3 tidak memuat
+  kejadian boot** → diverifikasi dengan menyuntikkan contoh kejadian (lihat di atas).
+- Cabang log `nyala`/`mati` hanya memicu bila **pesan** memuat kata itu; pesan nyata firmware/server
+  memakai **"Pompa ON/OFF (AUTO)"** sehingga ikonnya jatuh ke `fa-info-circle` — **perilaku lama
+  yang sudah ada sebelum konversi ini** (sebelumnya juga jatuh ke emoji ℹ️); tidak diubah di tugas ini.
+- Checker sintaks awal memberi positif palsu karena blok `<script>` memuat penanda `@verbatim`
+  → ditangani dengan membuang penanda tersebut sebelum diperiksa.
+
 ### 7.21 Menu sidebar "Perangkat Terdeteksi" dihapus (4 Okt 2026)
 
 **Permintaan operator.** *"Perangkat Terdeteksi pada sidebar dihilangkan saja karena di
@@ -1139,36 +1169,45 @@ Rute `GET /devices/detected` (`routes/web.php:44`) **tidak dihapus** — hanya t
   HTML hasil render (harus dicek di view terkompilasi) dan `@forelse` tidak me-render tombol hapus
   saat `detected` kosong → diverifikasi ulang (`vfy_menu2.php`) dan lulus semuanya.
 
-2. CSS pendukung memakai aturan biasa (bukan kelas Tailwind baru, lihat §10):
-   `#sidebar nav a > i.fas { width:1.15em; text-align:center; flex:none; }` agar label menu tetap
-   sejajar; `.pump-info-label i[data-fan]` + `.fa-spin` menggantikan `@keyframes fanSpin`.
-3. **Sengaja tidak diubah** (bukan ikon): `→` pada teks/komentar ("kartu → halaman detail"),
-   `⌀` (simbol diameter di `settings/tanks`), `m³`, `±`, `×`, `·`, `—`.
 
-**Verifikasi.**
-- **Lokal**: uji-kering dulu (semua 78 pola cocok) sebelum eksekusi; pindai ulang seluruh view →
-  karakter non-ASCII tersisa hanya `—`(49) `→`(13) `³` `·` `©` `±` `×` `⌀` = **0 emoji ikon**;
-  cek sintaks semua blok JS (6 berkas, 9 blok, Blade dijadikan placeholder) **valid**;
-  harness badge gauge lama tetap **37/37** (tidak ada regresi).
-- **Server**: MD5 **10/10 MATCH** (contoh: `d5a7e6c89ffc3e211acbaf8405441537` layout,
-  `a29de28e3c8b24e9361407f1f07c1e51` detail, `f7313ca18deb0a9f05f3510f8938b314` meter);
-  `view:clear` + `view:cache` OK; **60 ikon `<i class="fas`** di view terkompilasi & **0 emoji**.
-  Verifier PHP: render **sidebar dengan sesi `role=Administrator`** → **21 ikon nav** (semua menu
-  di atas ada), render **halaman detail #3 dengan data nyata** → 13 ikon kartu/judul/log + kipas
-  `fa-fan`/`fa-spin` + chip durasi §7.18 tetap ada, **45/46** lulus.
-- **Uji pemetaan ikon log** (5 kejadian disuntikkan ke tampilan, tanpa mengubah data DB) →
-  **7/7 lulus**: `tersambung→fa-wifi`, `terputus→fa-unlink`, `boot→fa-bolt`, `nyala/mati→fa-power-off`.
-- Backup: `/tmp/backup-fa-20261004-053714` (10 berkas).
+### 7.22 Kartu statistik dashboard: kotak ikon disamakan gaya backup (4 Okt 2026)
 
-**Temuan sampingan.**
-- Satu "kegagalan" awal (`fa-bolt` tidak muncul) bukan bug: **20 log terakhir #3 tidak memuat
-  kejadian boot** → diverifikasi dengan menyuntikkan contoh kejadian (lihat di atas).
-- Cabang log `nyala`/`mati` hanya memicu bila **pesan** memuat kata itu; pesan nyata firmware/server
-  memakai **"Pompa ON/OFF (AUTO)"** sehingga ikonnya jatuh ke `fa-info-circle` — **perilaku lama
-  yang sudah ada sebelum konversi ini** (sebelumnya juga jatuh ke emoji ℹ️); tidak diubah di tugas ini.
-- Checker sintaks awal memberi positif palsu karena blok `<script>` memuat penanda `@verbatim`
-  → ditangani dengan membuang penanda tersebut sebelum diperiksa.
+**Permintaan operator.** Menunjuk 4 kartu di dashboard (Perangkat Online, Total Tangki, Tagihan
+Belum Bayar, Meter Menunggu Validasi): *"icon ini … disamakan"*. Dikonfirmasi lewat pertanyaan →
+operator memilih: **warna/kotak ikonnya disamakan gaya backup**, glyph ikon **tetap** karena sudah
+sama dengan backup.
 
+**Fakta awal (penting).** Sebelum perubahan ini keempat kartu **sudah memakai Font Awesome**
+(hasil Task #64 — tidak ada emoji; dirender ulang dari server: `fa-wifi`, `fa-database`,
+`fa-money-bill-wave`, `fa-file-invoice-dollar`). Yang beda dengan backup hanya **kotaknya**:
+gradien Tailwind (`bg-gradient-to-br from-sky-500 to-cyan-600`, 56px, radius 2xl).
 
+**Sebelum → Sesudah (mengikuti `backup_pamsimas/public/css/style.css:249-275`):**
+| Kartu | Glyph (tetap) | Warna kotak |
+|---|---|---|
+| Perangkat Online | `fa-wifi` | gradien sky→cyan → **hijau `#27ae60`** (`bg-green`, warna kartu *Online* backup) |
+| Total Tangki | `fa-database` | gradien violet→purple → **oranye `#f39c12`** (`bg-orange`, warna kartu *Tangki* backup) |
+| Tagihan Belum Bayar | `fa-money-bill-wave` | gradien amber→orange → **biru `#3498db`** (`bg-blue`) |
+| Meter Menunggu Validasi | `fa-file-invoice-dollar` | gradien emerald→teal → **ungu `#6f42c1`** (`bg-purple`) |
 
+Spesifikasi backup yang disalin persis: **lingkaran 50px** (`border-radius:50%`), ikon **24px
+putih**, dan efek `scale(1.05)` saat kartu di-hover (pengganti `group-hover:scale-105`). CSS
+didefinisikan sendiri di `@push('styles')` (`.stat-tile` + 5 varian warna) — **bukan** kelas
+Tailwind baru (lihat §10) supaya warnanya dijamin tampil.
+
+**Verifikasi — 15/15 lulus** (render ulang `dashboard.index` di server dengan data nyata):
+- 4 kotak `class="stat-tile …"` dengan pasangan warna/ikon persis seperti tabel di atas;
+- CSS ada di HTML hasil render: `width:50px; height:50px; border-radius:50%`, `font-size:24px`,
+  `#27ae60`, `#f39c12`, `#3498db`, `#6f42c1`; sisa `bg-gradient-to-br {{` pada kartu = **0**;
+- Font Awesome 6.4.2 tetap dimuat, halaman **tanpa emoji**, total `<i class="fas` = 8;
+- MD5 `f6a21700003ff91a61a5dcdd90471ccb` (**lokal = server**), `view:clear`+`view:cache` OK,
+  `/login` **200** & `/` **302**, backup `/tmp/backup-dash2-20261004-060050`;
+- cek sintaks blok JS (checker lokal) tetap valid.
+
+**Catatan:** bila operator masih melihat tampilan lama, kemungkinan cache browser → cukup
+**reload (F5)**; sumber (origin) sudah menyajikan tampilan baru.
+
+**Catatan perbaikan dokumen.** §7.21 semula salah sisip (masuk ke tengah §7.20) karena penyisipan
+memakai nomor baris yang sudah usang setelah §7.20 ditambahkan — blok §7.21 (baris 1105–1141 waktu
+itu) dipindahkan ke akhir berkas sehingga urutan §7.18 → §7.21 kembali benar.
 

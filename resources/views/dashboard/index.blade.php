@@ -6,13 +6,13 @@
 <!-- Kartu statistik -->
 <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
     @foreach([
-        ['Perangkat Online', $stats['online_devices'] . ' / ' . $stats['total_devices'], 'fa-wifi', 'from-sky-500 to-cyan-600'],
-        ['Total Tangki', $stats['total_tanks'], 'fa-database', 'from-violet-500 to-purple-600'],
-        ['Tagihan Belum Bayar', $stats['invoices_ready_to_pay'], 'fa-money-bill-wave', 'from-amber-500 to-orange-600'],
-        ['Meter Menunggu Validasi', $stats['meter_pending_validation'], 'fa-file-invoice-dollar', 'from-emerald-500 to-teal-600'],
+        ['Perangkat Online', $stats['online_devices'] . ' / ' . $stats['total_devices'], 'fa-wifi', 'bg-green'],
+        ['Total Tangki', $stats['total_tanks'], 'fa-database', 'bg-orange'],
+        ['Tagihan Belum Bayar', $stats['invoices_ready_to_pay'], 'fa-money-bill-wave', 'bg-blue'],
+        ['Meter Menunggu Validasi', $stats['meter_pending_validation'], 'fa-file-invoice-dollar', 'bg-purple'],
     ] as $card)
     <div class="group flex items-center gap-4 rounded-xl bg-white p-5 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md">
-        <span class="flex h-14 w-14 items-center justify-center rounded-2xl bg-gradient-to-br {{ $card[3] }} text-2xl shadow transition group-hover:scale-105"><i class="fas {{ $card[2] }}"></i></span>
+        <span class="stat-tile {{ $card[3] }}"><i class="fas {{ $card[2] }}"></i></span>
         <div>
             <p class="text-sm font-medium text-slate-500">{{ $card[0] }}</p>
             <p class="text-3xl font-bold text-slate-900">{{ $card[1] }}</p>
@@ -87,6 +87,15 @@
 .device-type-badge { font-size:.62rem; font-weight:700; letter-spacing:.04em; border-radius:4px; padding:1px 5px; border:1px solid transparent; font-family:ui-monospace,SFMono-Regular,Menlo,monospace; flex:none; }
 .device-type-badge.is-mon { background:#eef2ff; color:#4338ca; border-color:#c7d2fe; }
 .device-type-badge.is-act { background:#fff7ed; color:#c2410c; border-color:#fed7aa; }
+/* ==== Kartu statistik: kotak ikon gaya SISTEM LAMA (backup_pamsimas/public/css/style.css:249)
+   — lingkaran 50px, ikon 24px putih, warna solid; menggantikan gradien Tailwind ==== */
+.stat-tile { width:50px; height:50px; border-radius:50%; display:flex; align-items:center; justify-content:center; flex:none; color:#fff; font-size:24px; transition:transform .2s ease; }
+.stat-tile.bg-blue { background:#3498db; }
+.stat-tile.bg-green { background:#27ae60; }
+.stat-tile.bg-orange { background:#f39c12; }
+.stat-tile.bg-red { background:#e74c3c; }
+.stat-tile.bg-purple { background:#6f42c1; }
+.group:hover .stat-tile { transform:scale(1.05); }
 @keyframes pumpPulse { 0%,100% { opacity:1; } 50% { opacity:.4; } }
 @keyframes fanSpin { to { transform:rotate(360deg); } }
 </style>
