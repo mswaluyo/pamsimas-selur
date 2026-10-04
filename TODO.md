@@ -1011,11 +1011,11 @@ potongan template **mulai dari baris `<ul class="log-list">`** sehingga blok `@p
 durasi (yang berada **di atas** `<ul>`) tidak ikut dirender ⇒ hasil `0 chip` (padahal view
 benar). Slice harus dimulai dari **baris `@php`** blok tersebut.
 
-### 7.19 Badge tipe perangkat **MON. / ACT.** pada kartu gauge (4 Okt 2026)
+### 7.19 Badge tipe perangkat **MON / ACT** pada kartu gauge (4 Okt 2026)
 
 **Permintaan operator.** Kartu gauge (dashboard **dan** halaman detail perangkat) perlu penanda
 tipe perangkat agar langsung terlihat mana **MONITOR** dan mana **ACTUATOR** — singkatnya
-**MON.** / **ACT.**
+**MON** / **ACT**
 
 **Sumber data (tanpa perubahan API/DB).** `device_type` sudah dikirim `/api/dashboard-data`
 (`DashboardApiController.php:55`) dan **kedua** halaman memakai endpoint itu. Halaman detail juga
@@ -1027,8 +1027,8 @@ tetap rapi meski header memakai `justify-content:space-between`; urutan header j
 **[dot online] [MON./ACT.] … [badge timer pompa] [kekuatan sinyal]**.
 | Tipe | Label | Warna |
 |---|---|---|
-| `MONITOR` (sensor + pompa, fungsi ganda) | **MON.** | indigo (`#eef2ff` / `#4338ca`) |
-| `ACTUATOR` (pompa saja, tanpa baca sensor) | **ACT.** | oranye (`#fff7ed` / `#c2410c`) |
+| `MONITOR` (sensor + pompa, fungsi ganda) | **MON** | indigo (`#eef2ff` / `#4338ca`) |
+| `ACTUATOR` (pompa saja, tanpa baca sensor) | **ACT** | oranye (`#fff7ed` / `#c2410c`) |
 | tipe lain / kosong | *tanpa badge* | — |
 
 Tooltip menjelaskan tipe lengkapnya. CSS memakai aturan khusus halaman (`.device-type-badge`) di
@@ -1044,11 +1044,11 @@ baru belum tentu ada di bundle Vite).
    menyegarkan badge bila API mengirim `device_type`.
 
 **Verifikasi (harness Node; kode diambil langsung dari berkas, bukan salinan tangan).**
-33 pemeriksaan **lulus**, dijalankan dua kali: pada berkas **lokal** dan pada berkas **hasil
+37 pemeriksaan **lulus**, dijalankan dua kali: pada berkas **lokal** dan pada berkas **hasil
 unduhan dari server** — hasil identik:
 - sintaks kedua blok `@verbatim` valid (`new vm.Script`) → tidak ada JS yang rusak;
 - `cardHeader({device_type:'MONITOR'})` → ada `class="hdr-left"`, `class="device-type-badge is-mon"`,
-  teks `MON.`, tooltip benar; `ACTUATOR` → `is-act` + `ACT.`; tipe tak dikenal/kosong → **tanpa
+  teks `MON`, tooltip benar; `ACTUATOR` → `is-act` + `ACT`; tipe tak dikenal/kosong → **tanpa
   badge**; indikator online + 4 bar sinyal tetap utuh (tidak ada regresi header);
 - ekspresi `header.innerHTML` halaman detail (diekstrak dari berkas lalu dievaluasi) menghasilkan
   hasil sama dan tetap memuat `data-pump-led`, `data-pump-timer` (`--:--:--`), `data-signal`;
@@ -1056,12 +1056,23 @@ unduhan dari server** — hasil identik:
   posisinya tetap sebelum indikator sinyal;
 - 4 selektor CSS ada di **kedua** halaman; `device_type` ada di API; `CFG.deviceType` ada di detail.
 - Pratinjau header nyata dari berkas terpasang: **#2** `C4:D8:D5:13:A6:17` (MONITOR) →
-  `…<span class="device-type-badge is-mon" data-device-type title="Tipe perangkat: MONITOR — sensor + pompa (fungsi ganda)">MON.</span>…`
-  dan **#3** `CC:50:E3:52:F3:B6` (ACTUATOR) → `…is-act …>ACT.</span>…` — **identik** antara berkas
+  `…<span class="device-type-badge is-mon" data-device-type title="Tipe perangkat: MONITOR — sensor + pompa (fungsi ganda)">MON</span>…`
+  dan **#3** `CC:50:E3:52:F3:B6` (ACTUATOR) → `…is-act …>ACT</span>…` — **identik** antara berkas
   server & lokal. Data DB: #2 `MONITOR` (`sensor_id` 2), #3 `ACTUATOR` (`sensor_id` `-`).
 - Deploy: MD5 `44635c61e3569b9437198ba6c300968d` (dashboard) & `a2c3ae4dd5e26d1ead54b92edf838e75`
   (detail) — **lokal = server**; `view:clear` + `view:cache` OK; **2** view terkompilasi memuat
   `device-type-badge`; backup `/tmp/backup-badge-20261004-005117`.
+
+**Revisi (4 Okt 2026, permintaan operator: "tidak perlu di beri '.'").** Titik di akhir label
+dihapus → `MON.` / `ACT.` menjadi **`MON` / `ACT`** (komentar kode & dokumen ikut disesuaikan;
+tooltip tetap menyebut tipe lengkapnya). Deploy ulang 2 view: MD5
+`d18203858612458d7da9216f67460707` (dashboard) & `ee1a3839d32d3f0c9d724d2d51da4f3f` (detail) —
+**lokal = server**; `view:clear` + `view:cache` OK; view terkompilasi yang **masih** memuat
+`>MON.<`/`>ACT.<` = **0 & 0**, yang memuat `device-type-badge` = **2**, sehingga tidak ada sisa
+label bertitik; backup `/tmp/backup-badge2-20261004-005510`. Harness diperluas menjadi **37**
+pemeriksaan (4 di antaranya negatif, memastikan `>MON.<`/`>ACT.<` memang tidak ada) — lulus pada
+berkas lokal **dan** salinan hasil unduhan server; pratinjau header nyata kini `>MON</span>` (#2)
+dan `>ACT</span>` (#3).
 
 
 
