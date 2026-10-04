@@ -1251,3 +1251,36 @@ memang menyusun kartu statistiknya **4-dalam-1-baris** di layar kecil):
 **Ruang lingkup.** Hanya kartu statistik dashboard; tampilan ≥768px tidak berubah selain kini
 semuanya berbentuk 4 kolom dalam satu baris (sebelumnya 2 kolom di rentang 640–1279px).
 
+### 7.24 /monitoring: badge tipe perangkat (MON/ACT) di bagian "Perangkat IoT" (4 Okt 2026)
+
+**Permintaan operator.** Menunjuk `https://pamsimas.selur.my.id/monitoring` → kartu *Perangkat
+IoT* (MAC · Online · Tangki · Status/Mode · Update): **"tambahkan tipe perangkat"**.
+
+**Data & dampak.** `MonitoringController::overview()` sudah mengirim `Device::with('tank')->get()`
+sehingga `$d->device_type` tersedia di view — **tidak ada perubahan controller, API, atau DB**.
+
+**Tampilan (konsisten dengan §7.19).** Badge **`MON` / `ACT`** (label **tanpa titik** sesuai revisi)
+diletakkan tepat **di samping MAC** (dibungkus grup `<span class="flex items-center gap-2">`
+bersama MAC, indikator Online/Offline tetap di kanan), dengan `title="Tipe perangkat: MONITOR|ACTUATOR"`.
+Tipe di luar `MONITOR`/`ACTUATOR` atau kosong → **tanpa badge** (aturan sama dengan kartu gauge).
+
+| Tipe | Badge | Warna |
+|---|---|---|
+| `MONITOR` | **MON** | indigo `#eef2ff` / `#4338ca` |
+| `ACTUATOR` | **ACT** | oranye `#fff7ed` / `#c2410c` |
+| lain/kosong | *tanpa badge* | — |
+
+CSS `.device-type-badge` + varian `.is-mon`/`.is-act` **disalin identik** ke `@push('styles')`
+halaman ini (halaman ini sebelumnya tidak punya blok style sendiri).
+
+**Verifikasi — 19/19 lulus** (render `monitoring.overview` di server dengan `Device::with('tank')`):
+- **#2** `C4:D8:D5:13:A6:17` (MONITOR) → `device-type-badge is-mon` + `>MON<` + tooltip `MONITOR`;
+  **#3** `CC:50:E3:52:F3:B6` (ACTUATOR) → `is-act` + `>ACT<` + tooltip `ACTUATOR`;
+- badge muncul **2/2** perangkat; label **tanpa titik** (`>MON.<`/`>ACT.<` = 0); 3 aturan CSS ada;
+- **regresi utuh**: baris `Tangki:`/`Status:`/`Update:` masing-masing 2×, kartu *Sistem/Database/
+  Performa* tetap memakai `fa-server`/`fa-database`/`fa-tachometer-alt`, indikator Online tetap,
+  Font Awesome 6.4.2 tetap dimuat, halaman tanpa emoji;
+- MD5 `eba2fb49fd74f1edd3983d292af9a5a7` (**lokal = server**), `view:clear`+`view:cache` OK,
+  `/login` **200**, `/` & `/monitoring` **302** (redirect login tanpa sesi), backup
+  `/tmp/backup-mon-20261004-061835`.
+

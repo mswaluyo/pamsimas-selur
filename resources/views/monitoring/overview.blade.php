@@ -22,7 +22,15 @@
     @forelse($devices as $d)
     <div class="rounded-xl bg-white p-5 shadow">
         <div class="flex items-center justify-between">
-            <span class="font-mono text-xs font-semibold">{{ $d->mac_address }}</span>
+            <span class="flex items-center gap-2">
+                <span class="font-mono text-xs font-semibold">{{ $d->mac_address }}</span>
+                {{-- Tipe perangkat: badge MON / ACT — gaya sama dengan kartu gauge (TODO §7.19) --}}
+                @php($tipe = strtoupper((string) $d->device_type))
+                @if(in_array($tipe, ['MONITOR', 'ACTUATOR']))
+                <span class="device-type-badge {{ $tipe === 'MONITOR' ? 'is-mon' : 'is-act' }}"
+                      title="Tipe perangkat: {{ $d->device_type }}">{{ $tipe === 'MONITOR' ? 'MON' : 'ACT' }}</span>
+                @endif
+            </span>
             <span class="flex items-center gap-1.5 text-xs">
                 <span class="h-2 w-2 rounded-full {{ $d->isOnline() ? 'bg-emerald-500' : 'bg-red-500' }}"></span>
                 {{ $d->isOnline() ? 'Online' : 'Offline' }}
@@ -37,3 +45,12 @@
     @endforelse
 </div>
 @endsection
+
+@push('styles')
+<style>
+    /* Badge tipe perangkat (MON / ACT) — aturan identik dengan dashboard & halaman detail (§7.19) */
+    .device-type-badge { font-size:.62rem; font-weight:700; letter-spacing:.04em; border-radius:4px; padding:1px 5px; border:1px solid transparent; font-family:ui-monospace,SFMono-Regular,Menlo,monospace; flex:none; }
+    .device-type-badge.is-mon { background:#eef2ff; color:#4338ca; border-color:#c7d2fe; }
+    .device-type-badge.is-act { background:#fff7ed; color:#c2410c; border-color:#fed7aa; }
+</style>
+@endpush
