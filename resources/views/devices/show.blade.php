@@ -91,6 +91,11 @@
 .pump-duration-badge { font-size:.72rem; font-weight:700; color:#2c3e50; background:#f1f5f9; border-radius:9999px; padding:2px 8px; font-family:monospace; }
 .pump-duration-badge.is-on { background:#27ae60; color:#fff; }
 .pump-duration-badge.is-off { background:#7f8c8d; color:#fff; }
+/* Badge tipe perangkat (MON. / ACT.) — berdampingan dengan indikator pompa di header kartu */
+.hdr-left { display:inline-flex; align-items:center; gap:5px; flex:none; }
+.device-type-badge { font-size:.62rem; font-weight:700; letter-spacing:.04em; border-radius:4px; padding:1px 5px; border:1px solid transparent; font-family:ui-monospace,SFMono-Regular,Menlo,monospace; flex:none; }
+.device-type-badge.is-mon { background:#eef2ff; color:#4338ca; border-color:#c7d2fe; }
+.device-type-badge.is-act { background:#fff7ed; color:#c2410c; border-color:#fed7aa; }
 .signal-indicator { font-size:.75rem; font-weight:700; color:#7f8c8d; }
 .pump-info-label { display:flex; align-items:center; justify-content:center; gap:8px; margin-top:6px; font-size:.85rem; color:#34495e; }
 .pump-info-label .fan-icon { width:12px; height:12px; border-radius:50%; background:conic-gradient(#94a3b8 0 25%, #e2e8f0 0 50%, #94a3b8 0 75%, #e2e8f0 0); display:inline-block; flex:none; }
@@ -350,6 +355,7 @@
         tankName: @json($device->tank?->tank_name ?? 'Bak'),
         pumpName: @json($device->pump?->pump_name ?? 'Pompa'),
         isMonitor: {{ $device->sensor_id ? 'true' : 'false' }},
+        deviceType: @json($device->device_type),
         initialPct: {{ (float) $latestWaterPct }},
         pumpStatusSince: {{ $pumpStatusSince !== null ? (int) $pumpStatusSince : 'null' }},
         pumpStatus: @json($device->status),
@@ -441,6 +447,22 @@
     }
 
     /**
+     * Badge tipe perangkat: MON. = MONITOR (sensor + pompa), ACT. = ACTUATOR (pompa saja).
+     * Tipe lain (tak dikenal) tidak ditampilkan.
+     */
+    function deviceTypeInfo(type) {
+        const t = String(type || '').toUpperCase();
+        if (t === 'MONITOR') return { label: 'MON.', cls: 'is-mon', title: 'Tipe perangkat: MONITOR — sensor + pompa (fungsi ganda)' };
+        if (t === 'ACTUATOR') return { label: 'ACT.', cls: 'is-act', title: 'Tipe perangkat: ACTUATOR — pompa saja (tanpa baca sensor)' };
+        return null;
+    }
+    function deviceTypeBadgeHtml(type) {
+        const info = deviceTypeInfo(type);
+        if (!info) return '';
+        return '<span class="device-type-badge ' + info.cls + '" data-device-type title="' + info.title + '">' + info.label + '</span>';
+    }
+
+    /**
      * Bangun struktur kartu gauge (header indikator, label pompa, tombol aksi, MAC)
      * — pola renderGaugeCardStructure() sistem lama.
      */
@@ -457,7 +479,10 @@
 
         const header = document.createElement('div');
         header.className = 'gauge-header-container';
-        header.innerHTML = '<span class="pump-indicator" data-pump-led></span>'
+        header.innerHTML = '<span class="hdr-left">'
+            + '<span class="pump-indicator" data-pump-led></span>'
+            + deviceTypeBadgeHtml(CFG.deviceType)
+            + '</span>'
             + '<span class="pump-duration-badge" data-pump-timer>--:--:--</span>'
             + '<span class="signal-indicator" data-signal>--</span>';
         card.prepend(header);
@@ -558,6 +583,16 @@
 
             const led = card.querySelector('[data-pump-led]');
             if (led) led.className = 'pump-indicator' + (isOn && online ? ' on' : '');
+
+            // Badge tipe perangkat (MON. / ACT.) — disegarkan bila API mengirim device_type
+            const typeBadge = card.querySelector('[data-device-type]');
+            if (typeBadge && d.device_type) {
+                const info = deviceTypeInfo(d.device_type);
+                typeBadge.textContent = info ? info.label : '';
+                typeBadge.title = info ? info.title : '';
+                typeBadge.className = 'device-type-badge' + (info ? ' ' + info.cls : '');
+                typeBadge.style.display = info ? '' : 'none';
+            }
 
             const fan = card.querySelector('[data-fan]');
             if (fan) fan.className = 'fan-icon' + (isOn && online ? ' spin' : '');

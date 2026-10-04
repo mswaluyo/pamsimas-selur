@@ -81,6 +81,11 @@
 .pump-duration-badge { font-size:.72rem; font-weight:700; color:#2c3e50; background:#f1f5f9; border-radius:9999px; padding:2px 8px; font-family:monospace; }
 .pump-duration-badge.is-on { background:#27ae60; color:#fff; }
 .pump-duration-badge.is-off { background:#7f8c8d; color:#fff; }
+/* Badge tipe perangkat (MON. / ACT.) — di header kartu, berdampingan dengan indikator online */
+.hdr-left { display:inline-flex; align-items:center; gap:5px; flex:none; }
+.device-type-badge { font-size:.62rem; font-weight:700; letter-spacing:.04em; border-radius:4px; padding:1px 5px; border:1px solid transparent; font-family:ui-monospace,SFMono-Regular,Menlo,monospace; flex:none; }
+.device-type-badge.is-mon { background:#eef2ff; color:#4338ca; border-color:#c7d2fe; }
+.device-type-badge.is-act { background:#fff7ed; color:#c2410c; border-color:#fed7aa; }
 @keyframes pumpPulse { 0%,100% { opacity:1; } 50% { opacity:.4; } }
 @keyframes fanSpin { to { transform:rotate(360deg); } }
 </style>
@@ -165,10 +170,25 @@ function fallbackSvg(i) {
 let gaugeSlots = [];
 let gaugeSig = '';
 
-// --- Header kartu gauge: indikator online/offline + kekuatan sinyal ---
+// --- Badge tipe perangkat: MON. = MONITOR (sensor + pompa), ACT. = ACTUATOR (pompa saja) ---
+function deviceTypeInfo(type) {
+    const t = String(type || '').toUpperCase();
+    if (t === 'MONITOR') return { label: 'MON.', cls: 'is-mon', title: 'Tipe perangkat: MONITOR — sensor + pompa (fungsi ganda)' };
+    if (t === 'ACTUATOR') return { label: 'ACT.', cls: 'is-act', title: 'Tipe perangkat: ACTUATOR — pompa saja (tanpa baca sensor)' };
+    return null;
+}
+function deviceTypeBadgeHtml(type) {
+    const info = deviceTypeInfo(type);
+    if (!info) return '';
+    return '<span class="device-type-badge ' + info.cls + '" data-device-type title="' + info.title + '">' + info.label + '</span>';
+}
+
+// --- Header kartu gauge: tipe perangkat + indikator online/offline + kekuatan sinyal ---
 function cardHeader(d) {
     return `<div class="gauge-header-container">
-        <span class="online-indicator is-offline" data-online-ind title="Status perangkat"></span>
+        <span class="hdr-left">
+            <span class="online-indicator is-offline" data-online-ind title="Status perangkat"></span>${deviceTypeBadgeHtml(d.device_type)}
+        </span>
         <span class="signal-indicator" data-signal title="Kekuatan sinyal WiFi perangkat">
             <span class="bars"><i></i><i></i><i></i><i></i></span>
             <span data-signal-db>—</span>
@@ -279,6 +299,16 @@ function updateSlot(slot, idx, dev, pct, color) {
         dot.className = 'online-indicator ' + (dev.is_online ? 'is-online' : 'is-offline');
         dot.title = (dev.is_online ? 'Perangkat online' : 'Perangkat offline')
             + (dev.last_update_ts ? ' — update terakhir ' + fmtTime(dev.last_update_ts) : '');
+    }
+
+    // --- Badge tipe perangkat (MON. / ACT.) — mengikuti data terbaru dari API ---
+    const typeBadge = slot.querySelector('[data-device-type]');
+    if (typeBadge) {
+        const info = deviceTypeInfo(dev.device_type);
+        typeBadge.textContent = info ? info.label : '';
+        typeBadge.title = info ? info.title : '';
+        typeBadge.className = 'device-type-badge' + (info ? ' ' + info.cls : '');
+        typeBadge.style.display = info ? '' : 'none';
     }
     const sig = slot.querySelector('[data-signal]');
     if (sig) {

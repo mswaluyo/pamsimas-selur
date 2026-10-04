@@ -1011,5 +1011,58 @@ potongan template **mulai dari baris `<ul class="log-list">`** sehingga blok `@p
 durasi (yang berada **di atas** `<ul>`) tidak ikut dirender ⇒ hasil `0 chip` (padahal view
 benar). Slice harus dimulai dari **baris `@php`** blok tersebut.
 
+### 7.19 Badge tipe perangkat **MON. / ACT.** pada kartu gauge (4 Okt 2026)
+
+**Permintaan operator.** Kartu gauge (dashboard **dan** halaman detail perangkat) perlu penanda
+tipe perangkat agar langsung terlihat mana **MONITOR** dan mana **ACTUATOR** — singkatnya
+**MON.** / **ACT.**
+
+**Sumber data (tanpa perubahan API/DB).** `device_type` sudah dikirim `/api/dashboard-data`
+(`DashboardApiController.php:55`) dan **kedua** halaman memakai endpoint itu. Halaman detail juga
+mengeksposnya sejak boot: `window.DEVICE_CONFIG.deviceType = @json($device->device_type)`.
+
+**Tampilan.** Badge diletakkan di **header kartu gauge** (`gauge-header-container`), berdampingan
+dengan indikator online/offline. Indikator + badge dibungkus grup **`.hdr-left`** supaya jarak
+tetap rapi meski header memakai `justify-content:space-between`; urutan header jadi:
+**[dot online] [MON./ACT.] … [badge timer pompa] [kekuatan sinyal]**.
+| Tipe | Label | Warna |
+|---|---|---|
+| `MONITOR` (sensor + pompa, fungsi ganda) | **MON.** | indigo (`#eef2ff` / `#4338ca`) |
+| `ACTUATOR` (pompa saja, tanpa baca sensor) | **ACT.** | oranye (`#fff7ed` / `#c2410c`) |
+| tipe lain / kosong | *tanpa badge* | — |
+
+Tooltip menjelaskan tipe lengkapnya. CSS memakai aturan khusus halaman (`.device-type-badge`) di
+blok `<style>` masing-masing — **bukan kelas Tailwind baru** — sesuai catatan §10 (kelas Tailwind
+baru belum tentu ada di bundle Vite).
+
+**Perubahan kode.**
+1. `resources/views/dashboard/index.blade.php` — helper `deviceTypeInfo()` + `deviceTypeBadgeHtml()`;
+   `cardHeader(d)` membungkus indikator online + badge di `.hdr-left`; `updateSlot()` menyegarkan
+   badge dari `dev.device_type` pada setiap poll (3 dtk) sehingga perubahan tipe ikut tampil.
+2. `resources/views/devices/show.blade.php` — `CFG.deviceType` baru; helper yang sama;
+   `renderGaugeCardStructure()` menyisipkan badge di header kartu; `applyDeviceState()`
+   menyegarkan badge bila API mengirim `device_type`.
+
+**Verifikasi (harness Node; kode diambil langsung dari berkas, bukan salinan tangan).**
+33 pemeriksaan **lulus**, dijalankan dua kali: pada berkas **lokal** dan pada berkas **hasil
+unduhan dari server** — hasil identik:
+- sintaks kedua blok `@verbatim` valid (`new vm.Script`) → tidak ada JS yang rusak;
+- `cardHeader({device_type:'MONITOR'})` → ada `class="hdr-left"`, `class="device-type-badge is-mon"`,
+  teks `MON.`, tooltip benar; `ACTUATOR` → `is-act` + `ACT.`; tipe tak dikenal/kosong → **tanpa
+  badge**; indikator online + 4 bar sinyal tetap utuh (tidak ada regresi header);
+- ekspresi `header.innerHTML` halaman detail (diekstrak dari berkas lalu dievaluasi) menghasilkan
+  hasil sama dan tetap memuat `data-pump-led`, `data-pump-timer` (`--:--:--`), `data-signal`;
+- penyisipan badge timer dashboard (`hdr.insertBefore(tBadge, sigEl)`) tidak berubah sehingga
+  posisinya tetap sebelum indikator sinyal;
+- 4 selektor CSS ada di **kedua** halaman; `device_type` ada di API; `CFG.deviceType` ada di detail.
+- Pratinjau header nyata dari berkas terpasang: **#2** `C4:D8:D5:13:A6:17` (MONITOR) →
+  `…<span class="device-type-badge is-mon" data-device-type title="Tipe perangkat: MONITOR — sensor + pompa (fungsi ganda)">MON.</span>…`
+  dan **#3** `CC:50:E3:52:F3:B6` (ACTUATOR) → `…is-act …>ACT.</span>…` — **identik** antara berkas
+  server & lokal. Data DB: #2 `MONITOR` (`sensor_id` 2), #3 `ACTUATOR` (`sensor_id` `-`).
+- Deploy: MD5 `44635c61e3569b9437198ba6c300968d` (dashboard) & `a2c3ae4dd5e26d1ead54b92edf838e75`
+  (detail) — **lokal = server**; `view:clear` + `view:cache` OK; **2** view terkompilasi memuat
+  `device-type-badge`; backup `/tmp/backup-badge-20261004-005117`.
+
+
 
 
