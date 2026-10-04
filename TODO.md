@@ -1102,6 +1102,43 @@ di **10 berkas view** diganti ikon FA yang **diambil dari kosakata ikon backup**
 **Titik implementasi penting.**
 1. Ikon disimpan sebagai **nama kelas** lalu dirender di luar `{{ }}` (`<i class="fas {{ $x }}"></i>`)
    supaya **tidak di-escape** Blade — sama seperti backup (`show.php:137-141`).
+### 7.21 Menu sidebar "Perangkat Terdeteksi" dihapus (4 Okt 2026)
+
+**Permintaan operator.** *"Perangkat Terdeteksi pada sidebar dihilangkan saja karena di
+https://pamsimas.selur.my.id/devices sudah ada."*
+
+**Mengapa aman.** `DeviceController::index()` sudah mengirim `detected` (baris 29-30) dan
+`devices/index.blade.php` menampilkan bagian **"Perangkat Terdeteksi Otomatis"** (baris 60-110,
+termasuk tombol hapus → `devices.detected.delete`) ⇒ daftarnya tetap terlihat di `/devices`.
+Rute `GET /devices/detected` (`routes/web.php:44`) **tidak dihapus** — hanya tautan sidebar-nya.
+
+**Perubahan (`resources/views/layouts/app.blade.php`, 1 baris jadi 4).**
+1. `$navItem(route('devices.detected'), …, '<i class="fas fa-search"></i> Perangkat Terdeteksi', …)`
+   **dihapus**, diganti komentar Blade yang menjelaskan alasan penghapusan.
+2. `request()->routeIs(...)` pada menu **Perangkat** diperluas →
+   `devices.index, devices.show, devices.edit, devices.detected, devices.create`, supaya saat
+   membuka `/devices/detected` atau halaman daftar perangkat baru, menu **Perangkat** tetap
+   disorot (sebelumnya disorot oleh menu yang kini dihapus).
+3. `$detectedCount` ikut tak dirujuk lagi — variabel itu **tidak pernah diisi siapa pun** (muncul
+   hanya 1× di seluruh repo, dengan fallback `?? 0`) sehingga badge-nya memang selalu kosong;
+   tidak ada kode lain yang perlu dibersihkan.
+
+**Verifikasi — 11/11 lulus.**
+- Render sidebar (sesi `role=Administrator`): teks "Perangkat Terdeteksi" **tidak ada** di HTML,
+  `fa-search` **tidak ada**, jumlah ikon FA sidebar **21 → 20**, menu Perangkat tetap tertaut ke
+  `/devices`, menu Dashboard/Monitoring tetap utuh.
+- View terkompilasi: `routeIs('devices.detected','devices.create')` **ada** pada menu Perangkat;
+  `$navItem(route('devices.detected'))` = **0**; `$detectedCount` = **0**; judul & aksi hapus
+  bagian terdeteksi di `/devices` **masih ada**.
+- `/devices` dirender dengan data nyata → bagian "Perangkat Terdeteksi Otomatis" muncul (entri
+  DB kosong → empty-state "Tidak ada perangkat terdeteksi", wajar); rute `devices.detected` dan
+  URL aksi `…/devices/detected/{id}/delete` masih terbentuk benar.
+- Deploy: MD5 `aff599ce527c21e26ea79b3381e58fff` (**lokal = server**), `view:clear`+`view:cache`
+  OK, `/login` **200** & `/` **302**, backup `/tmp/backup-menu-20261004-054908`.
+- Dua asersi awal gagal karena **cara uji**, bukan karena kode: `routeIs(...)` tidak muncul di
+  HTML hasil render (harus dicek di view terkompilasi) dan `@forelse` tidak me-render tombol hapus
+  saat `detected` kosong → diverifikasi ulang (`vfy_menu2.php`) dan lulus semuanya.
+
 2. CSS pendukung memakai aturan biasa (bukan kelas Tailwind baru, lihat §10):
    `#sidebar nav a > i.fas { width:1.15em; text-align:center; flex:none; }` agar label menu tetap
    sejajar; `.pump-info-label i[data-fan]` + `.fa-spin` menggantikan `@keyframes fanSpin`.

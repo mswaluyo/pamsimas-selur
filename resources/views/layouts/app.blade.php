@@ -48,8 +48,10 @@
 
             @if(in_array($r, ['Administrator','Operator']))
             {!! $navSection('Manajemen IoT') !!}
-            {!! $navItem(route('devices.index'), request()->routeIs('devices.index', 'devices.show', 'devices.edit'), '<i class="fas fa-microchip"></i> Perangkat') !!}
-            {!! $navItem(route('devices.detected'), request()->routeIs('devices.detected', 'devices.create'), '<i class="fas fa-search"></i> Perangkat Terdeteksi', ($detectedCount ?? 0) > 0 ? $detectedCount : null) !!}
+            {{-- Menu "Perangkat Terdeteksi" dihapus dari sidebar (permintaan operator, 4 Okt 2026):
+                 daftarnya sudah tersedia di halaman /devices (bagian "Perangkat Terdeteksi Otomatis").
+                 Rute devices.detected & devices.create tetap disorot oleh menu Perangkat. --}}
+            {!! $navItem(route('devices.index'), request()->routeIs('devices.index', 'devices.show', 'devices.edit', 'devices.detected', 'devices.create'), '<i class="fas fa-microchip"></i> Perangkat') !!}
             {!! $navItem(route('monitoring.overview'), request()->routeIs('monitoring.*'), '<i class="fas fa-server"></i> Monitoring') !!}
             @endif
 
