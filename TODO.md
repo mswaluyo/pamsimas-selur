@@ -1717,6 +1717,36 @@ placeholder ter ganti, `sandbox="allow-scripts"`, peringatan DevExtreme tampil, 
 `active_template_id` tetap `three_quarter_gauge`, `/templates` tetap **302**.
 Screenshot 1280px: dua kolom rapi, 4 gauge ter-render benar, devextreme kosong + peringatan.
 
+### 7.44 — Warna RATA KANAN, swatch ×1,5 (87px), angka ×1,2 (70px) (sesi #88)
+Permintaan operator: *"warna buat rata kanan, perbesar warna 150%, input angkat 120%"*.
+
+- Baris form jadi **4 kolom**: **`[ label 62px | input ANGKA 70px | SPACER 1fr | input WARNA 87px ]`**
+  (`style="grid-template-columns:62px 70px 1fr 87px"`).
+  - **Warna 87px = 58px × 1,5** (+50%).
+  - **Angka 70px = 58px × 1,2** (+20%).
+  - **Rata kanan:** kolom warna dipindah ke kolom **terakhir** dan diberi **spacer `1fr`** di
+    antaranya, sehingga ketiga swatch **flush (tanpa jarak) ke tepi kanan form**. Catatan: kolom
+    warna yang lebar justru membuat swatch mengapung di tengah, jadi `spacer 1fr` adalah cara yang
+    benar untuk "rata kanan".
+    Baris Aman kini butuh **dua** `<div aria-hidden="true">` ( kolom angka & kolom spacer ).
+- Konsekuensi: kolom angka tidak lagi berdampingan rapat dengan warna, jadi verifikasi
+  `samaDenganWarna` (§7.43) diganti menjadi `warna150pct` / `angka120pct` / `kolomRataKanan` /
+  `flushKanan`.
+
+**Verifikasi 23/23 struktural** + **ukur DOM CDP** (1440/1280/393):
+`colW [87,87,87]` → **`warna150pct: true`**, `numW [70,70]` → **`angka120pct: true`**,
+`colRight [627,627,627]` → **`kolomRataKanan: true`**, `flushKanan: true`, **`gapDariTepi: 0`**
+(swatch benar-benar menempel tepi kanan), `kolomAngkaRata: true`, `tinggiSama: true`,
+`formRowComputed` = `62px 70px 87.66px 87px` (desktop) / `62px 70px 34.33px 87px` (laptop) /
+`62px 70px 110px 87px` (HP) — 즉 **spacer yang menyesuaikan**, lebar warna tetap 87px di semua layar;
+semua label `ok/sameRow: true`, `overlap: false`; `rowsGauge: 1` di desktop/laptop; uji klik Default
+`99 → 30`, `#000000 → #27ae60` di ketiga lebar.
+
+⚠️ Catatan harness:measure CDP perlu tunggu **6 detik** (bukan 3). Pada run pertama `templates: 0` dan
+uji Default gagal (`low` tetap `99`) — bukan bug aplikasi, tapi iframe `loading="lazy"` +
+`app-DMsN-rLE.js` belum selesai; setelah `setTimeout(…, 6000)` semua lolos. **Jangan menyimpulkan
+"fungsi mati" dari satu run yang terlalu cepat.**
+
 ### 7.43 — Input angka diperkecil, seragam dengan input warna (sesi #87)
 Permintaan operator: *"input angka buat kecil saja, atau seragam dengan warna"*.
 Dulu kolom angka `1fr` (melar ~195 px) padahal isinya 2 digit ("30"/"70").
