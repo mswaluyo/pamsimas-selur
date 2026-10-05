@@ -314,21 +314,54 @@ class SettingController extends Controller
         // "#pv" = wrapper pemusat, "#pvw" = isi template yang diskalakan agar pas di iframe.
         // Skala TIDAK lagi hard-code (dulu scale(.45) menyebabkan sisa ruang kosong / meluber
         // saat kartu jadi 4 kolom); dihitung ulang oleh fit() dari lebar x tinggi sebenarnya.
+        //
+        // NORMALISASI TAMPILAN (pratinjau saja, tidak mengubah halaman gauge asli):
+        // tiap template punya CSS sendiri sehingga judul & angka persen keluar berbeda ukuran,
+        // warna, dan posisi (mis. .tank-gauge-text tanpa aturan apa pun -> nempel di pojok kiri).
+        // Selain itu tiap kartu di-scale dengan faktor BERBEDA (simple_bar 1,8x vs tank 0,8x),
+        // dan transform ikut memperbesar teks sehingga judul terlihat "ada yang besar dan kecil".
+        // Solusinya: (1) aturan di bawah memakai !important untuk menimpa CSS template & style inline
+        // dari JS template, dan (2) ukuran font dibagi dengan --s (faktor skala) agar ukuran
+        // VISUAL teks tetap sama di semua kartu walau skalanya berbeda.
         return '<!doctype html><html lang="id"><head><meta charset="utf-8">'
             . '<style>*{box-sizing:border-box}html,body{margin:0;height:100%;overflow:hidden;background:#fff;'
             . "font-family:system-ui,-apple-system,'Segoe UI',sans-serif}"
             . '#pv{display:flex;align-items:center;justify-content:center;height:100%;width:100%;overflow:hidden;padding:2px}'
-            . '#pvw{display:inline-block;transform-origin:center center;max-width:100%}'
+            . '#pvw{display:inline-block;transform-origin:center center;max-width:100%;--s:1}'
             . '#pvw>*{margin-left:auto;margin-right:auto}'
-            . '#pvw .gauge-title{font-size:11px;color:#64748b;text-align:center}'
+            // Judul: ukuran/warna/jarak seragam, dikompensasi terhadap skala (--s).
+            . '#pvw .gauge-title{font-size:calc(11px / var(--s))!important;color:#64748b!important;'
+            . 'font-weight:600!important;text-align:center!important;line-height:1.3!important;'
+            . 'margin:0 0 6px!important;white-space:nowrap!important;overflow:hidden!important;'
+            . 'text-overflow:ellipsis!important}'
+            // Angka persen: ukuran, warna, dan ketebalan seragam di semua template.
+            . '#pvw .gauge-text-overlay,#pvw .simple-bar-gauge-text,#pvw .tank-gauge-text{'
+            . 'font-size:calc(1.05rem / var(--s))!important;font-weight:700!important;'
+            . 'color:#334155!important;line-height:1.1!important}'
+            // .value & <small>%</small> ikut ukuran & ketebalan induknya
+            // (three_quarter punya .value{font-weight:800} sendiri, harus ikut di-inherit).
+            . '#pvw .gauge-text-overlay .value{font-size:inherit!important;color:inherit!important;'
+            . 'font-weight:inherit!important}'
+            . '#pvw .gauge-text-overlay small{font-size:.62em!important;color:inherit!important}'
+            // Bar: template tidak memberi width pada .simple-bar-gauge-container sehingga kontainer
+            // ikut menyusut (shrink-to-fit) -> bar terlihat pendek & membulat, bukan bar.
+            // Diberi lebar eksplisit supaya proporsinya benar.
+            . '#pvw .simple-bar-gauge-container{width:150px!important;max-width:100%!important}'
+            // Bar & tank: teksnya di tengah (tank tanpa aturan di template -> nempel pojok kiri atas).
+            . '#pvw .simple-bar-gauge-text{display:flex!important;align-items:center!important;'
+            . 'justify-content:center!important;line-height:normal!important}'
+            . '#pvw .tank-gauge-text{position:absolute!important;left:0!important;right:0!important;'
+            . 'top:50%!important;transform:translateY(-50%)!important;text-align:center!important}'
             . $css . '</style></head><body><div id="pv"><div id="pvw">' . $html . '</div></div><script>'
             . '(function(){var card=document.getElementById("pv"),inner=document.getElementById("pvw");'
             // Skala agar isi template pas penuh ke dalam iframe (tidak ada sisa ruang, tidak meluber).
             // Batas atas 1.8: pratinjau boleh diperbesar supaya kontainer terisi (mis. simple_bar
             // yang aslinya kecil), tapi tidak dibesarkan berlebihan sampai blur.
+            // --s disimpan agar normalisasi font-size di atas bisa mengompensasi skala ini.
             . 'function fit(){try{var cw=card.clientWidth-4,ch=card.clientHeight-4;'
             . 'var w=inner.offsetWidth,h=inner.offsetHeight;if(!cw||!ch||!w||!h)return;'
-            . 'var s=Math.min(cw/w,ch/h,1.8);inner.style.transform="scale("+s+")";}catch(e){}}'
+            . 'var s=Math.min(cw/w,ch/h,1.8);inner.style.transform="scale("+s+")";'
+            . 'inner.style.setProperty("--s",s);}catch(e){}}'
             // Fallback universal: salinan persis universalUpdateGauge() di devices/show.blade.php
             . 'function universalUpdateGauge(el0,v,fill){el0.querySelectorAll("[data-update-style]").forEach(function(el){'
             . 'var p=el.dataset.updateStyle;'

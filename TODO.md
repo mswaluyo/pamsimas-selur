@@ -1717,6 +1717,53 @@ placeholder ter ganti, `sandbox="allow-scripts"`, peringatan DevExtreme tampil, 
 `active_template_id` tetap `three_quarter_gauge`, `/templates` tetap **302**.
 Screenshot 1280px: dua kolom rapi, 4 gauge ter-render benar, devextreme kosong + peringatan.
 
+### 7.46 — Pratinjau gauge diseragamkan: judul & angka persen sama besar/warna/posisi (sesi #90)
+Operator: *"presentase bentuk kurang serabagam, judul ada yang besar dan kecil"*.
+
+**Akar masalah (bukan sekadar "CSS template beda"):** tiap kartu pratinjau di-`scale` otomatis
+dengan **faktor berbeda-beda** — `simple_bar_gauge` **1,8×** (batas atas), `tank_gauge` **0,777×**,
+`three_quarter_gauge` **0,825×**, `conic_gauge` **0,942×**. `transform: scale()` ikut memperbesar
+**teks**, padahal HTML/CSS judul di keempat template **identik** (`<div class="gauge-title">` tanpa
+aturan font). Akibatnya judul di `simple_bar` terlihat besar dan di `tank` kecil.
+Ditambah tiap template punya CSS sendiri: `.value{font-size:2rem}` (three_quarter) vs `1.2rem`
+(conic) vs default (bar/tank), `font-weight:800` vs `700`, dan **`.tank-gauge-text` tanpa aturan
+apa pun** sehingga "65%" nempel di pojok kiri atas tangki.
+
+**Solusi — di `previewDoc()` saja (halaman gauge asli tidak ikut berubah):**
+1. **Kompensasi skala.** `fit()` kini menyimpan `inner.style.setProperty('--s', s)`, dan aturan
+   normalisasi memakai `font-size: calc(11px / var(--s))` untuk judul serta
+   `calc(1.05rem / var(--s))` untuk angka. Karena ukuran visual = font-size × skala, dibagi `--s`
+   membuat ukuran visual **tetap sama** walau skalanya berbeda (simple_bar CSS 6,11px × 1,8 =
+   11px; tank CSS 14,16px × 0,777 = 11px).
+2. **!important** dipakai agar normalisasi menimpa CSS template (dan style inline dari JS template).
+3. Judul: warna `#64748b`, `font-weight:600`, center, `text-overflow:ellipsis`.
+   Angka: warna `#334155`, `font-weight:700`, center; `.value` & `<small>` di-`inherit`
+   (menjinakkan `2rem`/`800` milik three_quarter, `%` jadi `.62em`).
+4. Posisi teks: `.simple-bar-gauge-text` jadi flex-center; `.tank-gauge-text` diposisikan
+   absolut di tengah tangki (sebelumnya nempel pojok kiri atas).
+5. **Bonus — bar gauge benar-benar berbentuk bar.** `.simple-bar-gauge-container` di template
+   **tidak punya `width`**, jadi kontainer ikut *shrink-to-fit* → bar pendek & membulat.
+   Sekarang diberi `width:150px`.
+
+**Verifikasi 27/27 struktural** + **ukur 4 dokumen pratinjau pada ukuran iframe asli** (150×150
+desktop, 124×150 laptop, 333×150 HP):
+| Ukuran visual | conic | simple_bar | tank | three_quarter | Sebaran |
+|---|---|---|---|---|---|
+| judul | 11px | 11px | 11px | 11px | **0 px** |
+| angka | 16,8px | 16,8px | 16,8px | 16,8px | **0 px** |
+| warna judul | `rgb(100,116,139)` ×4 | | | | seragam |
+| warna angka | `rgb(51,65,85)` ×4 | | | | seragam |
+| `font-weight` | 700 | 700 | 700 | 700 | seragam |
+
+⚠️ **Dua jebakan harness yang sempat menyesatkan (penting):**
+- `iframe.contentDocument` **selalu `null`** karena `sandbox="allow-scripts"` **tanpa**
+  `allow-same-origin` → iframe jadi **OOPIF** dan `Page.getFrameTree` **tidak** memuatnya.
+  Cara yang berhasil: **ekstrak `srcdoc` dari HTML** lalu buka tiap dokumen sendirian pada ukuran
+  iframe yang sama. (Cara alternatif: `Target.setAutoAttach` + `sessionId`.)
+- Verifier PHP gagal padahal fiturnya ada: karena `srcdoc` **ter-escape** di HTML luar, sehingga
+  `"` menjadi `&quot;` — pemeriksaan `str_contains($html,'setProperty("--s",s)')` selalu FALSE.
+  Harus cek versi `&quot;`.
+
 ### 7.45 — Input % didekatkan dengan warna (geser spacer ke tengah) (sesi #89)
 Permintaan operator: *"input % dekatkan dengan warna"*. Pada §7.44 sebelumnya urutan kolomnya
 `label | ANGKA | spacer 1fr | WARNA`, jadi ada **spacer lebar antara angka dan warna** — persis
