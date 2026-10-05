@@ -1717,6 +1717,30 @@ placeholder ter ganti, `sandbox="allow-scripts"`, peringatan DevExtreme tampil, 
 `active_template_id` tetap `three_quarter_gauge`, `/templates` tetap **302**.
 Screenshot 1280px: dua kolom rapi, 4 gauge ter-render benar, devextreme kosong + peringatan.
 
+### 7.42 — Label dipindah lagi: ke KIRI kolom ANGKA (urutan label | angka | warna) (sesi #86)
+Dua kali revisi label beruntun; yang ini yang benar (operator memilih dari opsi):
+*"Label Rendah/Sedang/Aman harus pindah ke KIRI kolom angka (urutan: label | angka | warna)"*.
+
+- Urutan kolom tiap baris dibalik menjadi **`[ label (62px) | input ANGKA (1fr) | input WARGA (58px) ]`**
+  (`style="grid-template-columns:62px 1fr 58px"`). Baris 3 (Aman): `<label>` + `<div aria-hidden="true">` + warna.
+- `<label>` Rendah/Sedang kini `for="threshold_low"` / `for="threshold_medium"` (menunjuk **input angka**,
+  sebelumnya `for="c-low"` menunjuk input warna). Input angka diberi `id` yang sama supaya asosiasi
+  label↔field benar (sebelumnya angka tidak punya `id`). `aria-label` + `title` tetap dipertahankan.
+- Nama template dapat `title` (kartu 4 kolom membuat `three_quarter_gauge` terpotong → nama penuh
+  muncul saat hover).
+
+GTK pertama saya tafsirkan "di kiri" = "di kiri swatch warna"; yang dimaksud sebenarnya "di kiri kolom angka". Karena itu sesi ini dimulai dengan **bertanya (meminta konfirmasi) sebelum mengubah kode**, bukan menebak lagi.
+
+**Verifikasi 22/22 struktural** + **ukur DOM CDP di 1440/1280/393 px**:
+`labelKiriDariInput: true`, `sameRow: true`, **`overlap: false`** (tidak saling tumpuk),
+`numX: [366,366]` / `numRata: true` dan `colorX: [569,569,569]` / `colorRata: true` (kolom angka & warna
+rata antarkolom), `formRowComputed: 62px 194.656px 58px`, `rowsGauge: 1` (4 gauge satu baris di desktop;
+4 baris di HP 393 px — disengaja), uji klik Default `99→30`, `#000000→#27ae60`, swLow `rgb(231,76,60)`.
+Catatan harness: view memanggil `route()`, jadi saat render manual harus
+`$app->instance('request', Request::create('/settings/display','GET'))` + `session(['user.role'=>'Administrator'])`
+(Permission::abortUnlessCan membaca `session('user.role')`), dan `App\Models\User` tidak punya kolom `role`
+— pilih user lewat `orderBy('id')->first()`. Aset build tidak berubah.
+
 ### 7.41 — Label dipindah ke KIRI swatch + 4 template gauge 1 baris & pratinjau "pas" (sesi #85)
 Koreksi atas permintaan sebelumnya: label **Rendah/Sedang/Aman sebelumnya masih DI ATAS** swatch
 (operator: *"label masih berada di atas warna, saya tadi minta di kiri"*), dan grid template
