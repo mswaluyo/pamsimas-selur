@@ -1717,6 +1717,37 @@ placeholder ter ganti, `sandbox="allow-scripts"`, peringatan DevExtreme tampil, 
 `active_template_id` tetap `three_quarter_gauge`, `/templates` tetap **302**.
 Screenshot 1280px: dua kolom rapi, 4 gauge ter-render benar, devextreme kosong + peringatan.
 
+### 7.45 — Input % didekatkan dengan warna (geser spacer ke tengah) (sesi #89)
+Permintaan operator: *"input % dekatkan dengan warna"*. Pada §7.44 sebelumnya urutan kolomnya
+`label | ANGKA | spacer 1fr | WARNA`, jadi ada **spacer lebar antara angka dan warna** — persis
+sebaliknya dari yang diminta. Perbaikannya **membalik posisi kolom**, bukan mengubah lebar:
+
+- Baris form jadi **`[ label 62px | SPACER 1fr | input ANGKA 70px | input WARNA 87px ]`**
+  (`style="grid-template-columns:62px 1fr 70px 87px"`). Spacer pindah ke **antara label dan angka**,
+  sehingga **angka menempel pada warna** (jarak hanya `gap-2` = 8px) sementara kolom warna tetap di kolom
+  **terakhir** → swatch tetap **rata kanan (flush)**.
+- Konsekuensi: label tidak lagi menempel di kiri input angka (§7.42 masih valid secara semantik —
+  `<label for>` tetap menunjuk input angka, hanya jarak visualnya yang bertambah karena angka
+  ditarik ke kanan). Baris Aman tetap memakai **dua** `<div aria-hidden="true">`.
+- Lebar tidak berubah: warna tetap 87px (×1,5), angka tetap 70px (×1,2).
+
+**Verifikasi 26/26 struktural** (termasuk "TIDAK ada spacer antara angka & warna" dan
+"total spacer = 4") + **ukur DOM CDP** (1440/1280/393):
+**`gapAngkaWarna [8,8]` → `dekat: true`** (tepat 8px = `gap-2`),
+`colW [87,87,87]` → `warna150pct: true`, `numW [70,70]` → `angka120pct: true`,
+`colRight [627,627,627]` → `kolomRataKanan: true`, **`flushKanan: true` & `gapDariTepi: 0`**,
+`kolomAngkaRata: true`, `kolomWarnaRata: true`, `tinggiSama: true`,
+`formRowComputed` = `62px 87.66px 70px 87px` (desktop) / `62px 34.33px 70px 87px` (laptop) /
+`62px 110px 70px 87px` (HP), semua label `ok/sameRow: true` & `overlap: false`,
+`rowsGauge: 1` di desktop/laptop; uji klik Default `99 → 30`, `#000000 → #27ae60` di ketiga lebar.
+
+⚠️ Pelajaran harness: `box()` di harness CDP harus menerima **selector string ATAU elemen**
+(`const e = typeof sel === 'string' ? document.querySelector(sel) : sel;`). Kalau hanya
+`querySelector` dan dipanggil dengan elemen (`closest('form')`), hasilnya error
+`is not a valid selector` — sempat menutupi hasil ukur yang sebenarnya sudah benar.
+`gapDariTepi` juga harus dibandingkan dengan tepi **`<form>`**, bukan tepi baris grid,
+karena baris grid hanya selebar isinya sendiri.
+
 ### 7.44 — Warna RATA KANAN, swatch ×1,5 (87px), angka ×1,2 (70px) (sesi #88)
 Permintaan operator: *"warna buat rata kanan, perbesar warna 150%, input angkat 120%"*.
 

@@ -11,38 +11,39 @@
             <i class="fas fa-tint text-sky-600"></i> Tampilan
         </h2>
         <p class="mb-4 text-sm text-slate-500">Ambang &amp; warna gauge.</p>
-        {{-- Tiap baris 4 kolom: LABEL (62px) + input ANGKA (70px) + SPACER (1fr) + input WARNA (87px).
-             Urutan: label | angka | (spacer) | warna. Label Rendah/Sedang/Aman di KIRI kolom angka.
+        {{-- Tiap baris 4 kolom: LABEL (62px) + SPACER (1fr) + input ANGKA (70px) + input WARNA (87px).
+             Urutan: label | (spacer) | angka | warna.
+             Angka & warna BERDEKAT (satu baris, jarak hanya gap-2 = 8px) karena operator
+             meminta input % didekatkan dengan warna, sementara kolom warna tetap di kolom TERAKHIR
+             supaya semua swatch rata kanan (flush) tepi kanan form.
              Angka 70px (dari 58px sebelumnya, +20%) dan warna 87px (58px x 1,5 = +50%).
-             Kolom warna berada di kolom TERAKHIR + spacer 1fr di tengahnya,
-             sehingga semua swatch rata kanan (flush) tepi kanan form.
              Kolom ditulis sebagai inline style (bukan kelas arbitrary Tailwind) karena kelas
              arbitrary baru tidak ada di CSS build sehingga kolom tidak terbentuk.
              Nilai default mengikuti IndicatorSetting::getSettings() (30 / #e74c3c, 70 / #f39c12, #27ae60). --}}
         <form method="POST" action="{{ route('settings.display') }}" class="space-y-2">
             @csrf
             <div class="space-y-2">
-                <div class="grid items-center gap-2" style="grid-template-columns:62px 70px 1fr 87px">
+                <div class="grid items-center gap-2" style="grid-template-columns:62px 1fr 70px 87px">
                     <label for="threshold_low" class="text-xs font-medium text-slate-600">Rendah</label>
+                    <div aria-hidden="true"></div>
                     <input id="threshold_low" type="number" name="threshold_low" required min="0" max="100"
                            value="{{ $settings['threshold_low'] }}" aria-label="Ambang rendah (%)" title="Ambang rendah (%)"
                            class="h-10 w-full rounded-lg border border-slate-300 px-2 text-center text-sm">
-                    <div aria-hidden="true"></div>
                     <input id="c-low" type="color" name="color_low" value="{{ $settings['color_low'] }}"
                            data-sw="sw-low"
                            class="h-10 w-full cursor-pointer rounded-lg border border-slate-300 bg-white p-1">
                 </div>
-                <div class="grid items-center gap-2" style="grid-template-columns:62px 70px 1fr 87px">
+                <div class="grid items-center gap-2" style="grid-template-columns:62px 1fr 70px 87px">
                     <label for="threshold_medium" class="text-xs font-medium text-slate-600">Sedang</label>
+                    <div aria-hidden="true"></div>
                     <input id="threshold_medium" type="number" name="threshold_medium" required min="0" max="100"
                            value="{{ $settings['threshold_medium'] }}" aria-label="Ambang sedang (%)" title="Ambang sedang (%)"
                            class="h-10 w-full rounded-lg border border-slate-300 px-2 text-center text-sm">
-                    <div aria-hidden="true"></div>
                     <input id="c-mid" type="color" name="color_medium" value="{{ $settings['color_medium'] }}"
                            data-sw="sw-mid"
                            class="h-10 w-full cursor-pointer rounded-lg border border-slate-300 bg-white p-1">
                 </div>
-                <div class="grid items-center gap-2" style="grid-template-columns:62px 70px 1fr 87px">
+                <div class="grid items-center gap-2" style="grid-template-columns:62px 1fr 70px 87px">
                     <label for="c-high" class="text-xs font-medium text-slate-600">Aman</label>
                     <div aria-hidden="true"></div>
                     <div aria-hidden="true"></div>
