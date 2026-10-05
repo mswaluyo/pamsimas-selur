@@ -78,6 +78,11 @@
 #device-show-page .log-type { flex:0 0 84px; color:#94a3b8; font-size:.7rem; text-transform:uppercase; letter-spacing:.03em; overflow:hidden; text-overflow:ellipsis; }
 #device-show-page .log-message { flex:1 1 auto; min-width:0; overflow:hidden; text-overflow:ellipsis; color:#2c3e50; font-weight:500; }
 #device-show-page .log-dur { flex:0 0 auto; margin-left:auto; background:#f1f5f9; color:#475569; border-radius:999px; padding:1px 8px; font-size:.7rem; font-variant-numeric:tabular-nums; white-space:nowrap; font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace; }
+/* Chip durasi dibedakan: "nyala" (hijau) vs "mati" (merah).
+   Warna sengaja senada dengan ikon baris log-success (#d1fae5/#059669) dan
+   log-warning (#fee2e2/#dc2626) supaya operator tidak perlu menghafal palet lain. */
+#device-show-page .log-dur-nyala { background:#d1fae5; color:#059669; }
+#device-show-page .log-dur-mati { background:#fee2e2; color:#dc2626; }
 #device-show-page .log-power .log-icon-wrapper { background:#fff3cd; color:#b8860b; }
 #device-show-page .log-success .log-icon-wrapper { background:#d1fae5; color:#059669; }
 #device-show-page .log-warning .log-icon-wrapper { background:#fee2e2; color:#dc2626; }
@@ -438,7 +443,11 @@
                     <span class="log-type">{{ $log->event_type }}</span>
                     <span class="log-message">{{ $log->message }}</span>
                     @if($dur)
-                        <span class="log-dur" title="{{ $dur['dari'] === 'ON' ? 'Durasi nyala sebelum pompa dimatikan' : 'Durasi mati/istirahat sebelum pompa menyala' }}">{{ $dur['dari'] === 'ON' ? 'nyala' : 'mati' }} {{ $dur['teks'] }}</span>
+                        {{-- 'dari' = status pompa SEBELUM transisi ini (ON = durasi nyala, selain itu mati).
+                             Chip diberi kelas berbeda agar "nyala" dan "mati" tidak sama warna. --}}
+                        @php $durLabel = $dur['dari'] === 'ON' ? 'nyala' : 'mati'; @endphp
+                        <span class="log-dur {{ $durLabel === 'nyala' ? 'log-dur-nyala' : 'log-dur-mati' }}"
+                              title="{{ $dur['dari'] === 'ON' ? 'Durasi nyala sebelum pompa dimatikan' : 'Durasi mati/istirahat sebelum pompa menyala' }}">{{ $durLabel }} {{ $dur['teks'] }}</span>
                     @endif
                 </li>
             @empty

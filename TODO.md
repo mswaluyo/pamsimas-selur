@@ -1717,6 +1717,36 @@ placeholder ter ganti, `sandbox="allow-scripts"`, peringatan DevExtreme tampil, 
 `active_template_id` tetap `three_quarter_gauge`, `/templates` tetap **302**.
 Screenshot 1280px: dua kolom rapi, 4 gauge ter-render benar, devextreme kosong + peringatan.
 
+### 7.47 — Chip durasi "nyala" vs "mati" diberi warna berbeda di Log Kejadian Terakhir (sesi #91)
+Permintaan operator: *"pada detail device, Log Kejadian Terakhir waktu nyala dan mati buat warna yang berbeda"*.
+Chip durasi `nyala 00:11:06` / `mati 00:10:02` sebelumnya **satu gaya** (`#f1f5f9`/`#475569`) sehingga
+operator harus membaca teks untuk tahu mana nyala mana mati.
+
+- **CSS** (di blok `<style>` `devices/show.blade.php`, setelah aturan `.log-dur`):
+  `#device-show-page .log-dur-nyala { background:#d1fae5; color:#059669; }` (hijau) dan
+  `#device-show-page .log-dur-mati { background:#fee2e2; color:#dc2626; }` (merah).
+  Palet **sengaja sama** dengan ikon baris log yang sudah ada (`log-success` & `log-warning`)
+  supaya operator cukup belajar 2 warna, bukan palet baru.
+- **Blade**: kelas chip ditentukan dari data yang sudah ada —
+  `$dur['dari'] === 'ON' ? 'nyala' : 'mati'` (lihat `PumpDuration::mapFromLogs()`: `dari` =
+  status pompa **sebelum** transisi, jadi "nyala" = berapa lama pompa menyala sebelum dimatikan).
+  Variabel `$durLabel` dipakai baik untuk teks maupun untuk memilih kelas, jadi teks & warna
+  **tidak mungkin** berbeda (tidak ada lagi penulisan `'nyala'`/`'mati'` ganda di template).
+- Aturan `#device-show-page .log-dur` yang ada **tidak diubah**, jadi chip tanpa pasangan durasi
+  (mis. log bukan Pump) tetap netral abu-abu.
+
+**Verifikasi 11/11 struktural** (render nyata `DeviceController::show()` untuk device id=2 yang punya
+event log `Pump`) + **ukur DOM via CDP** (1440 & 393 px):
+`nyala` → `rgb(5,150,105)` di atas `rgb(209,250,229)`; `mati` → `rgb(220,38,38)` di atas
+`rgb(254,226,226)`; **`beda.colorBeda: true` & `beda.bgBeda: true`**;
+`tanpaKelas: 0` (setiap chip pasti punya kelas warna; total 13 chip = 7 nyala + 6 mati).
+
+⚠️ Catatan harness: `DeviceController::show()` dipanggil **langsung** (bukan lewat kernel) karena
+middleware auth mengarahkan ke `/login`; butuh `session(['user.role'=>'Administrator'])` +
+`$app->instance('request', ...)`. Verifikasi pertama sempat gagal karena memeriksa ekspresi Blade
+`{{ $durLabel }}` pada HTML **yang sudah terkompilasi** — harus memeriksa teks hasil render
+(`>nyala` / `>mati`), bukan sintaks templating.
+
 ### 7.46 — Pratinjau gauge diseragamkan: judul & angka persen sama besar/warna/posisi (sesi #90)
 Operator: *"presentase bentuk kurang serabagam, judul ada yang besar dan kecil"*.
 
