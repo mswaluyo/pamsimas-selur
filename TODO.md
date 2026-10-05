@@ -1717,6 +1717,25 @@ placeholder ter ganti, `sandbox="allow-scripts"`, peringatan DevExtreme tampil, 
 `active_template_id` tetap `three_quarter_gauge`, `/templates` tetap **302**.
 Screenshot 1280px: dua kolom rapi, 4 gauge ter-render benar, devextreme kosong + peringatan.
 
+### 7.43 — Input angka diperkecil, seragam dengan input warna (sesi #87)
+Permintaan operator: *"input angka buat kecil saja, atau seragam dengan warna"*.
+Dulu kolom angka `1fr` (melar ~195 px) padahal isinya 2 digit ("30"/"70").
+
+- Kolom tiap baris: **`[ label 62px | input ANGKA 58px | input WARNA 58px ]`**
+  (`style="grid-template-columns:62px 58px 58px"`), jadi **angka & warna sama lebar (58px)** dan
+  bentuknya sama-sama kotak `h-10` — kolom warna tetap rata antarkolom, dan form jadi jauh lebih ringkas
+  (tabel 3 baris hanya ±190 px, bukan ±380 px).
+- Angka 0–100 muat nyaman di 58px (3 digit + spinner bawaan browser); `text-center` dipertahankan.
+- Tidak ada perubahan lain: label tetap di kiri, baris Aman tetap kosong di kolom angka,
+  4 gauge tetap 1 baris, tombol Default kiri / Simpan kanan.
+
+**Verifikasi 23/23 struktural** + **ukur DOM CDP** (1440/1280/393): `numW [58,58]`,
+`colW [58,58,58]`, `numSeragam: true`, `colSeragam: true`, **`samaDenganWarna: true`**,
+`numX [366,366]` & `colX [432,432,432]` → `kolomRata: true`, `tinggiSama: true`,
+`formRowComputed: 62px 58px 58px`, semua label `labelKiriDariInput/sameRow: true`, `overlap: false`;
+`rowsGauge: 1` (4 gauge 1 baris di desktop/laptop, 4 baris di HP); uji klik Default
+`99 → 30`, `#000000 → #27ae60` di ketiga lebar.
+
 ### 7.42 — Label dipindah lagi: ke KIRI kolom ANGKA (urutan label | angka | warna) (sesi #86)
 Dua kali revisi label beruntun; yang ini yang benar (operator memilih dari opsi):
 *"Label Rendah/Sedang/Aman harus pindah ke KIRI kolom angka (urutan: label | angka | warna)"*.
