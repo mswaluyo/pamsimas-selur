@@ -1717,6 +1717,49 @@ placeholder ter ganti, `sandbox="allow-scripts"`, peringatan DevExtreme tampil, 
 `active_template_id` tetap `three_quarter_gauge`, `/templates` tetap **302**.
 Screenshot 1280px: dua kolom rapi, 4 gauge ter-render benar, devextreme kosong + peringatan.
 
+### 7.41 — Label dipindah ke KIRI swatch + 4 template gauge 1 baris & pratinjau "pas" (sesi #85)
+Koreksi atas permintaan sebelumnya: label **Rendah/Sedang/Aman sebelumnya masih DI ATAS** swatch
+(operator: *"label masih berada di atas warna, saya tadi minta di kiri"*), dan grid template
+*"di ubah menjadi 1 baris 4 buah gauge, perhatikaan sisa space dalam kontainer gauge"*.
+
+**1. Label pindah ke kiri swatch.** Baris form jadi **3 kolom**:
+`[ input ANGKA (1fr) | label | input WARGA (58px) ]` — dipakai **inline style**
+`style="grid-template-columns:1fr 58px 58px"`, **bukan** kelas arbitrary Tailwind
+(`grid-cols-[1fr_58px_58px]`). **Alasan penting:** CSS build (`app-KYeKJeyF.css`) memang memuat
+`.grid-cols-[1fr_64px]` & `.grid-cols-[1fr_84px]`, tapi kelas baru `grid-cols-[1fr_58px_58px]`
+**tidak ada di CSS** → kolom tidak terbentuk, label turun ke bawah (salah).
+Pelajaran: **kelas arbitrary baru = wajib rebuild aset Vite**, atau pakai inline style /
+kelas yang sudah ada. Verified: `formRowComputed` = `198.656px 58px 58px` (desktop),
+`labelKiriDariWarna: true` + `sameRow: true` di 1440/1280/393 px.
+
+**2. Grid template 1 baris 4 gauge.** `grid-cols-2 gap-3 xl:grid-cols-3` →
+`grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4`; kartu jadi `flex flex-col`,
+iframe `h-24 ... flex-1` agar tinggi seragam. **Desktop/laptop: `rows: 1`** (4 dalam satu baris;
+HP 393 px tetap 1 kolom karena layar sempit — disengaja).
+
+**3. Sisa space di kontainer gauge diperbaiki.** Dulu `previewDoc()` memakai
+`transform:scale(.45)` hard-code → saat kartu mengecil (4 kolom) gauge jadi **kecil dengan ruang
+kosong besar**, dan saat kartu membesar bisa **meluber**. Diganti skala **dinamis**:
+wrapper `#pv` (flex pemusat) + isi `#pvw`, plus `fit()`:
+`var s=Math.min(cw/w, ch/h, 1.8)` (`cw/ch` = ukuran iframe − 4px, `w/h` = ukuran asli isi).
+Batas atas **1.8** supaya gauge yang aslinya kecil (simple_bar 56×75) ikut terisi kontainer,
+`transform-origin:center center`, dipanggil via `ResizeObserver(card)` + `fit()`/`rAF`/`setTimeout`
+karena ukuran iframe baru final setelah layout & `initGauge` selesai.
+
+**Pengisian kontainer setelah fix (tinggi isi / tinggi iframe):** conic **0,974**,
+simple_bar **0,888**, tank **0,974**, three_quarter **0,974** (sebelumnya simple_bar hanya **0,493**,
+yaitu ~separuh kontainer kosong). Lebar memang tidak 100% karena rasio aspect tiap template berbeda
+— pemusatan horizontal, bukan scaling, yang benar di sini.
+
+**Verifikasi 17/17** (label kiri & sebaris; urutan DOM angka→label→warna; 3 label; tanpa `mb-1 block`;
+2 `input[number]` tanpa `<label>` tapi ada `aria-label`+`title`; `xl:grid-cols-4` & grid lama hilang;
+4 `srcdoc`; `fit()` + `ResizeObserver` ada; `scale(.45)` hilang; wrapper `#pvw`; Default
+`type="button"` sebelum `type="submit"`; `justify-between`; `GAUGE_DEFAULTS`; slide ON; blok JS ter-ekstrak)
++ **ukur DOM via CDP** (1440/1280/393) + **ukur 4 dokumen pratinjau pada ukuran iframe nyata**
++ **uji klik Default**: `99 → 30`, `#000000 → #27ae60`, swLow kembali `rgb(231,76,60)` di semua lebar.
+Backup `/tmp/backup-95`, `/tmp/backup-96`. Aset build tidak berubah (CSS/JS tetap
+`app-KYeKJeyF.css` / `app-DMsN-rLE.js`).
+
 ### 7.40 — Form: label cukup Rendah/Sedang/Aman + tombol Default (kiri) & Simpan (kanan) (sesi #84)
 Permintaan operator: *"label cukup rendah, sedang, aman. tengah form angka tanpa label, kanan warna.
 tambah dafault di sebelah kiri simpan, simpan taruh paling kanan (rata kanan)"*.

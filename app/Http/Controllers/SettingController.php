@@ -311,14 +311,24 @@ class SettingController extends Controller
         $css = (string) $t->css_code;
         $js = (string) $t->js_code;
 
+        // "#pv" = wrapper pemusat, "#pvw" = isi template yang diskalakan agar pas di iframe.
+        // Skala TIDAK lagi hard-code (dulu scale(.45) menyebabkan sisa ruang kosong / meluber
+        // saat kartu jadi 4 kolom); dihitung ulang oleh fit() dari lebar x tinggi sebenarnya.
         return '<!doctype html><html lang="id"><head><meta charset="utf-8">'
             . '<style>*{box-sizing:border-box}html,body{margin:0;height:100%;overflow:hidden;background:#fff;'
             . "font-family:system-ui,-apple-system,'Segoe UI',sans-serif}"
-            . '#pv{display:block;height:100%;padding:4px;transform:scale(.45);transform-origin:center center}'
-            . '#pv>*{margin-left:auto;margin-right:auto}'
-            . '#pv .gauge-title{font-size:11px;color:#64748b;text-align:center}'
-            . $css . '</style></head><body><div id="pv">' . $html . '</div><script>'
-            . '(function(){var card=document.getElementById("pv");'
+            . '#pv{display:flex;align-items:center;justify-content:center;height:100%;width:100%;overflow:hidden;padding:2px}'
+            . '#pvw{display:inline-block;transform-origin:center center;max-width:100%}'
+            . '#pvw>*{margin-left:auto;margin-right:auto}'
+            . '#pvw .gauge-title{font-size:11px;color:#64748b;text-align:center}'
+            . $css . '</style></head><body><div id="pv"><div id="pvw">' . $html . '</div></div><script>'
+            . '(function(){var card=document.getElementById("pv"),inner=document.getElementById("pvw");'
+            // Skala agar isi template pas penuh ke dalam iframe (tidak ada sisa ruang, tidak meluber).
+            // Batas atas 1.8: pratinjau boleh diperbesar supaya kontainer terisi (mis. simple_bar
+            // yang aslinya kecil), tapi tidak dibesarkan berlebihan sampai blur.
+            . 'function fit(){try{var cw=card.clientWidth-4,ch=card.clientHeight-4;'
+            . 'var w=inner.offsetWidth,h=inner.offsetHeight;if(!cw||!ch||!w||!h)return;'
+            . 'var s=Math.min(cw/w,ch/h,1.8);inner.style.transform="scale("+s+")";}catch(e){}}'
             // Fallback universal: salinan persis universalUpdateGauge() di devices/show.blade.php
             . 'function universalUpdateGauge(el0,v,fill){el0.querySelectorAll("[data-update-style]").forEach(function(el){'
             . 'var p=el.dataset.updateStyle;'
@@ -335,6 +345,9 @@ class SettingController extends Controller
             . 'try{if(typeof window.updateGauge==="function"){window.updateGauge(card,' . $pct . ',"#22c55e");}'
             . 'else{universalUpdateGauge(card,' . $pct . ',"#22c55e");}}catch(e){universalUpdateGauge(card,' . $pct . ',"#22c55e");}'
             . 'universalUpdateGauge(card,' . $pct . ',"#22c55e");'
+            // Terapkan skala setelah gambar & update pertama selesai (juga saat ukuran iframe berubah)
+            . 'if(window.ResizeObserver){new ResizeObserver(fit).observe(card);}else{window.addEventListener("resize",fit);}'
+            . 'fit();requestAnimationFrame(fit);setTimeout(fit,60);'
             . '})();</script></body></html>';
     }
 

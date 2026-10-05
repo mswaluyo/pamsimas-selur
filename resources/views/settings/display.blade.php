@@ -11,42 +11,36 @@
             <i class="fas fa-tint text-sky-600"></i> Tampilan
         </h2>
         <p class="mb-4 text-sm text-slate-500">Ambang &amp; warna gauge.</p>
-        {{-- Tiap baris: input angka (kiri, lebar, tanpa label) + input warna (kanan, swatch kecil)
-             dengan label singkat Rendah/Sedang/Aman. Nilai default mengikuti
-             IndicatorSetting::getSettings() (30 / #e74c3c, 70 / #f39c12, #27ae60). --}}
+        {{-- Tiap baris 3 kolom: input ANGKA (kiri, lebar) + LABEL (tengah) + input WARNA (kanan).
+             Label Rendah/Sedang/Aman berada di KIRI swatch warna, sejajar horizontal.
+             Nilai default mengikuti IndicatorSetting::getSettings() (30 / #e74c3c, 70 / #f39c12, #27ae60). --}}
         <form method="POST" action="{{ route('settings.display') }}" class="space-y-2">
             @csrf
             <div class="space-y-2">
-                <div class="grid grid-cols-[1fr_64px] items-end gap-2">
+                <div class="grid items-center gap-2" style="grid-template-columns:1fr 58px 58px">
                     <input type="number" name="threshold_low" required min="0" max="100"
                            value="{{ $settings['threshold_low'] }}" aria-label="Ambang rendah (%)" title="Ambang rendah (%)"
                            class="h-10 w-full rounded-lg border border-slate-300 px-2 text-center text-sm">
-                    <div>
-                        <label for="c-low" class="mb-1 block text-xs font-medium text-slate-600">Rendah</label>
-                        <input id="c-low" type="color" name="color_low" value="{{ $settings['color_low'] }}"
-                               data-sw="sw-low"
-                               class="h-10 w-full cursor-pointer rounded-lg border border-slate-300 bg-white p-1">
-                    </div>
+                    <label for="c-low" class="text-xs font-medium text-slate-600">Rendah</label>
+                    <input id="c-low" type="color" name="color_low" value="{{ $settings['color_low'] }}"
+                           data-sw="sw-low"
+                           class="h-10 w-full cursor-pointer rounded-lg border border-slate-300 bg-white p-1">
                 </div>
-                <div class="grid grid-cols-[1fr_64px] items-end gap-2">
+                <div class="grid items-center gap-2" style="grid-template-columns:1fr 58px 58px">
                     <input type="number" name="threshold_medium" required min="0" max="100"
                            value="{{ $settings['threshold_medium'] }}" aria-label="Ambang sedang (%)" title="Ambang sedang (%)"
                            class="h-10 w-full rounded-lg border border-slate-300 px-2 text-center text-sm">
-                    <div>
-                        <label for="c-mid" class="mb-1 block text-xs font-medium text-slate-600">Sedang</label>
-                        <input id="c-mid" type="color" name="color_medium" value="{{ $settings['color_medium'] }}"
-                               data-sw="sw-mid"
-                               class="h-10 w-full cursor-pointer rounded-lg border border-slate-300 bg-white p-1">
-                    </div>
+                    <label for="c-mid" class="text-xs font-medium text-slate-600">Sedang</label>
+                    <input id="c-mid" type="color" name="color_medium" value="{{ $settings['color_medium'] }}"
+                           data-sw="sw-mid"
+                           class="h-10 w-full cursor-pointer rounded-lg border border-slate-300 bg-white p-1">
                 </div>
-                <div class="grid grid-cols-[1fr_64px] items-end gap-2">
+                <div class="grid items-center gap-2" style="grid-template-columns:1fr 58px 58px">
                     <div aria-hidden="true"></div>
-                    <div>
-                        <label for="c-high" class="mb-1 block text-xs font-medium text-slate-600">Aman</label>
-                        <input id="c-high" type="color" name="color_high" value="{{ $settings['color_high'] }}"
-                               data-sw="sw-high"
-                               class="h-10 w-full cursor-pointer rounded-lg border border-slate-300 bg-white p-1">
-                    </div>
+                    <label for="c-high" class="text-xs font-medium text-slate-600">Aman</label>
+                    <input id="c-high" type="color" name="color_high" value="{{ $settings['color_high'] }}"
+                           data-sw="sw-high"
+                           class="h-10 w-full cursor-pointer rounded-lg border border-slate-300 bg-white p-1">
                 </div>
             </div>
             <div class="mt-3 flex flex-wrap items-center gap-x-3 gap-y-1 rounded-lg bg-slate-50 px-3 py-2 text-[11px] text-slate-600">
@@ -99,13 +93,13 @@
             <i class="fas fa-magic text-violet-600"></i> Template Gauge
         </h2>
         <p class="mb-3 text-sm text-slate-500">Pratinjau pada level {{ $previewPercent }}%.</p>
-        <div class="grid grid-cols-2 gap-3 xl:grid-cols-3">
+        <div class="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
             @foreach($templates as $t)
-            <div class="rounded-xl border p-2 {{ $activeId === $t->name ? 'border-sky-400 bg-sky-50/60 ring-1 ring-sky-300' : 'border-slate-200' }}">
+            <div class="flex flex-col rounded-xl border p-2 {{ $activeId === $t->name ? 'border-sky-400 bg-sky-50/60 ring-1 ring-sky-300' : 'border-slate-200' }}">
                 <iframe title="Pratinjau {{ $t->name }}" sandbox="allow-scripts" loading="lazy"
-                        class="h-28 w-full rounded-lg border border-slate-200 bg-white"
+                        class="h-24 w-full flex-1 rounded-lg border border-slate-200 bg-white"
                         srcdoc="{{ $t->preview_srcdoc }}"></iframe>
-                <div class="mt-2 flex items-center justify-between gap-2">
+                <div class="mt-2 flex items-center justify-between gap-1">
                     <span class="flex min-w-0 items-center gap-1 text-xs font-semibold">
                         <span class="truncate">{{ $t->name }}</span>
                     </span>
